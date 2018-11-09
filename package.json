@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "cheerio": "^1.0.0-rc.2",
+    "express": "^4.16.4",
+    "fs-extra": "^7.0.1",
+    "handlebars": "^4.0.11",
+    "moment": "^2.22.2",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.5"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
