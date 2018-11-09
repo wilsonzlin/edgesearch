@@ -28,9 +28,6 @@ module.exports = handlebars.compile(`
 
     <aside>
       <form method="get">
-        <h1>Keywords</h1>
-        <input name="keywords" value="{{keywords}}">
-
         <h1>After</h1>
         <input type="datetime-local" name="after" value="{{after}}">
         </label>
@@ -40,10 +37,9 @@ module.exports = handlebars.compile(`
           <thead>
             <tr>
               <th></th>
-              <th>Expression</th>
-              <th>Flags</th>
+              <th>Words</th>
               <th>Field</th>
-              <th>Invert</th>
+              <th>Mode</th>
               <th>Comment</th>
             </tr>
           </thead>
@@ -53,23 +49,20 @@ module.exports = handlebars.compile(`
               <tr>
                 <td>
                   <select name="rules_enabled[]">
-                    <option value="false" selected></option>
+                    <option value="false" selected>Disabled</option>
                     <option value="true" {{#if enabled}}selected{{/if}}>Enabled</option>
                   </select>
                 </td>
                 <td>
-                  <input name="rules_expression[]" value="{{expression}}">
-                </td>
-                <td>
-                  <input name="rules_flags[]" value="{{flags}}">
+                  <input name="rules_words[]" value="{{words}}">
                 </td>
                 <td>
                   <input name="rules_field[]" value="{{field}}">
                 </td>
                 <td>
                   <select name="rules_invert[]">
-                    <option value="false" selected></option>
-                    <option value="true" {{#if invert}}selected{{/if}}>Invert</option>
+                    <option value="false" selected>Require</option>
+                    <option value="true" {{#if invert}}selected{{/if}}>Exclude</option>
                   </select>
                 </td>
                 <td>
@@ -84,23 +77,20 @@ module.exports = handlebars.compile(`
           <tr>
             <td>
               <select name="rules_enabled[]">
-                <option value="false"></option>
+                <option value="false">Disabled</option>
                 <option value="true" selected>Enabled</option>
               </select>
             </td>
             <td>
-              <input name="rules_expression[]">
-            </td>
-            <td>
-              <input name="rules_flags[]">
+              <input name="rules_words[]">
             </td>
             <td>
               <input name="rules_field[]">
             </td>
             <td>
               <select name="rules_invert[]">
-                <option value="false" selected></option>
-                <option value="true">Invert</option>
+                <option value="false" selected>Require</option>
+                <option value="true">Exclude</option>
               </select>
             </td>
             <td>
