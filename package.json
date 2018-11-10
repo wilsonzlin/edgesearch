@@ -12,6 +12,8 @@
     "request-promise-native": "^1.0.5"
   },
   "scripts": {
+    "clean": "rm -rf cache data-*.json",
+    "build": "node data.js && node analysis.js",
     "start": "node server.js"
   }
 }

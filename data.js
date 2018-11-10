@@ -55,7 +55,7 @@ const load = async () => {
     const pagination = first.hits;
     const total = first.totalHits;
 
-    console.log(`Need to load ${total} jobs in ${pagination} chunks`);
+    console.log(`Need to load ${total} jobs in chunks of ${pagination}`);
 
     const scrapes = await Promise.all(Array(Math.ceil(total / pagination)).fill(true).map((_, i) => {
       const from = i * pagination;
