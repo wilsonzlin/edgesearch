@@ -71,10 +71,7 @@
                       <option>{{this}}</option>
                     {{/each}}</select></h3>
                   <div class="search-term-head-spacer"></div>
-                  <select name="rules_enabled[]" data-value="{{enabled}}">
-                    <option value="false">Disabled</option>
-                    <option value="true">Enabled</option>
-                  </select>
+                  <div class="toggle" data-name="rules_enabled[]" data-checked="{{enabled}}"></div>
                 </div>
                 <select name="rules_mode[]" data-value="{{mode}}">
                   <option value="require">Require</option>
@@ -98,10 +95,7 @@
                     <option>{{this}}</option>
                   {{/each}}</select></h3>
                 <div class="search-term-head-spacer"></div>
-                <select name="rules_enabled[]">
-                  <option value="false">Disabled</option>
-                  <option value="true" selected>Enabled</option>
-                </select>
+                <div class="toggle" data-name="rules_enabled[]" data-checked="true"></div>
               </div>
               <select name="rules_mode[]">
                 <option value="require" selected>Require</option>
