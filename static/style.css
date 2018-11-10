@@ -3,7 +3,6 @@
 }
 
 html {
-  font-size: 16px;
   line-height: 1.5;
 }
 
@@ -68,6 +67,66 @@ select {
 
 .toggle.checked::after {
   background: white;
+}
+
+.btn {
+  border: 0;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  min-width: 80px;
+  padding: 0 16px;
+
+  height: 32px;
+
+  background: #f4f4f4;
+  color: #333333;
+}
+
+.btn:hover, .btn:focus {
+  background: #eaeaea;
+  color: #212121;
+}
+
+.btn-blue {
+  background: #0078d4; /* themePrimary */
+  color: white;
+}
+
+.btn-blue:hover, .btn-blue:focus {
+  background: #106ebe;
+  color: white;
+}
+
+.btn-teal {
+  background: #008272; /* teal */
+  color: white;
+}
+
+.btn-teal:hover, .btn-teal:focus {
+  background: #004b50; /* tealDark */
+  color: white;
+}
+
+.btn-red {
+  background: #e81123; /* red */
+  color: white;
+}
+
+.btn-red:hover, .btn-red:focus {
+  background: #a80000; /* redDark */
+  color: white;
+}
+
+.msg {
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  border-left: 2px solid currentColor;
+}
+
+.msg-info {
+  color: #0078d4; /* themePrimary */
 }
 
 #header {
@@ -238,10 +297,6 @@ h2.section-heading {
   opacity: 0.5;
 }
 
-.search-term > * {
-  margin: 0.25rem 0;
-}
-
 .search-term-head {
   display: flex;
   align-items: baseline;
@@ -266,4 +321,35 @@ h2.section-heading {
 
 .search-term-head-spacer {
   flex-grow: 1;
+}
+
+.search-term-body {
+  display: flex;
+  align-items: baseline;
+
+  margin: 1rem 0.25rem;
+}
+
+.search-term-body > * {
+  padding: 0.25rem;
+}
+
+.search-term-mode {
+  flex: 0 0 auto;
+  margin-right: 0.5rem;
+}
+
+.search-term-words {
+  background: rgba(255, 255, 255, 0.67);
+  border: 2px solid #d0d0d0; /* neutralQuaternary */
+
+  flex-grow: 1;
+}
+
+#filter-buttons {
+  margin: 2rem 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }

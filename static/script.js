@@ -30,6 +30,16 @@
     });
   }
 
+  for (const $button of $$(".search-term-button")) {
+    $button.addEventListener("click", () => {
+      switch ($button.value) {
+      case "delete":
+        $button.parentNode.parentNode.remove();
+        break;
+      }
+    });
+  }
+
   Sortable.create($search_terms, {
     handle: ".search-term-drag",
     ghostClass: "search-term-dragging",

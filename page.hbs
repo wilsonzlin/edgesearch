@@ -73,14 +73,17 @@
                   <div class="search-term-head-spacer"></div>
                   <div class="toggle" data-name="rules_enabled[]" data-checked="{{enabled}}"></div>
                 </div>
-                <select name="rules_mode[]" data-value="{{mode}}">
-                  <option value="require">Require</option>
-                  <option value="contain">Any of</option>
-                  <option value="exclude">Exclude</option>
-                </select>
-                <input name="rules_words[]" value="{{words}}">
+                <div class="search-term-body">
+                  <select class="search-term-mode" name="rules_mode[]" data-value="{{mode}}">
+                    <option value="require">Require</option>
+                    <option value="contain">Any of</option>
+                    <option value="exclude">Exclude</option>
+                  </select>
+                  <input class="search-term-words" name="rules_words[]" value="{{words}}"
+                         placeholder="Enter space-separated words">
+                </div>
                 <div class="search-term-buttons">
-                  <button type="button">Delete</button>
+                  <button class="btn search-term-button" type="button" value="delete">Delete</button>
                 </div>
               </li>
             {{/each}}
@@ -97,21 +100,28 @@
                 <div class="search-term-head-spacer"></div>
                 <div class="toggle" data-name="rules_enabled[]" data-checked="true"></div>
               </div>
-              <select name="rules_mode[]">
-                <option value="require" selected>Require</option>
-                <option value="contain">Any of</option>
-                <option value="exclude">Exclude</option>
-              </select>
-              <input name="rules_words[]">
+              <div class="search-term-body">
+                <select class="search-term-mode" name="rules_mode[]">
+                  <option value="require" selected>Require</option>
+                  <option value="contain">Any of</option>
+                  <option value="exclude">Exclude</option>
+                </select>
+                <input class="search-term-words" name="rules_words[]" placeholder="Enter space-separated words">
+              </div>
               <div class="search-term-buttons">
-                <button type="button">Delete</button>
+                <button class="btn search-term-button" type="button" value="delete">Delete</button>
               </div>
             </li>
           </template>
 
-          <button type="button" id="search-terms-add-button">Add rule</button>
+          <div id="filter-buttons">
+            <button class="btn" type="button" id="search-terms-add-button">Add rule</button>
+            <button class="btn btn-teal">Search</button>
+          </div>
 
-          <button>Search</button>
+          <p class="msg msg-info">
+            Want to save or share your search? It's all in the URL.
+          </p>
         </form>
       </aside>
     </div>
