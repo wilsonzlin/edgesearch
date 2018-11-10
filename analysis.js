@@ -6,7 +6,6 @@ const path = require("path");
 
 const PATH_DATA_RAW = path.join(__dirname, "data-raw.json");
 const PATH_DATA_PROCESSED = path.join(__dirname, "data-processed.json");
-const PATH_TITLE_WORDS = path.join(__dirname, "data-title-words.json");
 
 const word_map = {
   "ii": ["2"],
@@ -16,14 +15,13 @@ const word_map = {
   "sr": ["senior"],
   "sw": ["software"],
   "engineerv": ["engineer"],
-  "d’azure": ["azure"],
   "m365": ["microsoft", "365"],
   "ms": ["microsoft"],
   "o365": ["office", "365"],
   "office365": ["office", "365"],
 };
 
-function extract_words(sentence) {
+function extract_words (sentence) {
   return sentence
     .replace(/[\[\]\-\/&_(),:;.（）、*"+!?$|]/g, " ")
     .trim()
@@ -34,31 +32,43 @@ function extract_words(sentence) {
     ;
 }
 
-function log_words(words) {
-  console.log(`Words (${words.length}):
+function collate_words_of_field (field, jobs) {
+  const set = new Set();
+
+  for (const job of jobs) {
+    const extracted = job._words[field] = extract_words(job[field]);
+    for (const word of extracted) {
+      set.add(word);
+    }
+  }
+
+  return [...set].sort();
+}
+
+function log_strings_list (description, list) {
+  console.log(`${description} (${list.length}):
 ==================================
- ${words.join("\n ")}
+ ${list.join("\n ")}
 `);
 }
 
 const jobs = fs.readJSONSync(PATH_DATA_RAW)
   .map(j => ({
+    _words: {},
     ID: j.jobId,
     title: j.title,
-    title_words: extract_words(j.title),
-    date: moment(j.postedDate),
+    date: moment(j.postedDate).toISOString(),
+    humanDate: moment(j.postedDate).format("MMMM Do YYYY"),
     location: j.location,
     description: j.descriptionTeaser,
-  }));
+    URL: `https://careers.microsoft.com/us/en/job/${j.jobId}`,
+  }))
+  .sort((a, b) => b.date.localeCompare(a.date));
 
-const title_words = [...new Set(
-  jobs.reduce(
-    (words, job) => words.concat(job.title_words),
-    []
-  )
-)].sort();
+const title_words = collate_words_of_field("title", jobs);
+log_strings_list("Title words", title_words);
 
-log_words(title_words);
+const location_words = collate_words_of_field("location", jobs);
+log_strings_list("Locations", location_words);
 
-fs.writeJSONSync(PATH_TITLE_WORDS, title_words);
 fs.writeJSONSync(PATH_DATA_PROCESSED, jobs);

@@ -1,0 +1,232 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0.5em 0;
+}
+
+p, ul, ol, dl {
+  margin: 0;
+  padding: 0;
+}
+
+select {
+  background: rgba(0, 0, 0, 0.04);
+  border: 0;
+  border-bottom: 2px solid currentColor;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#header-text-container {
+  display: flex;
+  align-items: center;
+  margin: 1rem;
+}
+
+#header-text-logo {
+  display: block;
+  height: 2rem;
+  width: 2rem;
+  margin-right: 1rem;
+  background: url(/static/microsoft-icon.png) no-repeat center / contain;
+}
+
+#header-text {
+  font-weight: lighter;
+  font-size: 1.75rem;
+  margin: 0;
+}
+
+#header-logos {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  padding: 0.5rem;
+}
+
+#header-logos > li {
+  display: block;
+}
+
+#header-logos .ms-Icon {
+  display: block;
+  margin: 0 0.5rem;
+
+  color: #dadada; /* neutralQuaternaryAlt */
+  font-size: 1.75rem;
+}
+
+#content {
+  display: flex;
+}
+
+#content > * {
+  padding-left: 1rem;
+}
+
+#content > :last-child {
+  padding-right: 1rem;
+}
+
+#jobs {
+  flex-grow: 1;
+}
+
+#pane {
+  flex: 0 0 auto;
+  width: 30rem;
+}
+
+.section-heading {
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin: 1.25rem 0;
+  text-transform: uppercase;
+}
+
+.section-heading > em {
+  font-style: normal;
+  border-bottom: 2px solid currentColor;
+}
+
+h1.section-heading {
+  font-size: 1.25rem;
+  color: #333; /* neutralPrimary */
+}
+
+h2.section-heading {
+  font-size: 1rem;
+  color: #666; /* neutralSecondary */
+}
+
+.job {
+  margin: 1rem 0;
+
+  display: table;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.job-left, .job-right {
+  display: table-cell;
+  padding: 0 1rem;
+}
+
+.job-right {
+  text-align: right;
+  width: 25%;
+}
+
+.job-head {
+  margin: 1rem 0;
+}
+
+.job-head > * {
+  margin: 0.25rem 0;
+}
+
+.job-title {
+  color: #008272; /* teal */
+  font-size: 1.75rem;
+  font-weight: lighter;
+}
+
+.job-location {
+  color: #ea4300; /* orangeLight */
+  font-size: 1rem;
+  font-weight: normal;
+}
+
+.job-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.job-title-link:hover,
+.job-title-link:focus {
+  text-decoration: underline;
+}
+
+.job-description {
+  margin: 1rem 0;
+}
+
+.job-date {
+  color: #666; /* neutralSecondary */
+}
+
+.search-term {
+  display: block;
+
+  margin: 1.75rem 0;
+
+  transform: none;
+  opacity: 1;
+  transition: 0.4s;
+}
+
+.search-term:not(:last-child)::after {
+  content: "";
+  display: block;
+  width: 80%;
+  margin: 1.75rem auto; /* Match .search-term */
+  border-bottom: 1px solid white;
+}
+
+.search-term-dragging {
+  transform: scale(0.92);
+  opacity: 0.5;
+}
+
+.search-term > * {
+  margin: 0.25rem 0;
+}
+
+.search-term-head {
+  display: flex;
+  align-items: baseline;
+}
+
+.search-term-drag {
+  font-size: 1rem;
+  line-height: 1.25rem;
+  height: 1.25rem;
+  width: 1.25rem;
+  text-align: center;
+  margin-right: 0.5rem;
+  cursor: ns-resize;
+}
+
+.search-term-head > h3 {
+  color: black;
+  font-weight: bold;
+  font-size: inherit;
+  margin: 0;
+}
+
+.search-term-head-spacer {
+  flex-grow: 1;
+}

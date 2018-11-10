@@ -5,6 +5,7 @@
     "express": "^4.16.4",
     "fs-extra": "^7.0.1",
     "handlebars": "^4.0.11",
+    "minimist": "^1.2.0",
     "moment": "^2.22.2",
     "redis": "^2.8.0",
     "request": "^2.88.0",

@@ -86,4 +86,4 @@ const load = async () => {
 load()
   .then(() => console.log(`Successfully loaded data`))
   .catch(e => console.err(e))
-  ;
+;

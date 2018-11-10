@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html class="ms-Fabric ms-bgColor-neutralLight" lang="en">
+  <head>
+    <meta charset="utf8">
+
+    <title>{{results_count}} results | Microsoft Careers</title>
+
+    <link rel="stylesheet"
+          href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/9.6.1/css/fabric.min.css">
+    <link rel="stylesheet" href="/static/fabric-icons-inline.css">
+    <link rel="stylesheet" href="/static/style.css">
+
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.6.0/Sortable.min.js"></script>
+    <script defer src="/static/script.js"></script>
+  </head>
+
+  <body>
+    <header id="header" class="ms-bgColor-neutralPrimary">
+      <div id="header-text-container">
+        <i id="header-text-logo"></i>
+        <h1 id="header-text" class="ms-fontColor-neutralLight">
+          Careers
+        </h1>
+      </div>
+
+      <ul id="header-logos">
+        <li><i class="ms-Icon ms-Icon--AzureLogo" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--BingLogo" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--MSNLogo" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--OfficeLogo" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--OneDrive" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--SkypeLogo" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--StoreLogo16" aria-hidden="true"></i></li>
+        <li><i class="ms-Icon ms-Icon--WindowsLogo" aria-hidden="true"></i></li>
+      </ul>
+    </header>
+
+    <div id="content">
+      <main id="jobs">
+        <h1 class="section-heading"><em>{{results_count}} matches</em></h1>
+        {{#each jobs}}
+          <article class="job ms-bgColor-neutralLighterAlt">
+            <div class="job-left">
+              <div class="job-head">
+                <h1 class="job-title"><a class="job-title-link" href="{{URL}}" target="_blank">{{title}}</a></h1>
+                <h2 class="job-location">{{location}}</h2>
+              </div>
+              <p class="job-description">{{description}}&hellip;</p>
+            </div>
+            <div class="job-right">
+              <time class="job-date" datetime="{{date}}">{{humanDate}}</time>
+            </div>
+          </article>
+        {{/each}}
+      </main>
+
+      <aside id="pane">
+        <h1 class="section-heading"><em>Filter</em></h1>
+        <form id="filter" method="get">
+          <h2 class="section-heading"><em>Posted after</em></h2>
+          <input type="datetime-local" name="after" value="{{after}}">
+
+          <h2 class="section-heading"><em>Search terms</em></h2>
+          <ul id="search-terms">
+            {{#each rules}}
+              <li class="search-term">
+                <div class="search-term-head">
+                  <div class="search-term-drag">&#9776;</div>
+                  <h3><span>Filter by </span><select name="rules_field[]" data-value="{{field}}">
+                    {{#each ../FIELDS}}
+                      <option>{{this}}</option>
+                    {{/each}}</select></h3>
+                  <div class="search-term-head-spacer"></div>
+                  <select name="rules_enabled[]" data-value="{{enabled}}">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                  </select>
+                </div>
+                <select name="rules_mode[]" data-value="{{mode}}">
+                  <option value="require">Require</option>
+                  <option value="contain">Any of</option>
+                  <option value="exclude">Exclude</option>
+                </select>
+                <input name="rules_words[]" value="{{words}}">
+                <div class="search-term-buttons">
+                  <button type="button">Delete</button>
+                </div>
+              </li>
+            {{/each}}
+          </ul>
+
+          <template id="template-search-term">
+            <li class="search-term">
+              <div class="search-term-head">
+                <div class="search-term-drag">&#9776;</div>
+                <h3><span>Filter by </span><select name="rules_field[]">
+                  {{#each FIELDS}}
+                    <option>{{this}}</option>
+                  {{/each}}</select></h3>
+                <div class="search-term-head-spacer"></div>
+                <select name="rules_enabled[]">
+                  <option value="false">Disabled</option>
+                  <option value="true" selected>Enabled</option>
+                </select>
+              </div>
+              <select name="rules_mode[]">
+                <option value="require" selected>Require</option>
+                <option value="contain">Any of</option>
+                <option value="exclude">Exclude</option>
+              </select>
+              <input name="rules_words[]">
+              <div class="search-term-buttons">
+                <button type="button">Delete</button>
+              </div>
+            </li>
+          </template>
+
+          <button type="button" id="search-terms-add-button">Add rule</button>
+
+          <button>Search</button>
+        </form>
+      </aside>
+    </div>
+  </body>
+
+</html>
