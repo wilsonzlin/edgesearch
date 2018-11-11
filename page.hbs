@@ -3,41 +3,48 @@
   <head>
     <meta charset="utf8">
 
-    <title>{{results_count}} results | Microsoft Careers</title>
+    <title>{{resultsCount}} results | Microsoft Careers</title>
 
-    <link rel="stylesheet"
-          href="https://static2.sharepointonline.com/files/fabric/office-ui-fabric-core/9.6.1/css/fabric.min.css">
+    <link rel="stylesheet" href="/static/fabric.min.css">
     <link rel="stylesheet" href="/static/fabric-icons-inline.css">
     <link rel="stylesheet" href="/static/style.css">
 
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.6.0/Sortable.min.js"></script>
+    <script defer src="/static/anime.min.js"></script>
+    <script defer src="/static/Sortable.min.js"></script>
     <script defer src="/static/script.js"></script>
   </head>
 
   <body>
     <header id="header" class="ms-bgColor-neutralPrimary">
-      <div id="header-text-container">
-        <i id="header-text-logo"></i>
-        <h1 id="header-text" class="ms-fontColor-neutralLight">
-          Careers
-        </h1>
-      </div>
+      <a href="https://microsoft.com" target="_blank" id="header-logo" style="opacity: 0"></a>
 
-      <ul id="header-logos">
-        <li><i class="ms-Icon ms-Icon--AzureLogo" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--BingLogo" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--MSNLogo" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--OfficeLogo" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--OneDrive" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--SkypeLogo" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--StoreLogo16" aria-hidden="true"></i></li>
-        <li><i class="ms-Icon ms-Icon--WindowsLogo" aria-hidden="true"></i></li>
+      <h1 id="header-text" class="ms-fontColor-neutralLight">
+        <span id="header-text-date" style="opacity: 0">{{todayHumanDate}}</span>
+        <span id="header-text-name" style="width: 0">Careers</span>
+      </h1>
+
+      <div class="flex-spacer"></div>
+
+      <ul id="header-brands" class="header-brands-init">
+        <li><a class="ms-Icon ms-Icon--AzureLogo" target="_blank" href="https://azure.com" aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--BingLogo" target="_blank" href="https://bing.com" aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--MSNLogo" target="_blank" href="https://msn.com" aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--OfficeLogo" target="_blank" href="https://office.com" aria-hidden="true"></a>
+        </li>
+        <li><a class="ms-Icon ms-Icon--OneDrive" target="_blank" href="https://onedrive.com" aria-hidden="true"></a>
+        </li>
+        <li><a class="ms-Icon ms-Icon--SkypeLogo" target="_blank" href="https://skype.com" aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--StoreLogo16" target="_blank" href="https://store.microsoft.com"
+               aria-hidden="true"></a>
+        </li>
+        <li><a class="ms-Icon ms-Icon--WindowsLogo" target="_blank" href="https://windows.com" aria-hidden="true"></a>
+        </li>
       </ul>
     </header>
 
     <div id="content">
       <main id="jobs">
-        <h1 class="section-heading"><em>{{results_count}} matches</em></h1>
+        <h1 class="section-heading"><em>{{resultsCount}} matches</em></h1>
         {{#each jobs}}
           <article class="job ms-bgColor-neutralLighterAlt">
             <div class="job-left">
@@ -58,9 +65,27 @@
         <h1 class="section-heading"><em>Filter</em></h1>
         <form id="filter" method="get">
           <h2 class="section-heading"><em>Posted after</em></h2>
-          <input type="datetime-local" name="after" value="{{after}}">
+
+          <div class="filter-after">
+            <label>
+              <span>Year</span>
+              <input class="ipt-text filter-after-date-input" name="after_year" type="number" min="0" max="99999"
+                     step="1" placeholder="Year" value="{{afterYear}}">
+            </label>
+            <label>
+              <span>Month</span>
+              <input class="ipt-text filter-after-date-input" name="after_month" type="number" min="1" max="12" step="1"
+                     placeholder="Month" value="{{afterMonth}}">
+            </label>
+            <label>
+              <span>Day</span>
+              <input class="ipt-text filter-after-date-input" name="after_day" type="number" min="1" max="31" step="1"
+                     placeholder="Day" value="{{afterDay}}">
+            </label>
+          </div>
 
           <h2 class="section-heading"><em>Search terms</em></h2>
+
           <ul id="search-terms">
             {{#each rules}}
               <li class="search-term">
@@ -70,7 +95,7 @@
                     {{#each ../FIELDS}}
                       <option>{{this}}</option>
                     {{/each}}</select></h3>
-                  <div class="search-term-head-spacer"></div>
+                  <div class="flex-spacer"></div>
                   <button type="button" class="toggle" data-name="rules_enabled[]" data-checked="{{enabled}}"></button>
                 </div>
                 <div class="search-term-body">
@@ -79,7 +104,7 @@
                     <option value="contain">Any of</option>
                     <option value="exclude">Exclude</option>
                   </select>
-                  <input class="search-term-words" name="rules_words[]" value="{{words}}"
+                  <input class="ipt-text search-term-words" name="rules_words[]" value="{{words}}"
                          placeholder="Enter space-separated words">
                 </div>
                 <div class="search-term-buttons">
@@ -97,7 +122,7 @@
                   {{#each FIELDS}}
                     <option>{{this}}</option>
                   {{/each}}</select></h3>
-                <div class="search-term-head-spacer"></div>
+                <div class="flex-spacer"></div>
                 <button type="button" class="toggle" data-name="rules_enabled[]" data-checked="true"></button>
               </div>
               <div class="search-term-body">
@@ -106,7 +131,8 @@
                   <option value="contain">Any of</option>
                   <option value="exclude">Exclude</option>
                 </select>
-                <input class="search-term-words" name="rules_words[]" placeholder="Enter space-separated words">
+                <input class="ipt-text search-term-words" name="rules_words[]"
+                       placeholder="Enter space-separated words">
               </div>
               <div class="search-term-buttons">
                 <button class="btn search-term-button" type="button" value="delete">Delete</button>
@@ -126,5 +152,4 @@
       </aside>
     </div>
   </body>
-
 </html>

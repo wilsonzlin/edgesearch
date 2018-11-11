@@ -19,6 +19,10 @@ p, ul, ol, dl {
   padding: 0;
 }
 
+::-moz-focus-inner {
+  border: 0;
+}
+
 select {
   background: rgba(0, 0, 0, 0.04);
   border: 0;
@@ -32,10 +36,15 @@ select {
   -moz-appearance: none;
 }
 
-.toggle {
-  display: flex;
-  align-items: center;
+.flex-spacer {
+  flex-grow: 1;
+}
 
+.toggle, .toggle::after {
+  transition: 0.4s ease;
+}
+
+.toggle {
   border: 1px solid rgb(102, 102, 102);
   border-radius: 20px;
 
@@ -43,13 +52,13 @@ select {
 
   height: 20px;
   width: 44px;
-  padding: 0 4px;
+
+  padding: 0;
 }
 
 .toggle.checked {
-  background: #008272;
+  background: #008272; /* teal */
   border-color: transparent;
-  justify-content: flex-end;
 }
 
 .toggle::after {
@@ -62,11 +71,13 @@ select {
   height: 10px;
   width: 10px;
 
-  transition: all 0.1s ease;
+  margin-left: 4px;
 }
 
 .toggle.checked::after {
   background: white;
+
+  margin-left: 28px;
 }
 
 .btn {
@@ -119,6 +130,12 @@ select {
   color: white;
 }
 
+.ipt-text {
+  background: rgba(255, 255, 255, 0.67);
+  border: 2px solid #d0d0d0; /* neutralQuaternary */
+  padding: 0.25rem;
+}
+
 .msg {
   margin: 1rem 0;
   padding: 0.5rem 1rem;
@@ -126,7 +143,7 @@ select {
 }
 
 .msg-info {
-  color: #0078d4; /* themePrimary */
+  color: #008272; /* teal */
 }
 
 #header {
@@ -135,18 +152,17 @@ select {
   justify-content: space-between;
 }
 
-#header-text-container {
-  display: flex;
-  align-items: center;
-  margin: 1rem;
-}
-
-#header-text-logo {
+#header-logo {
   display: block;
+  flex: 0 0 auto;
+
   height: 2rem;
   width: 2rem;
-  margin-right: 1rem;
+  margin: 1rem;
+
   background: url(/static/microsoft-icon.png) no-repeat center / contain;
+
+  outline: 0;
 }
 
 #header-text {
@@ -155,7 +171,14 @@ select {
   margin: 0;
 }
 
-#header-logos {
+#header-text > span {
+  display: inline-block;
+  vertical-align: top;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#header-brands {
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -163,16 +186,57 @@ select {
   padding: 0.5rem;
 }
 
-#header-logos > li {
-  display: block;
+.header-brands-init {
+  position: absolute;
+  left: 0;
+  pointer-events: none; /* Prevent accidentally clicking while animating */
 }
 
-#header-logos .ms-Icon {
+#header-brands > li {
   display: block;
-  margin: 0 0.5rem;
-
+  /* Use fixed width for easier animating */
+  width: 40px;
+  text-align: center;
   color: #dadada; /* neutralQuaternaryAlt */
   font-size: 1.75rem;
+}
+
+#header-brands a {
+  text-decoration: none;
+  color: inherit;
+  outline: 0;
+}
+
+#header-brands .ms-Icon--AzureLogo:hover, #header-brands .ms-Icon--AzureLogo:focus {
+  color: #006dbf;
+}
+
+#header-brands .ms-Icon--BingLogo:hover, #header-brands .ms-Icon--BingLogo:focus {
+  color: #f7b400;
+}
+
+#header-brands .ms-Icon--MSNLogo:hover, #header-brands .ms-Icon--MSNLogo:focus {
+  color: #808080;
+}
+
+#header-brands .ms-Icon--OfficeLogo:hover, #header-brands .ms-Icon--OfficeLogo:focus {
+  color: #e53700;
+}
+
+#header-brands .ms-Icon--OneDrive:hover, #header-brands .ms-Icon--OneDrive:focus {
+  color: #0948ac;
+}
+
+#header-brands .ms-Icon--SkypeLogo:hover, #header-brands .ms-Icon--SkypeLogo:focus {
+  color: #00aae9;
+}
+
+#header-brands .ms-Icon--StoreLogo16:hover, #header-brands .ms-Icon--StoreLogo16:focus {
+  color: white;
+}
+
+#header-brands .ms-Icon--WindowsLogo:hover, #header-brands .ms-Icon--WindowsLogo:focus {
+  color: #00a8e8;
 }
 
 #content {
@@ -274,6 +338,23 @@ h2.section-heading {
   color: #666; /* neutralSecondary */
 }
 
+.filter-after {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.filter-after > label > * {
+  text-align: center;
+  width: 80px;
+}
+
+.filter-after > label > span {
+  font-weight: bold;
+  font-size: 0.875rem;
+  display: block;
+}
+
 .search-term {
   display: block;
 
@@ -289,7 +370,8 @@ h2.section-heading {
   display: block;
   width: 80%;
   margin: 1.75rem auto; /* Match .search-term */
-  border-bottom: 1px solid white;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.66);
 }
 
 .search-term-dragging {
@@ -319,10 +401,6 @@ h2.section-heading {
   margin: 0;
 }
 
-.search-term-head-spacer {
-  flex-grow: 1;
-}
-
 .search-term-body {
   display: flex;
   align-items: baseline;
@@ -340,9 +418,6 @@ h2.section-heading {
 }
 
 .search-term-words {
-  background: rgba(255, 255, 255, 0.67);
-  border: 2px solid #d0d0d0; /* neutralQuaternary */
-
   flex-grow: 1;
 }
 

@@ -59,8 +59,8 @@ const valid_word = str => {
 
 const validate_query_parameters = query => {
   return {
-    // Check truthy first as moment(undefined) == moment()
-    after: query.after && moment(query.after).isValid() ? query.after : null,
+    // toISOString will return null if invalid; `undefined - 1` is NaN
+    after: moment([query.after_year, query.after_month - 1, query.after_day]).toISOString(),
     rules: (query.rules_enabled || []).map((enabled_str, id) => {
       return {
         enabled: enabled_str === "true",
@@ -71,6 +71,7 @@ const validate_query_parameters = query => {
     }).filter(r => FIELDS.includes(r.field) && MODES.includes(r.mode) && r.words.length),
   };
 };
+
 const db_job_words_test = async (job, field, words) => {
   return await db_cmd(`BF.MEXISTS`, [db_job_words_key(job, field), ...words]);
 };
@@ -146,9 +147,13 @@ server.get("/jobs", async (req, res) => {
 
   jobs = (await Promise.all(word_rules_promises)).filter(j => j);
 
+  let now = moment();
+
   res.send(Page({
     // User-submitted form data
-    after: after || "",
+    afterYear: after ? after.slice(0, 4) : now.year(),
+    afterMonth: after ? after.slice(5, 7) : Math.max(now.month(), 1),
+    afterDay: after ? after.slice(8, 10) : 1,
     rules: rules.map(r => ({
       ...r,
       words: r.words.join(" "),
@@ -158,6 +163,7 @@ server.get("/jobs", async (req, res) => {
 
     // Results
     jobs: jobs,
-    results_count: jobs.length,
+    resultsCount: jobs.length,
+    todayHumanDate: now.format("MMMM Do YYYY"),
   }));
 });

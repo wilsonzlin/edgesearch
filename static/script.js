@@ -1,8 +1,8 @@
 "use strict";
 
 (() => {
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => document.querySelectorAll(sel);
+  const $ = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
   const $search_terms = $("#search-terms");
   const $search_terms_add_button = $("#search-terms-add-button");
@@ -44,4 +44,44 @@
     handle: ".search-term-drag",
     ghostClass: "search-term-dragging",
   });
+
+  const $header_logo = $("#header-logo");
+  const $header_text_date = $("#header-text-date");
+  const $header_text_name = $("#header-text-name");
+  const $header_brands = $("#header-brands");
+  const $$header_brand_icons = $$("li", $header_brands);
+
+  const animate = (target, opts) =>
+    anime({
+      targets: target,
+      duration: 1000,
+      easing: "easeOutCubic",
+      ...opts,
+    }).finished;
+
+  Promise.all([
+    ...$$header_brand_icons.map(($icon, no) => animate($icon, {
+      translateX: [-(no * 40)],
+      opacity: 0,
+      delay: 450 + (no * 50),
+    })),
+    animate($header_logo, {
+      opacity: 1,
+      delay: 750,
+    }),
+  ]).then(() => animate($header_text_date, {
+    opacity: 1,
+  })).then(() => animate($header_text_date, {
+    width: 0,
+    delay: 2000,
+  })).then(() => $header_text_date.remove()).then(() => animate($header_text_name, {
+    width: "100%",
+    delay: 500,
+  })).then(() => {
+    $header_brands.classList.remove("header-brands-init");
+  }).then(() => Promise.all($$header_brand_icons.map(($icon, no) => animate($icon, {
+    translateY: ["-100%", 0],
+    opacity: 1,
+    delay: no * 100,
+  }))));
 })();
