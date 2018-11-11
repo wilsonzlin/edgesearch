@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html class="ms-Fabric ms-bgColor-neutralLight" lang="en">
+<html lang="en">
   <head>
     <meta charset="utf8">
 
     <title>{{resultsCount}} results | Microsoft Careers</title>
 
-    <link rel="stylesheet" href="/static/fabric.min.css">
     <link rel="stylesheet" href="/static/fabric-icons-inline.css">
     <link rel="stylesheet" href="/static/style.css">
 
@@ -15,7 +14,7 @@
   </head>
 
   <body>
-    <header id="header" class="ms-bgColor-neutralPrimary">
+    <header id="header">
       <a href="https://microsoft.com" target="_blank" id="header-logo" style="opacity: 0">
         <span id="ms-logo-nw"></span>
         <span id="ms-logo-ne"></span>
@@ -36,7 +35,7 @@
         <li><a class="ms-Icon ms-Icon--MSNLogo" target="_blank" href="https://msn.com" aria-hidden="true"></a></li>
         <li><a class="ms-Icon ms-Icon--OfficeLogo" target="_blank" href="https://office.com" aria-hidden="true"></a>
         </li>
-        <li><a class="ms-Icon ms-Icon--OneDrive" target="_blank" href="https://onedrive.com" aria-hidden="true"></a>
+        <li><a class="ms-Icon ms-Icon--OneDriveLogo" target="_blank" href="https://onedrive.com" aria-hidden="true"></a>
         </li>
         <li><a class="ms-Icon ms-Icon--SkypeLogo" target="_blank" href="https://skype.com" aria-hidden="true"></a></li>
         <li><a class="ms-Icon ms-Icon--StoreLogo16" target="_blank" href="https://store.microsoft.com"
@@ -54,7 +53,7 @@
           <button id="pane-open-button" class="btn">Filter</button>
         </div>
         {{#each jobs}}
-          <article class="job ms-bgColor-neutralLighterAlt">
+          <article class="job">
             <div class="job-left">
               <div class="job-head">
                 <h1 class="job-title"><a class="job-title-link" href="{{URL}}" target="_blank">{{title}}</a></h1>
