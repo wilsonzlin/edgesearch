@@ -39,7 +39,6 @@
 
 html {
   color: #333;
-  font-family: "Segoe UI Web (West European)", Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   background: #eaeaea;
@@ -47,6 +46,10 @@ html {
 
 body {
   margin: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: "Segoe UI Web (West European)", Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6 {
