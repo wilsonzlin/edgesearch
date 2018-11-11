@@ -60,7 +60,7 @@ const valid_word = str => {
 const validate_query_parameters = query => {
   return {
     // toISOString will return null if invalid; `undefined - 1` is NaN
-    after: moment([query.after_year, query.after_month - 1, query.after_day]).toISOString(),
+    after: moment.utc([query.after_year, query.after_month - 1, query.after_day]).toISOString(),
     rules: (query.rules_enabled || []).map((enabled_str, id) => {
       return {
         enabled: enabled_str === "true",
