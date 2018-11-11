@@ -2,14 +2,18 @@
   "dependencies": {
     "chalk": "^2.4.1",
     "cheerio": "^1.0.0-rc.2",
+    "clean-css": "^4.2.1",
+    "compression": "^1.7.3",
     "express": "^4.16.4",
     "fs-extra": "^7.0.1",
     "handlebars": "^4.0.11",
+    "html-minifier": "^3.5.21",
     "minimist": "^1.2.0",
     "moment": "^2.22.2",
     "redis": "^2.8.0",
     "request": "^2.88.0",
-    "request-promise-native": "^1.0.5"
+    "request-promise-native": "^1.0.5",
+    "uglify-es": "^3.3.9"
   },
   "scripts": {
     "clean": "rm -rf cache data-*.json",

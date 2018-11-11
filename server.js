@@ -8,9 +8,9 @@ const handlebars = require("handlebars");
 const redis = require("redis");
 const minimist = require("minimist");
 const {promisify} = require("util");
+const compression = require("compression");
 
 const ARGS = minimist(process.argv.slice(2));
-const PAGE_TEMPLATE_PATH = path.join(__dirname, "page.hbs");
 const FIELDS = ["title", "location"];
 const MODES = ["require", "contain", "exclude"];
 const JOBS = fs.readJSONSync(path.join(__dirname, "data-processed.json"));
@@ -19,20 +19,49 @@ const db = redis.createClient();
 const db_job_words_key = (job, field) => `${job.ID}_${field}_words`;
 const db_cmd = promisify(db.send_command).bind(db);
 const server = express();
+server.use(compression({
+  level: 9,
+  memLevel: 9,
+}));
 
-const compile_page_template = () => {
-  return handlebars.compile(fs.readFileSync(PAGE_TEMPLATE_PATH, "utf8"));
-};
-let Page = compile_page_template();
+let Page;
 
-if (ARGS.debug) {
-  console.log(`DEBUG MODE`);
-  fs.watchFile(PAGE_TEMPLATE_PATH, () => {
-    console.log(`Recompiling template...`);
-    Page = compile_page_template();
-  });
+if (ARGS.hot) {
+  console.log(`Hot reloading mode`);
+  const PAGE_TEMPLATE_PATH = path.join(__dirname, "page.hbs");
+  const PAGE_RESOURCES_TEMPLATE_PATH = path.join(__dirname, "page.resources.hbs");
+  const compiler = () => {
+    const compiled = handlebars.compile(fs.readFileSync(PAGE_TEMPLATE_PATH, "utf8"));
+    let compiled_resources = handlebars.compile(fs.readFileSync(PAGE_RESOURCES_TEMPLATE_PATH, "utf8"));
+    Page = ctx => compiled({
+      ...ctx,
+      externalResources: compiled_resources,
+    });
+    console.log(moment().format("dddd, MMMM Do YYYY, HH:mm:ss"), "Loaded");
+  };
+  compiler();
+  fs.watchFile(PAGE_TEMPLATE_PATH, compiler);
+  fs.watchFile(PAGE_RESOURCES_TEMPLATE_PATH, compiler);
+  server.use("/static", express.static(path.join(__dirname, "static"), {
+    dotfiles: "allow",
+    extensions: false,
+    fallthrough: false,
+    index: false,
+    redirect: false,
+  }));
+} else {
+  Page = handlebars.compile(fs.readFileSync(path.join(__dirname, "build.hbs"), "utf8"));
+  server.use("/static", express.static(path.join(__dirname, "build_static"), {
+    dotfiles: "allow",
+    extensions: false,
+    fallthrough: false,
+    immutable: true,
+    index: false,
+    lastModified: false,
+    maxAge: moment.duration(2, "hours").asMilliseconds(),
+    redirect: false,
+  }));
 }
-server.use("/static", express.static(path.join(__dirname, "static")));
 
 (async function () {
   for (const job of JOBS) {
