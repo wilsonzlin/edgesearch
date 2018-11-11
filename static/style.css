@@ -186,6 +186,12 @@ select {
   padding: 0.5rem;
 }
 
+@media (max-width: 600px) {
+  #header-brands:not(.header-brands-init) {
+    display: none;
+  }
+}
+
 .header-brands-init {
   position: absolute;
   left: 0;
