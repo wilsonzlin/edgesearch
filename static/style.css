@@ -47,7 +47,7 @@ select {
 }
 
 .toggle.checked {
-  background: #0078d4;
+  background: #008272;
   border-color: transparent;
   justify-content: flex-end;
 }
