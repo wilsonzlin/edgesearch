@@ -90,6 +90,7 @@ select {
   padding: 0 16px;
 
   height: 32px;
+  line-height: 21px;
 
   background: #f4f4f4;
   color: #333333;
@@ -150,6 +151,8 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  height: 4rem; /* Fixed height so pane can be positioned on small devices */
 }
 
 #header-logo {
@@ -158,7 +161,7 @@ select {
 
   height: 2rem;
   width: 2rem;
-  margin: 1rem;
+  margin: 0 1rem;
 
   background: url(/static/microsoft-icon.png) no-repeat center / contain;
 
@@ -247,14 +250,13 @@ select {
 
 #content {
   display: flex;
+
+  position: relative; /* For absolute pane on small screens */
 }
 
 #content > * {
-  padding-left: 1rem;
-}
-
-#content > :last-child {
-  padding-right: 1rem;
+  /* Both should have padding on small screens */
+  padding: 0 1rem;
 }
 
 #jobs {
@@ -266,15 +268,45 @@ select {
   width: 30rem;
 }
 
+#pane-open-button, #pane-close-button {
+  display: none;
+}
+
+@media (max-width: 1000px) {
+  #pane-open-button, #pane-close-button {
+    display: block;
+  }
+
+  #pane {
+    position: fixed;
+
+    background: rgba(230, 230, 230, 0.975);
+    transition: 0.3s;
+
+    top: 100%;
+    bottom: 0;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  #pane.pane-open {
+    top: 55%;
+    box-shadow: 0 0 1rem #a6a6a6;
+  }
+}
+
+.section-heading-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.25rem 0;
+}
+
 .section-heading {
   font-weight: bold;
   letter-spacing: 1px;
-  margin: 1.25rem 0;
   text-transform: uppercase;
-}
-
-.section-heading > em {
-  font-style: normal;
+  margin: 0;
   border-bottom: 2px solid currentColor;
 }
 
@@ -291,19 +323,31 @@ h2.section-heading {
 .job {
   margin: 1rem 0;
 
-  display: table;
-  border-collapse: collapse;
-  table-layout: fixed;
+  display: flex;
+  width: 100%;
 }
 
 .job-left, .job-right {
-  display: table-cell;
   padding: 0 1rem;
 }
 
 .job-right {
   text-align: right;
   width: 25%;
+  flex: 0 0 auto;
+  padding-top: 1.5rem;
+}
+
+@media (max-width: 575px) {
+  .job {
+    flex-direction: column-reverse;
+  }
+
+  .job-right {
+    padding-top: 1rem;
+    width: 100%;
+    text-align: left;
+  }
 }
 
 .job-head {

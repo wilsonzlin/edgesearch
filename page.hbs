@@ -44,7 +44,10 @@
 
     <div id="content">
       <main id="jobs">
-        <h1 class="section-heading"><em>{{resultsCount}} matches</em></h1>
+        <div class="section-heading-container">
+          <h1 class="section-heading">{{resultsCount}} matches</h1>
+          <button id="pane-open-button" class="btn">Filter</button>
+        </div>
         {{#each jobs}}
           <article class="job ms-bgColor-neutralLighterAlt">
             <div class="job-left">
@@ -62,9 +65,14 @@
       </main>
 
       <aside id="pane">
-        <h1 class="section-heading"><em>Filter</em></h1>
+        <div class="section-heading-container">
+          <h1 class="section-heading">Filter</h1>
+          <button id="pane-close-button" class="btn">Close</button>
+        </div>
         <form id="filter" method="get">
-          <h2 class="section-heading"><em>Posted after</em></h2>
+          <div class="section-heading-container">
+            <h2 class="section-heading">Posted after</h2>
+          </div>
 
           <div class="filter-after">
             <label>
@@ -84,7 +92,9 @@
             </label>
           </div>
 
-          <h2 class="section-heading"><em>Search terms</em></h2>
+          <div class="section-heading-container">
+            <h2 class="section-heading">Search terms</h2>
+          </div>
 
           <ul id="search-terms">
             {{#each rules}}

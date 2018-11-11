@@ -4,6 +4,16 @@
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
+  const $pane = $("#pane");
+  const $pane_open_button = $("#pane-open-button");
+  $pane_open_button.addEventListener("click", () => {
+    $pane.classList.add("pane-open");
+  });
+  const $pane_close_button = $("#pane-close-button");
+  $pane_close_button.addEventListener("click", () => {
+    $pane.classList.remove("pane-open");
+  });
+
   const $search_terms = $("#search-terms");
   const $search_terms_add_button = $("#search-terms-add-button");
   const $template_search_term = $("#template-search-term");
