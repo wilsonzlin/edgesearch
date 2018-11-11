@@ -59,8 +59,8 @@
   const $$header_logo_quads = [
     [$("#ms-logo-nw"), "#f24f1c"],
     [$("#ms-logo-ne"), "#80bb00"],
-    [$("#ms-logo-sw"), "#00a6f0"],
     [$("#ms-logo-se"), "#ffba00"],
+    [$("#ms-logo-sw"), "#00a6f0"],
   ];
   const $header_text_date = $("#header-text-date");
   const $header_text_name = $("#header-text-name");
@@ -77,7 +77,7 @@
 
   Promise.all([
     ...$$header_brand_icons.map(($icon, no) => animate($icon, {
-      translateX: [-(no * 40)],
+      translateX: -(no * 40),
       opacity: 0,
       delay: 450 + (no * 50),
     })),
@@ -87,7 +87,7 @@
     }),
     ...$$header_logo_quads.map(([$quad, to], no) => animate($quad, {
       backgroundColor: ["#fff", to],
-      delay: 1000 + (no * 50),
+      delay: 950 + (no * 100),
     })),
   ]).then(() => animate($header_text_date, {
     opacity: 1,
