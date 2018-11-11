@@ -133,7 +133,8 @@ select {
 
 .ipt-text {
   background: rgba(255, 255, 255, 0.67);
-  border: 2px solid #d0d0d0; /* neutralQuaternary */
+  border: 1px solid #d0d0d0; /* neutralQuaternary */
+  box-shadow: 0 0 0.375rem #d0d0d0; /* neutralQuaternary */
   padding: 0.25rem;
 }
 
@@ -410,6 +411,7 @@ h2.section-heading {
   font-weight: bold;
   font-size: 0.875rem;
   display: block;
+  margin-bottom: 0.25rem;
 }
 
 .search-term {
