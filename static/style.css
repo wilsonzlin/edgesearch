@@ -138,8 +138,8 @@ select {
   color: #333333;
 }
 
-.btn:hover, .btn:focus {
-  background: #eaeaea;
+.btn:hover {
+  background: rgba(0, 0, 0, 0.04);
   color: #212121;
 }
 
@@ -148,7 +148,7 @@ select {
   color: white;
 }
 
-.btn-blue:hover, .btn-blue:focus {
+.btn-blue:hover {
   background: #106ebe;
   color: white;
 }
@@ -158,7 +158,7 @@ select {
   color: white;
 }
 
-.btn-teal:hover, .btn-teal:focus {
+.btn-teal:hover {
   background: #004b50; /* tealDark */
   color: white;
 }
@@ -168,7 +168,7 @@ select {
   color: white;
 }
 
-.btn-red:hover, .btn-red:focus {
+.btn-red:hover {
   background: #a80000; /* redDark */
   color: white;
 }
@@ -269,35 +269,35 @@ select {
   outline: 0;
 }
 
-#header-brands .ms-Icon--AzureLogo:hover, #header-brands .ms-Icon--AzureLogo:focus {
+#header-brands .ms-Icon--AzureLogo:hover {
   color: #006dbf;
 }
 
-#header-brands .ms-Icon--BingLogo:hover, #header-brands .ms-Icon--BingLogo:focus {
+#header-brands .ms-Icon--BingLogo:hover {
   color: #f7b400;
 }
 
-#header-brands .ms-Icon--MSNLogo:hover, #header-brands .ms-Icon--MSNLogo:focus {
+#header-brands .ms-Icon--MSNLogo:hover {
   color: #808080;
 }
 
-#header-brands .ms-Icon--OfficeLogo:hover, #header-brands .ms-Icon--OfficeLogo:focus {
+#header-brands .ms-Icon--OfficeLogo:hover {
   color: #e53700;
 }
 
-#header-brands .ms-Icon--OneDrive:hover, #header-brands .ms-Icon--OneDrive:focus {
+#header-brands .ms-Icon--OneDrive:hover {
   color: #0948ac;
 }
 
-#header-brands .ms-Icon--SkypeLogo:hover, #header-brands .ms-Icon--SkypeLogo:focus {
+#header-brands .ms-Icon--SkypeLogo:hover {
   color: #00aae9;
 }
 
-#header-brands .ms-Icon--StoreLogo16:hover, #header-brands .ms-Icon--StoreLogo16:focus {
+#header-brands .ms-Icon--StoreLogo16:hover {
   color: white;
 }
 
-#header-brands .ms-Icon--WindowsLogo:hover, #header-brands .ms-Icon--WindowsLogo:focus {
+#header-brands .ms-Icon--WindowsLogo:hover {
   color: #00a8e8;
 }
 
@@ -430,8 +430,7 @@ h2.section-heading {
   text-decoration: none;
 }
 
-.job-title-link:hover,
-.job-title-link:focus {
+.job-title-link:hover {
   text-decoration: underline;
 }
 
