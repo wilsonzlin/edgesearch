@@ -156,16 +156,23 @@ select {
 }
 
 #header-logo {
-  display: block;
   flex: 0 0 auto;
+
+  display: flex;
+  flex-wrap: wrap;
 
   height: 2rem;
   width: 2rem;
   margin: 0 1rem;
 
-  background: url(/static/microsoft-icon.png) no-repeat center / contain;
-
   outline: 0;
+}
+
+#header-logo > span {
+  flex: 0 0 auto;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: 0.05rem;
 }
 
 #header-text {

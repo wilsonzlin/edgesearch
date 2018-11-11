@@ -56,6 +56,12 @@
   });
 
   const $header_logo = $("#header-logo");
+  const $$header_logo_quads = [
+    [$("#ms-logo-nw"), "#f24f1c"],
+    [$("#ms-logo-ne"), "#80bb00"],
+    [$("#ms-logo-sw"), "#00a6f0"],
+    [$("#ms-logo-se"), "#ffba00"],
+  ];
   const $header_text_date = $("#header-text-date");
   const $header_text_name = $("#header-text-name");
   const $header_brands = $("#header-brands");
@@ -79,6 +85,10 @@
       opacity: 1,
       delay: 750,
     }),
+    ...$$header_logo_quads.map(([$quad, to], no) => animate($quad, {
+      backgroundColor: ["#fff", to],
+      delay: 1000 + (no * 50),
+    })),
   ]).then(() => animate($header_text_date, {
     opacity: 1,
   })).then(() => animate($header_text_date, {
