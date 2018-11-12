@@ -205,9 +205,9 @@ server.get("/jobs", async (req, res) => {
 
   res.send(Page({
     // User-submitted form data
-    afterYear: after ? after.slice(0, 4) : now.year(),
-    afterMonth: after ? after.slice(5, 7) : Math.max(now.month(), 1),
-    afterDay: after ? after.slice(8, 10) : 1,
+    afterYear: after && after.slice(0, 4),
+    afterMonth: after && after.slice(5, 7),
+    afterDay: after && after.slice(8, 10),
     rules: rules.map(r => ({
       ...r,
       words: r.words.join(" "),
