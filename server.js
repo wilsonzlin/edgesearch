@@ -88,7 +88,7 @@ if (ARGS.hot) {
     https.createServer({
       key: await fs.readFile(ARGS["https-key"], "utf8"),
       cert: await fs.readFile(ARGS["https-cert"], "utf8"),
-      ca: await ARGS["https-ca"] && fs.readFile(ARGS["https-ca"], "utf8"),
+      ca: ARGS["https-ca"] && await fs.readFile(ARGS["https-ca"], "utf8"),
     }, server).listen(443, () => console.log(`HTTPS server has started`));
   } else {
     server.listen(3001, () => console.log(`Server has started`));
