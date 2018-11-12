@@ -2,7 +2,6 @@
 
 const fs = require("fs-extra");
 const path = require("path");
-const http = require("http");
 const https = require("https");
 const express = require("express");
 const moment = require("moment");
@@ -81,11 +80,15 @@ if (ARGS.hot) {
   }
 
   if (ARGS["https-key"]) {
-    http.createServer(server).listen(80);
+    // Redirect all HTTP requests to HTTPS server
+    const redirect = express();
+    redirect.use((req, res) => res.redirect(`https://${req.headers.host}${req.url}`));
+    redirect.listen(80);
+
     https.createServer({
       key: await fs.readFile(ARGS["https-key"], "utf8"),
       cert: await fs.readFile(ARGS["https-cert"], "utf8"),
-      ca: await fs.readFile(ARGS["https-ca"], "utf8"),
+      ca: await ARGS["https-ca"] && fs.readFile(ARGS["https-ca"], "utf8"),
     }, server).listen(443, () => console.log(`HTTPS server has started`));
   } else {
     server.listen(3001, () => console.log(`Server has started`));
