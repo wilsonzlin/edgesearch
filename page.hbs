@@ -55,7 +55,7 @@
             id="filter-after-month" class="filter-after-input" contenteditable>{{afterMonth}}</span>&ndash;<span
             id="filter-after-day" class="filter-after-input" contenteditable>{{afterDay}}</span>
           </h1>
-          <button id="pane-open-button" class="btn">Filter</button>
+          <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
         {{#each jobs}}
           <article class="job">
@@ -75,12 +75,12 @@
       </main>
 
       <aside id="pane" {{#if noResults}}class="pane-open"{{/if}}>
-        <div class="section-heading-container">
-          <h1 class="section-heading">Filter</h1>
-          <button id="pane-close-button" class="btn">Close</button>
-        </div>
-
         <form id="filter-form" method="get">
+          <div class="section-heading-container">
+            <h1 class="section-heading">Filter</h1>
+            <button class="btn btn-teal">Search</button>
+          </div>
+
           {{#each rules}}
             <div class="search-category">
               <div class="search-category-head">
@@ -125,10 +125,6 @@
               </button>
             </li>
           </template>
-
-          <div id="filter-buttons">
-            <button class="btn btn-teal">Search</button>
-          </div>
 
           <div class="section-heading-container">
             <h1 class="section-heading">Share</h1>

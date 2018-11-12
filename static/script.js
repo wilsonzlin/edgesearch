@@ -5,13 +5,9 @@
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
   const $pane = $("#pane");
-  const $pane_open_button = $("#pane-open-button");
-  $pane_open_button.addEventListener("click", () => {
-    $pane.classList.add("pane-open");
-  });
-  const $pane_close_button = $("#pane-close-button");
-  $pane_close_button.addEventListener("click", () => {
-    $pane.classList.remove("pane-open");
+  const $pane_toggle_button = $("#pane-toggle-button");
+  $pane_toggle_button.addEventListener("click", () => {
+    $pane.classList.toggle("pane-open");
   });
 
   const init_toggle = $toggle => {

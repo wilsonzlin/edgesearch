@@ -322,12 +322,12 @@ select {
   width: 30rem;
 }
 
-#pane-open-button, #pane-close-button {
+#pane-toggle-button {
   display: none;
 }
 
 @media (max-width: 1000px) {
-  #pane-open-button, #pane-close-button {
+  #pane-toggle-button {
     display: block;
   }
 
@@ -360,7 +360,7 @@ select {
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
-  border-bottom: 2px solid currentColor;
+  margin: 0;
 }
 
 .section-heading-container > :last-child:not(.section-heading) {
@@ -369,12 +369,12 @@ select {
 
 h1.section-heading {
   font-size: 1.25rem;
-  color: #333; /* neutralPrimary */
+  color: #666; /* neutralSecondary */
 }
 
 h2.section-heading {
   font-size: 1rem;
-  color: #666; /* neutralSecondary */
+  color: #a6a6a6; /* neutralTertiary */
 }
 
 #jobs-heading > span:first-child {
@@ -509,7 +509,7 @@ h2.section-heading {
   border: 0;
   color: #008272; /* teal */
 
-  padding: 0 0 0 0.5rem;
+  padding: 0 0.5rem;
   cursor: pointer;
 }
 
@@ -536,12 +536,4 @@ h2.section-heading {
 
 .search-term-words {
   flex-grow: 1;
-}
-
-#filter-buttons {
-  margin: 1.5rem 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
 }
