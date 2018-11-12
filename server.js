@@ -216,6 +216,7 @@ server.get("/jobs", async (req, res) => {
     // Results
     jobs: jobs,
     resultsCount: `${jobs.length}${overflow ? "+" : ""}`,
+    singleResult: jobs.length === 1,
     todayHumanDate: now.format("MMMM Do YYYY"),
   }));
 });

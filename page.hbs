@@ -4,7 +4,7 @@
     <meta charset="utf8">
     <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>{{resultsCount}} results | Microsoft Careers</title>
+    <title>{{#if singleResult}}One result{{else}}{{resultsCount}} results{{/if}} | Microsoft Careers</title>
 
     {{{externalResources}}}
     <link rel="stylesheet" href="/static/style.css">
@@ -47,7 +47,7 @@
     <div id="content">
       <main id="jobs">
         <div class="section-heading-container">
-          <h1 class="section-heading">{{resultsCount}} matches</h1>
+          <h1 class="section-heading">{{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}}</h1>
           <button id="pane-open-button" class="btn">Filter</button>
         </div>
         {{#each jobs}}
