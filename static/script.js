@@ -51,15 +51,16 @@
     $select.value = $select.dataset.value;
   }
 
-  for (const $button of $$(".search-term-button")) {
-    $button.addEventListener("click", () => {
+  window.addEventListener("click", e => {
+    if (e.target.classList.contains("search-term-button")) {
+      const $button = e.target;
       switch ($button.value) {
       case "delete":
         $button.parentNode.parentNode.remove();
         break;
       }
-    });
-  }
+    }
+  }, true);
 
   Sortable.create($search_terms, {
     handle: ".search-term-drag",
