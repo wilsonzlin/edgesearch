@@ -36,16 +36,18 @@
     init_toggle($toggle);
   }
 
-  const $search_terms = $("#search-terms");
-  const $search_terms_add_button = $("#search-terms-add-button");
+  const $$search_category_buttons = $$(".search-category-button");
   const $template_search_term = $("#template-search-term");
-  $search_terms_add_button.addEventListener("click", () => {
-    const $new = $template_search_term.content.cloneNode(true);
-    for (const $toggle of $$(".toggle", $new)) {
-      init_toggle($toggle);
-    }
-    $search_terms.appendChild($new);
-  });
+  for (const $button of $$search_category_buttons) {
+    $button.addEventListener("click", () => {
+      const field = $button.dataset.field;
+      const $new = $template_search_term.content.cloneNode(true);
+      for (const $elem of $$("[name*=\"<FIELD>\"]", $new)) {
+        $elem.name = $elem.name.replace(/<FIELD>/g, field);
+      }
+      $button.parentNode.parentNode.nextElementSibling.appendChild($new);
+    });
+  }
 
   for (const $select of $$("select[data-value]")) {
     $select.value = $select.dataset.value;
@@ -56,16 +58,11 @@
       const $button = e.target;
       switch ($button.value) {
       case "delete":
-        $button.parentNode.parentNode.remove();
+        $button.parentNode.remove();
         break;
       }
     }
   }, true);
-
-  Sortable.create($search_terms, {
-    handle: ".search-term-drag",
-    ghostClass: "search-term-dragging",
-  });
 
   const $header_logo = $("#header-logo");
   const $$header_logo_quads = [

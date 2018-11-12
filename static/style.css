@@ -334,7 +334,7 @@ select {
   #pane {
     position: fixed;
 
-    background: rgba(230, 230, 230, 0.975);
+    background: rgba(240, 240, 240, 0.95);
     transition: 0.3s;
 
     top: 100%;
@@ -360,8 +360,11 @@ select {
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin: 0;
   border-bottom: 2px solid currentColor;
+}
+
+.section-heading-container > :last-child:not(.section-heading) {
+  margin-left: 1rem;
 }
 
 h1.section-heading {
@@ -372,6 +375,30 @@ h1.section-heading {
 h2.section-heading {
   font-size: 1rem;
   color: #666; /* neutralSecondary */
+}
+
+#jobs-heading > span:first-child {
+  padding-right: 0.5rem;
+}
+
+.filter-after-input {
+  color: #008272; /* teal */
+}
+
+.filter-after-input:empty::before {
+  color: #a6a6a6; /* neutralTertiary */
+}
+
+#filter-after-year:empty::before {
+  content: "yyyy";
+}
+
+#filter-after-month:empty::before {
+  content: "mm";
+}
+
+#filter-after-day:empty::before {
+  content: "dd";
 }
 
 .job {
@@ -461,65 +488,49 @@ h2.section-heading {
   margin-bottom: 0.25rem;
 }
 
-.search-term {
-  display: block;
-
-  margin: 1.75rem 0;
-
-  transform: none;
-  opacity: 1;
-  transition: 0.4s;
+.search-category {
+  margin-bottom: 3rem;
 }
 
-.search-term:not(:last-child)::after {
-  content: "";
-  display: block;
-  width: 80%;
-  margin: 1.75rem auto; /* Match .search-term */
-  height: 1px;
-  background: rgba(255, 255, 255, 0.66);
-}
-
-.search-term-dragging {
-  transform: scale(0.92);
-  opacity: 0.5;
-}
-
-.search-term-head {
+.search-category-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.search-term-drag {
-  font-size: 1rem;
-  line-height: 1.25rem;
-  height: 1.25rem;
-  width: 1.25rem;
-  text-align: center;
-  margin-right: 0.5rem;
-  cursor: ns-resize;
-}
-
-.search-term-head > h3 {
-  color: black;
+.search-category-head > h3 {
   font-weight: bold;
   font-size: inherit;
   margin: 0;
 }
 
-.search-term-body {
+.search-category-button, .search-term-button {
+  background: transparent;
+  border: 0;
+  color: #008272; /* teal */
+
+  padding: 0 0 0 0.5rem;
+  cursor: pointer;
+}
+
+.search-terms:empty::before {
+  content: "Hit the add button to add a search term";
+  color: #666; /* neutralSecondary */
+}
+
+.search-term {
   display: flex;
   align-items: baseline;
 
-  margin: 1rem 0.25rem;
+  margin: 0.75rem 0;
 }
 
-.search-term-body > * {
+.search-term-mode, .search-term-words {
   padding: 0.25rem;
 }
 
 .search-term-mode {
-  flex: 0 0 auto;
+  color: #008272; /* teal */
   margin-right: 0.5rem;
 }
 
@@ -528,9 +539,9 @@ h2.section-heading {
 }
 
 #filter-buttons {
-  margin: 2rem 0;
+  margin: 1.5rem 0;
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
 }

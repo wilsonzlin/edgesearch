@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 
     <title>{{#if singleResult}}One result{{else}}{{resultsCount}} results{{/if}} | Microsoft Careers</title>
 
@@ -48,7 +49,12 @@
     <div id="content">
       <main id="jobs">
         <div class="section-heading-container">
-          <h1 class="section-heading">{{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}}</h1>
+          <h1 id="jobs-heading" class="section-heading">
+            <span>{{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}} after</span
+            ><span id="filter-after-year" class="filter-after-input" contenteditable>{{afterYear}}</span>&ndash;<span
+            id="filter-after-month" class="filter-after-input" contenteditable>{{afterMonth}}</span>&ndash;<span
+            id="filter-after-day" class="filter-after-input" contenteditable>{{afterDay}}</span>
+          </h1>
           <button id="pane-open-button" class="btn">Filter</button>
         </div>
         {{#each jobs}}
@@ -58,7 +64,8 @@
                 <h1 class="job-title"><a class="job-title-link" href="{{URL}}" target="_blank">{{title}}</a></h1>
                 <h2 class="job-location">{{location}}</h2>
               </div>
-              <p class="job-description">{{description}}&hellip;</p>
+              <!-- Descriptions are HTML encoded -->
+              <p class="job-description">{{{description}}}&hellip;</p>
             </div>
             <div class="job-right">
               <time class="job-date" datetime="{{date}}">{{humanDate}}</time>
@@ -72,90 +79,59 @@
           <h1 class="section-heading">Filter</h1>
           <button id="pane-close-button" class="btn">Close</button>
         </div>
-        <form id="filter" method="get">
-          <div class="section-heading-container">
-            <h2 class="section-heading">Posted after</h2>
-          </div>
 
-          <div class="filter-after">
-            <label>
-              <span>Year</span>
-              <input class="ipt-text filter-after-date-input" name="after_year" type="number" min="0" max="99999"
-                     step="1" placeholder="Year" value="{{afterYear}}">
-            </label>
-            <label>
-              <span>Month</span>
-              <input class="ipt-text filter-after-date-input" name="after_month" type="number" min="1" max="12" step="1"
-                     placeholder="Month" value="{{afterMonth}}">
-            </label>
-            <label>
-              <span>Day</span>
-              <input class="ipt-text filter-after-date-input" name="after_day" type="number" min="1" max="31" step="1"
-                     placeholder="Day" value="{{afterDay}}">
-            </label>
-          </div>
+        <form id="filter-form" method="get">
+          {{#each rules}}
+            <div class="search-category">
+              <div class="search-category-head">
+                <h3>Filter by {{field}}</h3>
 
-          <div class="section-heading-container">
-            <h2 class="section-heading">Search terms</h2>
-          </div>
+                <div>
+                  <button type="button" data-field="{{field}}" class="search-category-button" value="add"><i
+                    class="ms-Icon ms-Icon--Add"></i></button>
+                </div>
+              </div>
 
-          <ul id="search-terms">
-            {{#each rules}}
-              <li class="search-term">
-                <div class="search-term-head">
-                  <div class="search-term-drag">&#9776;</div>
-                  <h3><span>Filter by&nbsp;</span><select name="rules_field[]" data-value="{{field}}">
-                    {{#each ../FIELDS}}
-                      <option>{{this}}</option>
-                    {{/each}}</select></h3>
-                  <div class="flex-spacer"></div>
-                  <button type="button" class="toggle" data-name="rules_enabled[]" data-checked="{{enabled}}"></button>
-                </div>
-                <div class="search-term-body">
-                  <select class="search-term-mode" name="rules_mode[]" data-value="{{mode}}">
-                    <option value="require">Require</option>
-                    <option value="contain">Any of</option>
-                    <option value="exclude">Exclude</option>
-                  </select>
-                  <input class="ipt-text search-term-words" name="rules_words[]" value="{{words}}"
-                         placeholder="Enter space-separated words">
-                </div>
-                <div class="search-term-buttons">
-                  <button class="btn search-term-button" type="button" value="delete">Delete</button>
-                </div>
-              </li>
-            {{/each}}
-          </ul>
+              <ul class="search-terms">
+                <!-- TODO This and template has whitespace around each li,
+                which causes :empty styling to fail -->
+                {{#each terms}}
+                  <li class="search-term">
+                    <select class="search-term-mode" name="rules_{{../field}}_mode[]" data-value="{{mode}}">
+                      <option value="require">Must contain</option>
+                      <option value="contain">Has any of</option>
+                      <option value="exclude">Does not have</option>
+                    </select>
+                    <input class="ipt-text search-term-words" name="rules_{{../field}}_words[]" value="{{words}}"
+                           placeholder="Enter space-separated words">
+                    <button type="button" class="search-term-button" value="delete"><i
+                      class="ms-Icon ms-Icon--Delete"></i></button>
+                  </li>
+                {{/each}}
+              </ul>
+            </div>
+          {{/each}}
 
           <template id="template-search-term">
             <li class="search-term">
-              <div class="search-term-head">
-                <div class="search-term-drag">&#9776;</div>
-                <h3><span>Filter by&nbsp;</span><select name="rules_field[]">
-                  {{#each FIELDS}}
-                    <option>{{this}}</option>
-                  {{/each}}</select></h3>
-                <div class="flex-spacer"></div>
-                <button type="button" class="toggle" data-name="rules_enabled[]" data-checked="true"></button>
-              </div>
-              <div class="search-term-body">
-                <select class="search-term-mode" name="rules_mode[]">
-                  <option value="require" selected>Require</option>
-                  <option value="contain">Any of</option>
-                  <option value="exclude">Exclude</option>
-                </select>
-                <input class="ipt-text search-term-words" name="rules_words[]"
-                       placeholder="Enter space-separated words">
-              </div>
-              <div class="search-term-buttons">
-                <button class="btn search-term-button" type="button" value="delete">Delete</button>
-              </div>
+              <select class="search-term-mode" name="rules_<FIELD>_mode[]" data-value="{{mode}}">
+                <option value="require">Must contain</option>
+                <option value="contain">Has any of</option>
+                <option value="exclude">Does not have</option>
+              </select>
+              <input class="ipt-text search-term-words" name="rules_<FIELD>_words[]" value="{{words}}"
+                     placeholder="Enter space-separated words">
+              <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
+              </button>
             </li>
           </template>
 
           <div id="filter-buttons">
-            <button class="btn" type="button" id="search-terms-add-button">Add rule</button>
             <button class="btn btn-teal">Search</button>
+          </div>
+
+          <div class="section-heading-container">
+            <h1 class="section-heading">Share</h1>
           </div>
 
           <p class="msg msg-info">

@@ -47,7 +47,7 @@ if (ARGS.hot) {
       analytics: Analytics,
       externalResources: compiled_resources,
     });
-    console.log(moment().format("dddd, MMMM Do YYYY, HH:mm:ss"), "Loaded");
+    console.log(moment().format("MMMM Do YYYY, HH:mm:ss"), "Loaded");
   };
   compiler();
   fs.watchFile(PAGE_TEMPLATE_PATH, compiler);
@@ -113,18 +113,27 @@ const valid_word = str => {
   return /^[\x20-\x7e]{1,50}$/.test(str);
 };
 
+const default_after = () => {
+  const now = moment();
+  return moment.utc([now.year(), (now.month() - 1) || 1, 1]).toISOString();
+};
+
 const validate_query_parameters = query => {
   return {
     // toISOString will return null if invalid; `undefined - 1` is NaN
-    after: moment.utc([query.after_year, query.after_month - 1, query.after_day]).toISOString(),
-    rules: (query.rules_enabled || []).map((enabled_str, id) => {
-      return {
-        enabled: enabled_str === "true",
-        words: ((query.rules_words || [])[id] || "").trim().split(/\s+/).filter(w => valid_word(w)).map(w => w.toLowerCase()),
-        field: (query.rules_field || [])[id],
-        mode: (query.rules_mode || [])[id],
-      };
-    }).filter(r => FIELDS.includes(r.field) && MODES.includes(r.mode) && r.words.length),
+    after: moment.utc([query.after_year, query.after_month - 1, query.after_day]).toISOString() || default_after(),
+    rules: FIELDS.map(field => ({
+      field: field,
+      terms: (query[`rules_${field}_mode`] || []).map((mode, no) => ({
+        mode: mode,
+        words: (query[`rules_${field}_words`][no] || "")
+          .replace(/[,]/g, " ")
+          .trim()
+          .split(/\s+/)
+          .filter(w => valid_word(w))
+          .map(w => w.toLowerCase()),
+      })).filter(t => MODES.includes(t.mode) && t.words.length),
+    })),
   };
 };
 
@@ -169,9 +178,7 @@ server.get("/jobs", async (req, res) => {
 
   let jobs = JOBS;
 
-  if (after) {
-    jobs = jobs.filter(j => j.date > after);
-  }
+  jobs = jobs.filter(j => j.date > after);
 
   const word_rules = {
     "require": {},
@@ -179,31 +186,30 @@ server.get("/jobs", async (req, res) => {
     "exclude": {},
   };
 
-  for (const {enabled, words, field, mode} of rules) {
-    if (!enabled) {
-      continue;
-    }
-    if (!word_rules[mode][field]) {
-      word_rules[mode][field] = new Set();
-    }
-    for (const word of words) {
-      word_rules[mode][field].add(word);
+  for (const {field, terms} of rules) {
+    for (const {mode, words} of terms) {
+      if (!word_rules[mode][field]) {
+        word_rules[mode][field] = new Set();
+      }
+      for (const word of words) {
+        word_rules[mode][field].add(word);
+      }
     }
   }
 
-  if (rules.length) {
-    const word_rules_promises = [];
-    for (const job of jobs) {
-      const job_subpromises = [];
-      for (const mode of Object.keys(word_rules)) {
-        for (const field of Object.keys(word_rules[mode])) {
-          const words = [...word_rules[mode][field]];
-          job_subpromises.push(db_job_words_assert_mode[mode](job, field, words));
-        }
+  const word_rules_promises = [];
+  for (const job of jobs) {
+    const job_subpromises = [];
+    for (const mode of Object.keys(word_rules)) {
+      for (const field of Object.keys(word_rules[mode])) {
+        const words = [...word_rules[mode][field]];
+        job_subpromises.push(db_job_words_assert_mode[mode](job, field, words));
       }
-      word_rules_promises.push(Promise.all(job_subpromises).then(() => job, () => null));
     }
+    word_rules_promises.push(Promise.all(job_subpromises).then(() => job, () => null));
+  }
 
+  if (word_rules_promises.length) {
     jobs = (await Promise.all(word_rules_promises)).filter(j => j);
   }
 
@@ -222,7 +228,10 @@ server.get("/jobs", async (req, res) => {
     afterDay: after && after.slice(8, 10),
     rules: rules.map(r => ({
       ...r,
-      words: r.words.join(" "),
+      terms: r.terms.map(t => ({
+        ...t,
+        words: t.words.join(" "),
+      })),
     })),
 
     FIELDS: FIELDS,
