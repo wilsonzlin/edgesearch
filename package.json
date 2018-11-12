@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "animejs": "^2.2.0",
     "chalk": "^2.4.1",
     "cheerio": "^1.0.0-rc.2",
     "clean-css": "^4.2.1",
@@ -13,11 +14,12 @@
     "redis": "^2.8.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
+    "sortablejs": "^1.7.0",
     "uglify-es": "^3.3.9"
   },
   "scripts": {
     "clean": "rm -rf cache data-*.json",
-    "build": "node data.js && node analysis.js",
+    "build": "node data.js && node analysis.js && node static.js",
     "start": "node server.js"
   }
 }
