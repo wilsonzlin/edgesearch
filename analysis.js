@@ -3,6 +3,9 @@
 const fs = require("fs-extra");
 const moment = require("moment");
 const path = require("path");
+const minimist = require("minimist");
+
+const ARGS = minimist(process.argv.slice(2));
 
 const PATH_DATA_RAW = path.join(__dirname, "data-raw.json");
 const PATH_DATA_PROCESSED = path.join(__dirname, "data-processed.json");
@@ -46,10 +49,12 @@ function collate_words_of_field (field, jobs) {
 }
 
 function log_strings_list (description, list) {
-  console.log(`${description} (${list.length}):
+  if (ARGS.log) {
+    console.log(`${description} (${list.length}):
 ==================================
  ${list.join("\n ")}
 `);
+  }
 }
 
 const jobs = fs.readJSONSync(PATH_DATA_RAW)
