@@ -74,7 +74,7 @@
     [$("#ms-logo-se"), "#ffba00"],
     [$("#ms-logo-sw"), "#00a6f0"],
   ];
-  const $header_text_date = $("#header-text-date");
+  const $header_text_init = $("#header-text-init");
   const $header_text_name = $("#header-text-name");
   const $header_brands = $("#header-brands");
   const $$header_brand_icons = $$("li", $header_brands);
@@ -101,12 +101,12 @@
       backgroundColor: ["#fff", to],
       delay: 950 + (no * 100),
     })),
-  ]).then(() => animate($header_text_date, {
+  ]).then(() => animate($header_text_init, {
     opacity: 1,
-  })).then(() => animate($header_text_date, {
+  })).then(() => animate($header_text_init, {
     width: 0,
     delay: 2000,
-  })).then(() => $header_text_date.remove()).then(() => animate($header_text_name, {
+  })).then(() => $header_text_init.remove()).then(() => animate($header_text_name, {
     width: "100%",
     delay: 500,
   })).then(() => {
