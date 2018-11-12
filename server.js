@@ -179,19 +179,22 @@ server.get("/jobs", async (req, res) => {
     }
   }
 
-  const word_rules_promises = [];
-  for (const job of jobs) {
-    const job_subpromises = [];
-    for (const mode of Object.keys(word_rules)) {
-      for (const field of Object.keys(word_rules[mode])) {
-        const words = [...word_rules[mode][field]];
-        job_subpromises.push(db_job_words_assert_mode[mode](job, field, words));
+  if (rules.length) {
+    const word_rules_promises = [];
+    for (const job of jobs) {
+      const job_subpromises = [];
+      for (const mode of Object.keys(word_rules)) {
+        for (const field of Object.keys(word_rules[mode])) {
+          const words = [...word_rules[mode][field]];
+          job_subpromises.push(db_job_words_assert_mode[mode](job, field, words));
+        }
       }
+      word_rules_promises.push(Promise.all(job_subpromises).then(() => job, () => null));
     }
-    word_rules_promises.push(Promise.all(job_subpromises).then(() => job, () => null));
+
+    jobs = (await Promise.all(word_rules_promises)).filter(j => j);
   }
 
-  jobs = (await Promise.all(word_rules_promises)).filter(j => j);
   let overflow = false;
   if (jobs.length > MAX_RESULTS) {
     overflow = true;
