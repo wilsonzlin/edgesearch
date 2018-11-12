@@ -38,6 +38,7 @@
 }
 
 html {
+  font-family: "Segoe UI Web (West European)", Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, sans-serif;
   color: #333;
   font-size: 14px;
   line-height: 1.5;
@@ -48,8 +49,9 @@ body {
   margin: 0;
 }
 
-body, button, input, select, textarea {
-  font-family: "Segoe UI Web (West European)", Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, sans-serif;
+button, input, select, textarea {
+  font: inherit;
+  border-radius: 0; /* iOS */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -71,7 +73,6 @@ select {
   border-bottom: 2px solid currentColor;
   color: inherit;
   cursor: pointer;
-  font: inherit;
   padding: 0;
 
   -webkit-appearance: none;
