@@ -15,6 +15,7 @@ const ARGS = minimist(process.argv.slice(2));
 const FIELDS = ["title", "location"];
 const MODES = ["require", "contain", "exclude"];
 const JOBS = fs.readJSONSync(path.join(__dirname, "data-processed.json"));
+const MAX_RESULTS = 200;
 
 const db = redis.createClient();
 const db_job_words_key = (job, field) => `${job.ID}_${field}_words`;
@@ -191,6 +192,11 @@ server.get("/jobs", async (req, res) => {
   }
 
   jobs = (await Promise.all(word_rules_promises)).filter(j => j);
+  let overflow = false;
+  if (jobs.length > MAX_RESULTS) {
+    overflow = true;
+    jobs = jobs.slice(0, MAX_RESULTS);
+  }
 
   let now = moment();
 
@@ -205,10 +211,11 @@ server.get("/jobs", async (req, res) => {
     })),
 
     FIELDS: FIELDS,
+    JOBS_COUNT: JOBS.length,
 
     // Results
     jobs: jobs,
-    resultsCount: jobs.length,
+    resultsCount: `${jobs.length}${overflow ? "+" : ""}`,
     todayHumanDate: now.format("MMMM Do YYYY"),
   }));
 });
