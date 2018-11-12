@@ -1,4 +1,30 @@
 {
+  "name": "careers-at-microsoft",
+  "version": "0.0.1",
+  "description": "Web app for filtering through data sourced from careers.microsoft.com",
+  "main": "dist/main.js",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "clean": "rm -rf cache data-*.json",
+    "build": "node data.js && node analysis.js && node static.js",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilsonzlin/careers-at-microsoft.git"
+  },
+  "author": {
+    "email": "contact@wilsonl.in",
+    "name": "Wilson Lin",
+    "url": "https://wilsonl.in/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wilsonzlin/careers-at-microsoft/issues"
+  },
+  "homepage": "https://github.com/wilsonzlin/careers-at-microsoft#readme",
   "dependencies": {
     "animejs": "^2.2.0",
     "chalk": "^2.4.1",
@@ -16,10 +42,5 @@
     "request-promise-native": "^1.0.5",
     "sortablejs": "^1.7.0",
     "uglify-es": "^3.3.9"
-  },
-  "scripts": {
-    "clean": "rm -rf cache data-*.json",
-    "build": "node data.js && node analysis.js && node static.js",
-    "start": "node server.js"
   }
 }
