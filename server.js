@@ -108,7 +108,7 @@ const validate_query_parameters = query => {
     rules: (query.rules_enabled || []).map((enabled_str, id) => {
       return {
         enabled: enabled_str === "true",
-        words: ((query.rules_words || [])[id] || "").trim().split(/\s+/).filter(w => valid_word(w)),
+        words: ((query.rules_words || [])[id] || "").trim().split(/\s+/).filter(w => valid_word(w)).map(w => w.toLowerCase()),
         field: (query.rules_field || [])[id],
         mode: (query.rules_mode || [])[id],
       };
@@ -219,7 +219,8 @@ server.get("/jobs", async (req, res) => {
     // Results
     jobs: jobs,
     resultsCount: `${jobs.length}${overflow ? "+" : ""}`,
-    singleResult: jobs.length === 1,
+    noResults: !jobs.length,
+    singleResult: jobs.length == 1,
     todayHumanDate: now.format("MMMM Do YYYY"),
   }));
 });

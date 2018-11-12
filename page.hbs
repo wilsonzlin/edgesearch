@@ -66,7 +66,7 @@
         {{/each}}
       </main>
 
-      <aside id="pane">
+      <aside id="pane" {{#if noResults}}class="pane-open"{{/if}}>
         <div class="section-heading-container">
           <h1 class="section-heading">Filter</h1>
           <button id="pane-close-button" class="btn">Close</button>
