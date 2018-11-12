@@ -98,7 +98,7 @@ if (ARGS.hot) {
 
 const valid_word = str => {
   // TODO
-  return true;
+  return /^[\x20-\x7e]{1,50}$/.test(str);
 };
 
 const validate_query_parameters = query => {
