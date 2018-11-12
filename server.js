@@ -149,6 +149,8 @@ const db_job_words_assert_mode = {
   },
 };
 
+server.get("/", (req, res) => res.redirect("/jobs"));
+
 server.get("/jobs", async (req, res) => {
   let {after, rules} = validate_query_parameters(req.query);
 
