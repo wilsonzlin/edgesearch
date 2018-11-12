@@ -10,21 +10,26 @@ const redis = require("redis");
 const minimist = require("minimist");
 const {promisify} = require("util");
 const compression = require("compression");
+const crypto = require("crypto");
 
 const ARGS = minimist(process.argv.slice(2));
 const FIELDS = ["title", "location"];
 const MODES = ["require", "contain", "exclude"];
 const JOBS = fs.readJSONSync(path.join(__dirname, "data-processed.json"));
+const WORD_FILTERS = fs.readJSONSync(path.join(__dirname, "data-filters.json"));
 const MAX_RESULTS = 200;
 
-const db = redis.createClient();
-const db_job_words_key = (job, field) => `${job.ID}_${field}_words`;
+const db = redis.createClient({
+  return_buffers: true,
+});
+const db_random_key = () => crypto.randomBytes(16).toString("base64");
+const db_word_filter_key = (field, word) => `${field}_${word}`;
 const db_cmd = promisify(db.send_command).bind(db);
+const db_multi = cmds => new Promise((resolve, reject) => db.multi(cmds)
+  .exec((err, results) => err ? reject(err) : resolve(results)));
+
 const server = express();
-server.use(compression({
-  level: 9,
-  memLevel: 9,
-}));
+server.use(compression());
 
 let Page;
 let Analytics;
@@ -78,19 +83,16 @@ if (ARGS.hot) {
 }
 
 (async function () {
-  for (const job of JOBS) {
-    for (const field of FIELDS) {
-      const words = job._words[field];
-      if (!words) {
-        throw new ReferenceError(`Processed data for job ${job.ID} does not contain words for field ${field}`);
+  const db_commands = [];
+  for (const field of FIELDS) {
+    for (const word of Object.keys(WORD_FILTERS[field])) {
+      const filter = WORD_FILTERS[field][word];
+      for (const [idx, byte] of filter.entries()) {
+        db_commands.push(["BITFIELD", db_word_filter_key(field, word), "SET", "i32", idx * 32, byte]);
       }
-      const key = db_job_words_key(job, field);
-      await db_cmd("DEL", [key]);
-      await db_cmd(`BF.RESERVE`, [key, 0.000000001, words.length]);
-      await db_cmd(`BF.MADD`, [key, ...words]);
     }
-    delete job._words;
   }
+  await db_multi(db_commands);
 
   if (ARGS["https-key"]) {
     // Redirect all HTTP requests to HTTPS server
@@ -109,7 +111,7 @@ if (ARGS.hot) {
 })();
 
 const valid_word = str => {
-  // TODO
+  // TODO Need to require only known words as otherwise bitfield operations may not work on non-existent keys
   return /^[\x20-\x7e]{1,50}$/.test(str);
 };
 
@@ -127,7 +129,7 @@ const validate_query_parameters = query => {
       terms: (query[`rules_${field}_mode`] || []).map((mode, no) => ({
         mode: mode,
         words: ((query[`rules_${field}_words`] || [])[no] || "")
-          .replace(/[,]/g, " ")
+          .replace(/[;:,]/g, " ")
           .trim()
           .split(/\s+/)
           .filter(w => valid_word(w))
@@ -137,80 +139,116 @@ const validate_query_parameters = query => {
   };
 };
 
-const db_job_words_test = async (job, field, words) => {
-  return await db_cmd(`BF.MEXISTS`, [db_job_words_key(job, field), ...words]);
-};
-
-const db_job_words_assert_mode = {
-  "require": async (job, field, words) => {
-    if (!words.length) {
-      return;
-    }
-    const res = await db_job_words_test(job, field, words);
-    if (res.some(r => !r)) {
-      throw new ReferenceError(`Not all words matched`);
-    }
-  },
-  "contain": async (job, field, words) => {
-    if (!words.length) {
-      return;
-    }
-    const res = await db_job_words_test(job, field, words);
-    if (!res.some(r => r)) {
-      throw new ReferenceError(`No words matched`);
-    }
-  },
-  "exclude": async (job, field, words) => {
-    if (!words.length) {
-      return;
-    }
-    const res = await db_job_words_test(job, field, words);
-    if (res.some(r => r)) {
-      throw new ReferenceError(`Some words matched`);
-    }
-  },
-};
-
 server.get("/", (req, res) => res.redirect("/jobs"));
 
 server.get("/jobs", async (req, res) => {
   let {after, rules} = validate_query_parameters(req.query);
 
-  let jobs = JOBS;
+  // Don't initialise with all modes as unused modes will break bitwise operations
+  const word_rules = {};
 
-  jobs = jobs.filter(j => j.date > after);
-
-  const word_rules = {
-    "require": {},
-    "contain": {},
-    "exclude": {},
-  };
-
+  let search_words_count = 0;
+  let last_search_term;
   for (const {field, terms} of rules) {
     for (const {mode, words} of terms) {
+      if (!word_rules[mode]) {
+        word_rules[mode] = {};
+      }
       if (!word_rules[mode][field]) {
         word_rules[mode][field] = new Set();
       }
       for (const word of words) {
+        search_words_count++;
         word_rules[mode][field].add(word);
+        last_search_term = {word, field, mode};
       }
     }
   }
 
-  const word_rules_promises = [];
-  for (const job of jobs) {
-    const job_subpromises = [];
-    for (const mode of Object.keys(word_rules)) {
-      for (const field of Object.keys(word_rules[mode])) {
-        const words = [...word_rules[mode][field]];
-        job_subpromises.push(db_job_words_assert_mode[mode](job, field, words));
+  let jobs;
+
+  if (!search_words_count) {
+    jobs = JOBS.filter(j => j.date >= after);
+
+  } else {
+    let filtered;
+
+    if (search_words_count == 1) {
+      filtered = await db_cmd("GET", [db_word_filter_key(last_search_term.field, last_search_term.word)]);
+      if (last_search_term.mode == "exclude") {
+        for (let i = 0; i < filtered.length; i++) {
+          filtered[i] = ~filtered[i];
+        }
+      }
+
+    } else {
+      const batch_commands = [];
+      const mode_destination_keys = [];
+      const result_key = db_random_key();
+
+      // Don't use MODES as unused modes will break bitwise operations
+      for (const mode of Object.keys(word_rules)) {
+        const mode_source_keys = [];
+        const mode_destination_key = mode_destination_keys[mode_destination_keys.length] = db_random_key();
+        for (const field of Object.keys(word_rules[mode])) {
+          for (const word of word_rules[mode][field]) {
+            mode_source_keys.push(db_word_filter_key(field, word));
+          }
+        }
+        switch (mode) {
+        case "require":
+          batch_commands.push(["BITOP", "AND", mode_destination_key, ...mode_source_keys]);
+          break;
+        case "contain":
+          batch_commands.push(["BITOP", "OR", mode_destination_key, ...mode_source_keys]);
+          break;
+        case "exclude":
+          mode_source_keys
+            .map(key => {
+              const tmp = db_random_key();
+              batch_commands.push(["BITOP", "NOT", tmp, key]);
+              return tmp;
+            })
+            .reduce((cmd, tmp) => {
+              cmd.push(tmp);
+              batch_commands.push(["DEL", tmp]);
+              return cmd;
+            }, batch_commands[batch_commands.length] = ["BITOP", "AND", mode_destination_key]);
+          break;
+        }
+      }
+
+      batch_commands.push(["BITOP", "AND", result_key, ...mode_destination_keys]);
+      const result_idx = batch_commands.push(["GET", result_key]) - 1;
+      batch_commands.push(["DEL", result_key, ...mode_destination_keys]);
+
+      const response = await db_multi(batch_commands);
+      filtered = response[result_idx];
+    }
+
+    jobs = [];
+    for (let idx = 0; idx < filtered.length; idx++) {
+      let anchor = idx * 8;
+      let byte = filtered[idx];
+      let done = false;
+      for (let bit = 0; byte; bit++) {
+        if (byte & 128) {
+          const job = JOBS[anchor + bit];
+          // Reached extra padding bits at end
+          if (!job) {
+            done = true;
+            break;
+          }
+          if (job.date >= after) {
+            jobs.push(job);
+          }
+        }
+        byte <<= 1;
+      }
+      if (done) {
+        break;
       }
     }
-    word_rules_promises.push(Promise.all(job_subpromises).then(() => job, () => null));
-  }
-
-  if (word_rules_promises.length) {
-    jobs = (await Promise.all(word_rules_promises)).filter(j => j);
   }
 
   let overflow = false;
