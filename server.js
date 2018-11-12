@@ -126,7 +126,7 @@ const validate_query_parameters = query => {
       field: field,
       terms: (query[`rules_${field}_mode`] || []).map((mode, no) => ({
         mode: mode,
-        words: (query[`rules_${field}_words`][no] || "")
+        words: ((query[`rules_${field}_words`] || [])[no] || "")
           .replace(/[,]/g, " ")
           .trim()
           .split(/\s+/)
