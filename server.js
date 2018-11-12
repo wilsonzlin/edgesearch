@@ -2,6 +2,8 @@
 
 const fs = require("fs-extra");
 const path = require("path");
+const http = require("http");
+const https = require("https");
 const express = require("express");
 const moment = require("moment");
 const handlebars = require("handlebars");
@@ -78,7 +80,15 @@ if (ARGS.hot) {
     delete job._words;
   }
 
-  server.listen(3001, () => console.log(`Server has started`));
+  if (ARGS["https-key"]) {
+    http.createServer(server).listen(80);
+    https.createServer({
+      key: await fs.readFile(ARGS["https-key"], "utf8"),
+      cert: await fs.readFile(ARGS["https-cert"], "utf8"),
+    }, server).listen(443, () => console.log(`HTTPS server has started`));
+  } else {
+    server.listen(3001, () => console.log(`Server has started`));
+  }
 })();
 
 const valid_word = str => {
