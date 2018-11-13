@@ -7,8 +7,6 @@ const htmlminifier = require("html-minifier");
 const handlebars = require("handlebars");
 const babel = require("@babel/core");
 
-const {minify_js} = require("./build-common");
-
 const {
   BUILD_CLIENT,
   BUILD_DATA_JOBS,
@@ -16,7 +14,7 @@ const {
   CLIENT,
   CLIENT_TEMPLATE,
 
-  ENV_ANALYTICS_ID,
+  ENV_ANALYTICS,
 
   FIELDS,
 } = require("./const");
@@ -71,6 +69,43 @@ const transpile_js = js => babel.transformAsync(js, {
   ],
 }).then(res => res.code);
 
+const minify_js = js => {
+  const {error, warnings, code} = uglifyes.minify(js, {
+    mangle: true,
+    compress: {
+      booleans: true,
+      collapse_vars: true,
+      comparisons: true,
+      conditionals: true,
+      dead_code: true,
+      drop_console: true,
+      drop_debugger: true,
+      evaluate: true,
+      hoist_funs: true,
+      hoist_vars: false,
+      if_return: true,
+      join_vars: true,
+      keep_fargs: false,
+      keep_fnames: false,
+      loops: true,
+      negate_iife: true,
+      properties: true,
+      reduce_vars: true,
+      sequences: true,
+      unsafe: true,
+      unused: true,
+    },
+    warnings: true,
+  });
+  if (error) {
+    throw error;
+  }
+  if (warnings) {
+    warnings.forEach(console.log);
+  }
+  return code;
+};
+
 const minify_html = html => htmlminifier.minify(html, {
   collapseBooleanAttributes: true,
   collapseInlineTagWhitespace: true,
@@ -119,7 +154,7 @@ Promise.all([
     .then(d => d.length),
 ])
   .then(([js, css, html, jobsCount]) => handlebars.compile(html)({
-    analytics: ENV_ANALYTICS_ID && generate_analytics(ENV_ANALYTICS_ID),
+    analytics: ENV_ANALYTICS && generate_analytics(ENV_ANALYTICS),
     jobsCount: jobsCount,
     fields: FIELDS,
     script: js,
