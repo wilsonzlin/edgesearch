@@ -2,7 +2,8 @@
 
 (() => {
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+  const $$ = (sel, ctx = document) => Array.prototype.slice.call(ctx.querySelectorAll(sel));
+  ChildNodeRemove.polyfill();
 
   const $pane = $("#pane");
   const $pane_toggle_button = $("#pane-toggle-button");
@@ -12,10 +13,11 @@
 
   const $$search_category_buttons = $$(".search-category-button");
   const $template_search_term = $("#template-search-term");
+  const COMPAT_TEMPLATE = !!window.HTMLTemplateElement;
   for (const $button of $$search_category_buttons) {
     $button.addEventListener("click", () => {
       const field = $button.dataset.field;
-      const $new = $template_search_term.content.cloneNode(true).children[0];
+      const $new = (COMPAT_TEMPLATE ? $template_search_term.content : $template_search_term).cloneNode(true).children[0];
       $new.dataset.field = field;
       $button.parentNode.parentNode.nextElementSibling.appendChild($new);
     });

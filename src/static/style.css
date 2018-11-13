@@ -63,6 +63,10 @@ p, ul, ol, dl {
   padding: 0;
 }
 
+template {
+  display: none;
+}
+
 ::-moz-focus-inner {
   border: 0;
 }
@@ -149,6 +153,8 @@ select {
   justify-content: space-between;
 
   height: 4rem; /* Fixed height so pane can be positioned on small devices */
+
+  position: relative; /* For .header-brands-init */
 }
 
 #header-logo {
@@ -202,6 +208,8 @@ select {
 .header-brands-init {
   position: absolute;
   left: 0;
+  top: 0; /* Needed for IE 11 */
+  bottom: 0; /* Needed for IE 11 */
   pointer-events: none; /* Prevent accidentally clicking while animating */
 }
 
@@ -455,8 +463,6 @@ h2.section-heading {
 }
 
 #share-message {
-  /*padding: 0.5rem 1rem;*/
-  /*border-left: 2px solid currentColor;*/
   color: #666; /* neutralSecondary */;
 }
 

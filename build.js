@@ -5,6 +5,7 @@ const path = require("path");
 const uglifyes = require("uglify-es");
 const cleancss = require("clean-css");
 const htmlminifier = require("html-minifier");
+const babel = require("@babel/core");
 
 const SOURCE = path.join(__dirname, "src");
 const SOURCE_STATIC = path.join(SOURCE, "static");
@@ -16,6 +17,34 @@ const concat_static_source_files_of_type = async (ext) =>
     .then(files => files.filter(f => new RegExp(`\\.${ext}$`, "i").test(f)))
     .then(files => Promise.all(files.map(f => fs.readFile(path.join(SOURCE_STATIC, f), "utf8"))))
     .then(files => files.reduce((js, f) => js + f, ""));
+
+const transpile_js = js => babel.transformAsync(js, {
+  plugins: [
+    ["@babel/plugin-transform-arrow-functions"],
+    ["@babel/plugin-transform-block-scoping"],
+    ["@babel/plugin-transform-shorthand-properties"],
+    ["@babel/plugin-transform-template-literals", {
+    loose: true,
+    }],
+    ["@babel/plugin-transform-parameters", {
+      loose: true,
+    }],
+    ["@babel/plugin-transform-destructuring", {
+      loose: true,
+      useBuiltIns: true,
+    }],
+    ["@babel/plugin-proposal-object-rest-spread", {
+      loose: true,
+      useBuiltIns: true,
+    }],
+    ["@babel/plugin-transform-spread", {
+      loose: true,
+    }],
+    ["@babel/plugin-transform-for-of", {
+      assumeArray: true,
+    }],
+  ],
+}).then(res => res.code);
 
 const minify_html = html => htmlminifier.minify(html, {
   collapseBooleanAttributes: true,
@@ -80,6 +109,7 @@ const minify_css = css => new cleancss({
 fs.ensureDir(BUILD_STATIC)
   .then(() => Promise.all([
     concat_static_source_files_of_type("js")
+      .then(transpile_js)
       .then(minify_js)
       .then(js => fs.writeFile(path.join(BUILD_STATIC, "script.js"), js)),
     concat_static_source_files_of_type("css")
