@@ -7,8 +7,8 @@
     "dist/**"
   ],
   "scripts": {
-    "clean": "rm -rf cache data-*.json",
-    "build": "node data.js && node analysis.js && node static.js",
+    "clean": "rm -rf cache data-*.json build",
+    "build": "node retrieve-data.js && node process-data.js && node build.js",
     "start": "node server.js"
   },
   "repository": {

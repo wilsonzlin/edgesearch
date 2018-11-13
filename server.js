@@ -36,15 +36,15 @@ let Page;
 let Analytics;
 
 if (ARGS.analytics) {
-  Analytics = handlebars.compile(fs.readFileSync(path.join(__dirname, "page.analytics.hbs"), "utf8"))({
+  Analytics = handlebars.compile(fs.readFileSync(path.join(__dirname, "src", "page.analytics.hbs"), "utf8"))({
     trackingID: ARGS.analytics,
   });
 }
 
 if (ARGS.hot) {
   console.log(`Hot reloading mode`);
-  const PAGE_TEMPLATE_PATH = path.join(__dirname, "page.hbs");
-  const PAGE_RESOURCES_TEMPLATE_PATH = path.join(__dirname, "page.resources.hbs");
+  const PAGE_TEMPLATE_PATH = path.join(__dirname, "src", "page.hbs");
+  const PAGE_RESOURCES_TEMPLATE_PATH = path.join(__dirname, "src", "page.resources.hbs");
   const compiler = () => {
     const compiled = handlebars.compile(fs.readFileSync(PAGE_TEMPLATE_PATH, "utf8"));
     let compiled_resources = handlebars.compile(fs.readFileSync(PAGE_RESOURCES_TEMPLATE_PATH, "utf8"));
@@ -58,7 +58,7 @@ if (ARGS.hot) {
   compiler();
   fs.watchFile(PAGE_TEMPLATE_PATH, compiler);
   fs.watchFile(PAGE_RESOURCES_TEMPLATE_PATH, compiler);
-  server.use("/static", express.static(path.join(__dirname, "static"), {
+  server.use("/static", express.static(path.join(__dirname, "src", "static"), {
     dotfiles: "allow",
     extensions: false,
     fallthrough: false,
@@ -66,12 +66,12 @@ if (ARGS.hot) {
     redirect: false,
   }));
 } else {
-  const compiled = handlebars.compile(fs.readFileSync(path.join(__dirname, "build.hbs"), "utf8"));
+  const compiled = handlebars.compile(fs.readFileSync(path.join(__dirname, "build", "page.hbs"), "utf8"));
   Page = ctx => compiled({
     ...ctx,
     analytics: Analytics,
   });
-  server.use("/static", express.static(path.join(__dirname, "build_static"), {
+  server.use("/static", express.static(path.join(__dirname, "build", "static"), {
     dotfiles: "allow",
     extensions: false,
     fallthrough: false,

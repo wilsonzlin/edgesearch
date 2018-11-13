@@ -6,14 +6,15 @@ const uglifyes = require("uglify-es");
 const cleancss = require("clean-css");
 const htmlminifier = require("html-minifier");
 
-const TEMPLATE = path.join(__dirname, "page.hbs");
-const STATIC = path.join(__dirname, "static");
-const STATIC_BUILD = path.join(__dirname, "build_static");
+const SOURCE = path.join(__dirname, "src");
+const SOURCE_STATIC = path.join(SOURCE, "static");
+const BUILD = path.join(__dirname, "build");
+const BUILD_STATIC = path.join(BUILD, "static");
 
-const concat_static_files_of_type = async (ext) =>
-  fs.readdir(STATIC)
+const concat_static_source_files_of_type = async (ext) =>
+  fs.readdir(SOURCE_STATIC)
     .then(files => files.filter(f => new RegExp(`\\.${ext}$`, "i").test(f)))
-    .then(files => Promise.all(files.map(f => fs.readFile(path.join(STATIC, f), "utf8"))))
+    .then(files => Promise.all(files.map(f => fs.readFile(path.join(SOURCE_STATIC, f), "utf8"))))
     .then(files => files.reduce((js, f) => js + f, ""));
 
 const minify_html = html => htmlminifier.minify(html, {
@@ -76,15 +77,15 @@ const minify_css = css => new cleancss({
 }).minify(css)
   .then(({styles}) => styles);
 
-fs.ensureDir(STATIC_BUILD)
+fs.ensureDir(BUILD_STATIC)
   .then(() => Promise.all([
-    concat_static_files_of_type("js")
+    concat_static_source_files_of_type("js")
       .then(minify_js)
-      .then(js => fs.writeFile(path.join(STATIC_BUILD, "script.js"), js)),
-    concat_static_files_of_type("css")
+      .then(js => fs.writeFile(path.join(BUILD_STATIC, "script.js"), js)),
+    concat_static_source_files_of_type("css")
       .then(minify_css)
-      .then(css => fs.writeFile(path.join(STATIC_BUILD, "style.css"), css)),
-    fs.readFile(TEMPLATE, "utf8")
+      .then(css => fs.writeFile(path.join(BUILD_STATIC, "style.css"), css)),
+    fs.readFile(path.join(SOURCE, "page.hbs"), "utf8")
       .then(minify_html)
-      .then(html => fs.writeFile(path.join(__dirname, "build.hbs"), html)),
+      .then(html => fs.writeFile(path.join(BUILD, "page.hbs"), html)),
   ]));
