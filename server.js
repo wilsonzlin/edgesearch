@@ -256,7 +256,7 @@ server.get("/jobs", async (req, res) => {
           if (
             // Reached extra padding bits at end
             !job ||
-            (overflow = jobs.length > MAX_RESULTS)
+            (overflow = jobs.length >= MAX_RESULTS)
           ) {
             done = true;
             break;
