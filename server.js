@@ -291,6 +291,8 @@ server.get("/jobs", async (req, res) => {
     resultsCount: `${jobs.length}${overflow ? "+" : ""}`,
     noResults: !jobs.length,
     singleResult: jobs.length == 1,
-    todayHumanDate: now.format("MMMM Do YYYY"),
-  }));
+  })
+  // Fix :empty not working due to whitespace in empty tags
+  // that minifier did not pick up or was dynamically generated
+    .replace(/>\s+</g, "><"));
 });
