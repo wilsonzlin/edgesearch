@@ -5,12 +5,9 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>{{title}}</title>
+    <title>Microsoft Careers</title>
 
     {{{analytics}}}
-    {{{externalResources}}}
-    <link rel="stylesheet" href="/static/style.css">
-    <script defer src="/static/script.js"></script>
   </head>
 
   <body>
@@ -23,7 +20,7 @@
       </a>
 
       <h1 id="header-text" class="ms-fontColor-neutralLight">
-        <span id="header-text-init" style="opacity: 0">{{JOBS_COUNT}} openings</span>
+        <span id="header-text-init" style="opacity: 0">{{jobsCount}} openings</span>
         <span id="header-text-name" style="width: 0">Careers</span>
       </h1>
 
@@ -46,62 +43,48 @@
       </ul>
     </header>
 
+    <template id="template-job">
+      <article class="job">
+        <div class="job-left">
+          <div class="job-head">
+            <h1 class="job-title"><a class="job-title-link" target="_blank"></a></h1>
+            <h2 class="job-location"></h2>
+          </div>
+          <p class="job-description"></p>
+        </div>
+        <div class="job-right">
+          <time class="job-date"></time>
+        </div>
+      </article>
+    </template>
+
     <div id="content">
       <main id="jobs">
         <div class="section-heading-container">
-          <h1 id="jobs-heading" class="section-heading">{{heading}}</h1>
+          <h1 id="jobs-heading" class="section-heading"></h1>
           <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
-        {{#each jobs}}
-          <article class="job">
-            <div class="job-left">
-              <div class="job-head">
-                <h1 class="job-title"><a class="job-title-link" href="{{URL}}" target="_blank">{{title}}</a></h1>
-                <h2 class="job-location">{{location}}</h2>
-              </div>
-              <!-- Descriptions are HTML encoded -->
-              <p class="job-description">{{{description}}}&hellip;</p>
-            </div>
-            <div class="job-right">
-              <time class="job-date" datetime="{{date}}">{{humanDate}}</time>
-            </div>
-          </article>
-        {{/each}}
       </main>
 
-      <aside id="pane" {{#if noResults}}class="pane-open"{{/if}}>
+      <aside id="pane">
         <form id="filter-form" method="get">
           <div class="section-heading-container">
             <h1 class="section-heading">Filter</h1>
             <button class="btn btn-teal">Search</button>
           </div>
 
-          {{#each rules}}
+          {{#each fields}}
             <div class="search-category">
               <div class="search-category-head">
-                <h3>Filter by {{field}}</h3>
+                <h3>Filter by {{this}}</h3>
 
                 <div>
-                  <button type="button" data-field="{{field}}" class="search-category-button" value="add"><i
+                  <button type="button" data-field="{{this}}" class="search-category-button" value="add"><i
                     class="ms-Icon ms-Icon--Add"></i></button>
                 </div>
               </div>
 
-              <ul class="search-terms">
-                {{#each terms}}
-                  <li class="search-term" data-field="{{../field}}">
-                    <select class="search-term-mode" data-value="{{mode}}">
-                      <option value="require">Must contain</option>
-                      <option value="contain">Has any of</option>
-                      <option value="exclude">Does not have</option>
-                    </select>
-                    <input class="ipt-text search-term-words" value="{{words}}"
-                           placeholder="Enter space-separated words">
-                    <button type="button" class="search-term-button" value="delete"><i
-                      class="ms-Icon ms-Icon--Delete"></i></button>
-                  </li>
-                {{/each}}
-              </ul>
+              <ul class="search-terms"></ul>
             </div>
           {{/each}}
 
@@ -128,13 +111,13 @@
             Want to save or share your search? It's all in the URL:
           </p>
 
-          <input id="share-URL" readonly value="{{URL}}">
+          <input id="share-URL" readonly>
 
           <ul id="share-options">
-            <li><a href="{{shareLinkedIn}}" target="_blank">LinkedIn</a></li>
-            <li><a href="{{shareFacebook}}" target="_blank">Facebook</a></li>
-            <li><a href="{{shareTwitter}}" target="_blank">Twitter</a></li>
-            <li><a href="{{shareEmail}}" target="_blank">Email</a></li>
+            <li><a data-service="LinkedIn" target="_blank">LinkedIn</a></li>
+            <li><a data-service="Facebook" target="_blank">Facebook</a></li>
+            <li><a data-service="Twitter" target="_blank">Twitter</a></li>
+            <li><a data-service="Email" target="_blank">Email</a></li>
             <li>
               <button id="share-copy-button" data-clipboard-target="#share-URL">Copy</button>
             </li>
@@ -142,5 +125,8 @@
         </div>
       </aside>
     </div>
+
+    <style>{{{style}}}</style>
+    <script>{{{script}}}</script>
   </body>
 </html>

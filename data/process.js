@@ -7,9 +7,14 @@ const minimist = require("minimist");
 
 const ARGS = minimist(process.argv.slice(2));
 
-const PATH_DATA_RAW = path.join(__dirname, "data-raw.json");
-const PATH_DATA_PROCESSED = path.join(__dirname, "data-processed.json");
-const PATH_DATA_FILTERS = path.join(__dirname, "data-filters.json");
+const {
+  BUILD_DATA_RAW,
+
+  ENV_STATIC_URL,
+
+  BUILD_DATA_JOBS,
+  BUILD_DATA_FILTERS,
+} = require("../const");
 
 const FIELDS = ["title", "location"];
 
@@ -28,17 +33,15 @@ const WORD_MAP = {
   "office365": ["office", "365"],
 };
 
-const jobs = fs.readJSONSync(PATH_DATA_RAW)
+const jobs = fs.readJSONSync(BUILD_DATA_RAW)
+  .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
   .map(j => ({
     ID: j.jobId,
     title: j.title,
-    date: moment(j.postedDate).toISOString(),
-    humanDate: moment(j.postedDate).format("MMMM Do YYYY"),
+    date: moment(j.postedDate).format("YYYY-M-D"),
     location: j.location,
     description: j.descriptionTeaser,
-    URL: `https://careers.microsoft.com/us/en/job/${j.jobId}`,
-  }))
-  .sort((a, b) => b.date.localeCompare(a.date));
+  }));
 
 function extract_words (sentence) {
   return sentence
@@ -53,7 +56,7 @@ function extract_words (sentence) {
 
 const job_words = new Map();
 for (const job of jobs) {
-  job_words.set(job, new Map())
+  job_words.set(job, new Map());
 }
 
 function collate_words_of_field (field, jobs) {
@@ -91,13 +94,11 @@ for (const field of FIELDS) {
     const bitfield = filter[word] = jobs_bitfield();
     jobs.forEach((job, job_no) => {
       if (job_words.get(job).get(field).has(word)) {
-        const idx = Math.floor(job_no / 32);
-        const bor = Math.pow(2, 31 - (job_no % 32));
-        bitfield[idx] |= bor;
+        bitfield[Math.floor(job_no / 32)] |= Math.pow(2, 31 - (job_no % 32));
       }
-    })
+    });
   }
 }
 
-fs.writeJSONSync(PATH_DATA_PROCESSED, jobs);
-fs.writeJSONSync(PATH_DATA_FILTERS, word_filters);
+fs.writeJSONSync(BUILD_DATA_JOBS, jobs);
+fs.writeJSONSync(BUILD_DATA_FILTERS, word_filters);
