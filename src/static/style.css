@@ -152,7 +152,11 @@ select {
   align-items: center;
   justify-content: space-between;
 
-  height: 4rem; /* Fixed height so pane can be positioned on small devices */
+  height: 4rem;
+
+  /* For very small screens where initial animations would overflow */
+  width: 100%;
+  overflow: hidden;
 
   position: relative; /* For .header-brands-init */
 }
@@ -261,22 +265,23 @@ select {
 }
 
 #content {
-  display: flex;
+  /* Don't use flex due to IE 11 bugs */
+  display: table;
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
 
   position: relative; /* For absolute pane on small screens */
 }
 
 #content > * {
+  display: table-cell;
+  vertical-align: top;
   /* Both should have padding on small screens */
   padding: 0 1rem;
 }
 
-#jobs {
-  flex-grow: 1;
-}
-
 #pane {
-  flex: 0 0 auto;
   width: 30rem;
 }
 
@@ -285,12 +290,17 @@ select {
 }
 
 @media (max-width: 1000px) {
+  #content {
+    display: block;
+  }
+
   #pane-toggle-button {
     display: block;
   }
 
   #pane {
     position: fixed;
+    display: block;
 
     background: rgba(240, 240, 240, 0.95);
     transition: 0.3s;
