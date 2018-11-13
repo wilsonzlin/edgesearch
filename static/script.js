@@ -37,10 +37,8 @@
   for (const $button of $$search_category_buttons) {
     $button.addEventListener("click", () => {
       const field = $button.dataset.field;
-      const $new = $template_search_term.content.cloneNode(true);
-      for (const $elem of $$("[name*=\"<FIELD>\"]", $new)) {
-        $elem.name = $elem.name.replace(/<FIELD>/g, field);
-      }
+      const $new = $template_search_term.content.cloneNode(true).children[0];
+      $new.dataset.field = field;
       $button.parentNode.parentNode.nextElementSibling.appendChild($new);
     });
   }
@@ -59,6 +57,27 @@
       }
     }
   }, true);
+
+  const $filter_form = $("#filter-form");
+  $filter_form.addEventListener("submit", e => {
+    e.preventDefault();
+
+    const parts = [];
+
+    // Always query for latest set of .search-term elements
+    for (const $term of $$(".search-term")) {
+      const field = $term.dataset.field;
+      const prefix = {
+        "require": "",
+        "contain": "~",
+        "exclude": "!",
+      }[$term.children[0].value];
+      const words = $term.children[1].value.trim();
+      parts.push(`${prefix}${field}:${encodeURIComponent(words)}`);
+    }
+
+    location.href = `/jobs?q=${parts.join("|")}`;
+  });
 
   const $header_logo = $("#header-logo");
   const $$header_logo_quads = [

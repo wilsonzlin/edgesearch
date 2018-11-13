@@ -381,26 +381,6 @@ h2.section-heading {
   padding-right: 0.5rem;
 }
 
-.filter-after-input {
-  color: #008272; /* teal */
-}
-
-.filter-after-input:empty::before {
-  color: #a6a6a6; /* neutralTertiary */
-}
-
-#filter-after-year:empty::before {
-  content: "yyyy";
-}
-
-#filter-after-month:empty::before {
-  content: "mm";
-}
-
-#filter-after-day:empty::before {
-  content: "dd";
-}
-
 .job {
   background: #f8f8f8; /* neutralLighterAlt */
 
@@ -468,24 +448,6 @@ h2.section-heading {
 
 .job-date {
   color: #666; /* neutralSecondary */
-}
-
-.filter-after {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-}
-
-.filter-after > label > * {
-  text-align: center;
-  width: 80px;
-}
-
-.filter-after > label > span {
-  font-weight: bold;
-  font-size: 0.875rem;
-  display: block;
-  margin-bottom: 0.25rem;
 }
 
 .search-category {

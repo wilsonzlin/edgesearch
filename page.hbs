@@ -50,10 +50,7 @@
       <main id="jobs">
         <div class="section-heading-container">
           <h1 id="jobs-heading" class="section-heading">
-            <span>{{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}} after</span
-            ><span id="filter-after-year" class="filter-after-input" contenteditable>{{afterYear}}</span>&ndash;<span
-            id="filter-after-month" class="filter-after-input" contenteditable>{{afterMonth}}</span>&ndash;<span
-            id="filter-after-day" class="filter-after-input" contenteditable>{{afterDay}}</span>
+            {{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}}
           </h1>
           <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
@@ -96,13 +93,13 @@
                 <!-- TODO This and template has whitespace around each li,
                 which causes :empty styling to fail -->
                 {{#each terms}}
-                  <li class="search-term">
-                    <select class="search-term-mode" name="rules_{{../field}}_mode[]" data-value="{{mode}}">
+                  <li class="search-term" data-field="{{../field}}">
+                    <select class="search-term-mode" data-value="{{mode}}">
                       <option value="require">Must contain</option>
                       <option value="contain">Has any of</option>
                       <option value="exclude">Does not have</option>
                     </select>
-                    <input class="ipt-text search-term-words" name="rules_{{../field}}_words[]" value="{{words}}"
+                    <input class="ipt-text search-term-words" value="{{words}}"
                            placeholder="Enter space-separated words">
                     <button type="button" class="search-term-button" value="delete"><i
                       class="ms-Icon ms-Icon--Delete"></i></button>
@@ -114,13 +111,12 @@
 
           <template id="template-search-term">
             <li class="search-term">
-              <select class="search-term-mode" name="rules_<FIELD>_mode[]" data-value="{{mode}}">
-                <option value="require">Must contain</option>
+              <select class="search-term-mode">
+                <option value="require" selected>Must contain</option>
                 <option value="contain">Has any of</option>
                 <option value="exclude">Does not have</option>
               </select>
-              <input class="ipt-text search-term-words" name="rules_<FIELD>_words[]" value="{{words}}"
-                     placeholder="Enter space-separated words">
+              <input class="ipt-text search-term-words" placeholder="Enter space-separated words">
               <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
               </button>
             </li>

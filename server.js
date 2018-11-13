@@ -115,36 +115,54 @@ const valid_word = str => {
   return /^[\x20-\x7e]{1,50}$/.test(str);
 };
 
-const default_after = () => {
-  const now = moment();
-  return moment.utc([now.year(), (now.month() - 1) || 1, 1]).toISOString();
-};
-
-const validate_query_parameters = query => {
-  return {
-    // toISOString will return null if invalid; `undefined - 1` is NaN
-    after: moment.utc([query.after_year, query.after_month - 1, query.after_day]).toISOString() || default_after(),
+const parse_query = params => {
+  let parsed = {
     rules: FIELDS.map(field => ({
       field: field,
-      terms: (query[`rules_${field}_mode`] || []).map((mode, no) => ({
-        mode: mode,
-        words: ((query[`rules_${field}_words`] || [])[no] || "")
-          .replace(/[;:,]/g, " ")
-          .trim()
-          .split(/\s+/)
-          .filter(w => valid_word(w))
-          .map(w => w.toLowerCase()),
-      })).filter(t => MODES.includes(t.mode) && t.words.length),
+      terms: [],
     })),
   };
+
+  for (const part of (params.q || "").trim().split("|")) {
+    const mode = part.startsWith("!") ? "exclude" :
+                 part.startsWith("~") ? "contain" :
+                 "require";
+
+    const [field, words_raw] = part.slice(mode != "require").split(":", 2);
+
+    if (FIELDS.includes(field)) {
+      const words = words_raw.replace(/[;:,]/g, " ")
+        .trim()
+        .split(/\s+/)
+        .filter(w => valid_word(w))
+        .map(w => w.toLowerCase());
+      if (words.length) {
+        parsed.rules.find(r => r.field == field).terms.push({mode, words});
+      }
+    }
+  }
+  return parsed;
 };
 
 server.get("/", (req, res) => res.redirect("/jobs"));
 
 server.get("/jobs", async (req, res) => {
-  let {after, rules} = validate_query_parameters(req.query);
+  let {rules} = parse_query(req.query);
 
   // Don't initialise with all modes as unused modes will break bitwise operations
+  /*
+   *   {
+   *     "require": {
+   *       "title": Set(["a", "b"])
+   *     },
+   *     "exclude": {
+   *       "title": Set(["c"]),
+   *       "location": Set(["london"])
+   *     }
+   *   }
+   *
+   *   (title_a & title_b) & ~(title_c | location_london)
+   */
   const word_rules = {};
 
   let search_words_count = 0;
@@ -166,10 +184,14 @@ server.get("/jobs", async (req, res) => {
   }
 
   let jobs;
+  let overflow = false;
 
   if (!search_words_count) {
-    jobs = JOBS.filter(j => j.date >= after);
-
+    jobs = JOBS;
+    if (jobs.length > MAX_RESULTS) {
+      overflow = true;
+      jobs = jobs.slice(0, MAX_RESULTS);
+    }
   } else {
     let filtered;
 
@@ -180,7 +202,6 @@ server.get("/jobs", async (req, res) => {
           filtered[i] = ~filtered[i];
         }
       }
-
     } else {
       const batch_commands = [];
       const mode_destination_keys = [];
@@ -234,14 +255,15 @@ server.get("/jobs", async (req, res) => {
       for (let bit = 0; byte; bit++) {
         if (byte & 128) {
           const job = JOBS[anchor + bit];
-          // Reached extra padding bits at end
-          if (!job) {
+          if (
+            // Reached extra padding bits at end
+            !job ||
+            (overflow = jobs.length > MAX_RESULTS)
+          ) {
             done = true;
             break;
           }
-          if (job.date >= after) {
-            jobs.push(job);
-          }
+          jobs.push(job);
         }
         byte <<= 1;
       }
@@ -251,19 +273,8 @@ server.get("/jobs", async (req, res) => {
     }
   }
 
-  let overflow = false;
-  if (jobs.length > MAX_RESULTS) {
-    overflow = true;
-    jobs = jobs.slice(0, MAX_RESULTS);
-  }
-
-  let now = moment();
-
   res.send(Page({
     // User-submitted form data
-    afterYear: after && after.slice(0, 4),
-    afterMonth: after && after.slice(5, 7),
-    afterDay: after && after.slice(8, 10),
     rules: rules.map(r => ({
       ...r,
       terms: r.terms.map(t => ({
