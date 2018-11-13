@@ -87,9 +87,12 @@ if (ARGS.hot) {
   for (const field of FIELDS) {
     for (const word of Object.keys(WORD_FILTERS[field])) {
       const filter = WORD_FILTERS[field][word];
-      for (const [idx, byte] of filter.entries()) {
-        db_commands.push(["BITFIELD", db_word_filter_key(field, word), "SET", "i32", idx * 32, byte]);
+      // Can't directly create from Int32Array due to endianness of TypedArrays
+      const buffer = Buffer.alloc(filter.length * 4);
+      for (const [idx, num] of filter.entries()) {
+        buffer.writeInt32BE(num, idx * 4);
       }
+      db_commands.push(["SET", db_word_filter_key(field, word), buffer]);
     }
   }
   await db_multi(db_commands);
