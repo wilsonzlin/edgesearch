@@ -227,17 +227,10 @@ server.get("/jobs", async (req, res) => {
           batch_commands.push(["BITOP", "OR", mode_destination_key, ...mode_source_keys]);
           break;
         case "exclude":
-          mode_source_keys
-            .map(key => {
-              const tmp = db_random_key();
-              batch_commands.push(["BITOP", "NOT", tmp, key]);
-              return tmp;
-            })
-            .reduce((cmd, tmp) => {
-              cmd.push(tmp);
-              batch_commands.push(["DEL", tmp]);
-              return cmd;
-            }, batch_commands[batch_commands.length] = ["BITOP", "AND", mode_destination_key]);
+          const tmp = db_random_key();
+          batch_commands.push(["BITOP", "OR", tmp, ...mode_source_keys]);
+          batch_commands.push(["BITOP", "NOT", mode_destination_key, tmp]);
+          batch_commands.push(["DEL", tmp]);
           break;
         }
       }
