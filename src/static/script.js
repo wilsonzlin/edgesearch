@@ -1,9 +1,35 @@
 "use strict";
 
 (() => {
+  /*
+   *  COMPATIBILITY
+   */
+  const COMPAT_TEMPLATE = !!window.HTMLTemplateElement;
+  const import_template = $template =>
+    (COMPAT_TEMPLATE ? $template_search_term.content : $template_search_term).cloneNode(true).children[0];
+  if (!HTMLElement.prototype.remove) {
+    HTMLElement.prototype.remove = function () {
+      this.parentNode.removeChild(this);
+    };
+  }
+  if (!Object.assign) {
+    Object.assign = function () {
+      const dest = arguments[0];
+      for (let i = 1; i < arguments.length; i++) {
+        const src = arguments[i];
+        for (const key of Object.keys(src)) {
+          dest[key] = src[key];
+        }
+      }
+      return dest;
+    };
+  }
+  if (!Array.from) {
+    Array.from = src => Array.prototype.slice.call(src);
+  }
+
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
-  const $$ = (sel, ctx = document) => Array.prototype.slice.call(ctx.querySelectorAll(sel));
-  ChildNodeRemove.polyfill();
+  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
   const $pane = $("#pane");
   const $pane_toggle_button = $("#pane-toggle-button");
@@ -13,11 +39,10 @@
 
   const $$search_category_buttons = $$(".search-category-button");
   const $template_search_term = $("#template-search-term");
-  const COMPAT_TEMPLATE = !!window.HTMLTemplateElement;
   for (const $button of $$search_category_buttons) {
     $button.addEventListener("click", () => {
       const field = $button.dataset.field;
-      const $new = (COMPAT_TEMPLATE ? $template_search_term.content : $template_search_term).cloneNode(true).children[0];
+      const $new = import_template($template_search_term);
       $new.dataset.field = field;
       $button.parentNode.parentNode.nextElementSibling.appendChild($new);
     });
