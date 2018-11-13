@@ -1,0 +1,65 @@
+<style>
+  .toggle, .toggle::after {
+    transition: 0.4s ease;
+  }
+
+  .toggle {
+    border: 1px solid rgb(102, 102, 102);
+    border-radius: 20px;
+
+    cursor: pointer;
+
+    height: 20px;
+    width: 44px;
+
+    padding: 0;
+  }
+
+  .toggle.checked {
+    background: #008272; /* teal */
+    border-color: transparent;
+  }
+
+  .toggle::after {
+    content: "";
+    display: block;
+
+    background-color: #212121;
+    border-radius: 10px;
+
+    height: 10px;
+    width: 10px;
+
+    margin-left: 4px;
+  }
+
+  .toggle.checked::after {
+    background: white;
+
+    margin-left: 28px;
+  }
+</style>
+
+<script>
+  const init_toggle = $toggle => {
+    const $input = document.createElement("input");
+    $toggle.appendChild($input);
+    // Don't use checkbox as it won't send anything if unchecked
+    $input.type = "hidden";
+    $input.name = $toggle.dataset.name;
+    set_toggle($toggle, $toggle.dataset.checked);
+    $toggle.addEventListener("click", () => {
+      set_toggle($toggle, !$toggle.classList.contains("checked"));
+    });
+  };
+
+  const set_toggle = ($toggle, state) => {
+    const $input = $toggle.children[0];
+    $input.value = state || false;
+    $toggle.classList.toggle("checked", $input.value === "true");
+  };
+
+  for (const $toggle of $$(".toggle")) {
+    init_toggle($toggle);
+  }
+</script>

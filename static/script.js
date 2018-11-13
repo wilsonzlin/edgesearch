@@ -10,28 +10,6 @@
     $pane.classList.toggle("pane-open");
   });
 
-  const init_toggle = $toggle => {
-    const $input = document.createElement("input");
-    $toggle.appendChild($input);
-    // Don't use checkbox as it won't send anything if unchecked
-    $input.type = "hidden";
-    $input.name = $toggle.dataset.name;
-    set_toggle($toggle, $toggle.dataset.checked);
-    $toggle.addEventListener("click", () => {
-      set_toggle($toggle, !$toggle.classList.contains("checked"));
-    });
-  };
-
-  const set_toggle = ($toggle, state) => {
-    const $input = $toggle.children[0];
-    $input.value = state || false;
-    $toggle.classList.toggle("checked", $input.value === "true");
-  };
-
-  for (const $toggle of $$(".toggle")) {
-    init_toggle($toggle);
-  }
-
   const $$search_category_buttons = $$(".search-category-button");
   const $template_search_term = $("#template-search-term");
   for (const $button of $$search_category_buttons) {
