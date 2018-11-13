@@ -57,6 +57,8 @@
     location.href = `/jobs?q=${parts.join("|")}`;
   });
 
+  new ClipboardJS("#share-copy-button");
+
   const $header_logo = $("#header-logo");
   const $$header_logo_quads = [
     [$("#ms-logo-nw"), "#f24f1c"],

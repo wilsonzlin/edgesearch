@@ -5,7 +5,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 
-    <title>{{#if singleResult}}One result{{else}}{{resultsCount}} results{{/if}} | Microsoft Careers</title>
+    <title>{{title}}</title>
 
     {{{analytics}}}
     {{{externalResources}}}
@@ -49,9 +49,7 @@
     <div id="content">
       <main id="jobs">
         <div class="section-heading-container">
-          <h1 id="jobs-heading" class="section-heading">
-            {{#if singleResult}}One match{{else}}{{resultsCount}} matches{{/if}}
-          </h1>
+          <h1 id="jobs-heading" class="section-heading">{{heading}}</h1>
           <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
         {{#each jobs}}
@@ -119,15 +117,29 @@
               </button>
             </li>
           </template>
+        </form>
 
+        <div id="share">
           <div class="section-heading-container">
             <h1 class="section-heading">Share</h1>
           </div>
 
-          <p class="msg msg-info">
-            Want to save or share your search? It's all in the URL.
+          <p id="share-message">
+            Want to save or share your search? It's all in the URL:
           </p>
-        </form>
+
+          <input id="share-URL" readonly value="{{URL}}">
+
+          <ul id="share-options">
+            <li><a href="{{shareLinkedIn}}" target="_blank">LinkedIn</a></li>
+            <li><a href="{{shareFacebook}}" target="_blank">Facebook</a></li>
+            <li><a href="{{shareTwitter}}" target="_blank">Twitter</a></li>
+            <li><a href="{{shareEmail}}" target="_blank">Email</a></li>
+            <li>
+              <button id="share-copy-button" data-clipboard-target="#share-URL">Copy</button>
+            </li>
+          </ul>
+        </div>
       </aside>
     </div>
   </body>

@@ -141,16 +141,6 @@ select {
   padding: 0.25rem;
 }
 
-.msg {
-  margin: 1rem 0;
-  padding: 0.5rem 1rem;
-  border-left: 2px solid currentColor;
-}
-
-.msg-info {
-  color: #008272; /* teal */
-}
-
 #header {
   background: #333; /* neutralPrimary */
 
@@ -458,4 +448,46 @@ h2.section-heading {
 
 .search-term-words {
   flex-grow: 1;
+}
+
+#share > * {
+  margin: 0.5rem 0;
+}
+
+#share-message {
+  /*padding: 0.5rem 1rem;*/
+  /*border-left: 2px solid currentColor;*/
+  color: #666; /* neutralSecondary */;
+}
+
+#share-URL {
+  background: transparent;
+  padding: 0.75rem 0;
+  border: 0;
+  color: #008272;
+  font-size: 1.125rem;
+  display: block;
+  width: 100%;
+}
+
+#share-options {
+  display: flex;
+  justify-content: space-between;
+}
+
+#share-options > li {
+  display: block;
+}
+
+#share-options > li > * {
+  display: block;
+
+  background: transparent;
+  border: 0;
+  padding: 0;
+  text-decoration: none;
+
+  border-bottom: 2px solid currentColor;
+  color: #ea4300;
+  cursor: pointer;
 }

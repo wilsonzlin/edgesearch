@@ -11,6 +11,7 @@ const minimist = require("minimist");
 const {promisify} = require("util");
 const compression = require("compression");
 const crypto = require("crypto");
+const url = require("url");
 
 const ARGS = minimist(process.argv.slice(2));
 const FIELDS = ["title", "location"];
@@ -268,6 +269,19 @@ server.get("/jobs", async (req, res) => {
       }
     }
   }
+  const resultsCount = `${jobs.length}${overflow ? "+" : ""}`;
+  const title = `${jobs.length == 1 ? "1 result" : `${resultsCount} results`} | Microsoft Careers`;
+  const heading = jobs.length == 1 ? "1 match" : `${resultsCount} matches`;
+  const description = `Find your next career at Microsoft`;
+  const URL = url.format({
+    protocol: req.protocol,
+    host: req.get("host"),
+    pathname: req.originalUrl,
+  });
+  const shareLinkedIn = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(URL)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(description)}&source=msc.wilsonl.in`;
+  const shareFacebook = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(URL)}`;
+  const shareTwitter = `https://twitter.com/home?status=${encodeURIComponent(title)}%20${encodeURIComponent(URL)}`;
+  const shareEmail = `mailto:?&subject=${encodeURIComponent(title)}&body=${encodeURIComponent(`${title}\n${URL}`)}`;
 
   res.send(Page({
     // User-submitted form data
@@ -282,9 +296,11 @@ server.get("/jobs", async (req, res) => {
     FIELDS: FIELDS,
     JOBS_COUNT: JOBS.length,
 
+    title, heading, description, URL,
+    shareLinkedIn, shareFacebook, shareTwitter, shareEmail,
+
     // Results
     jobs: jobs,
-    resultsCount: `${jobs.length}${overflow ? "+" : ""}`,
     noResults: !jobs.length,
     singleResult: jobs.length == 1,
   })
