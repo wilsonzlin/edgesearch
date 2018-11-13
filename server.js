@@ -18,6 +18,8 @@ const FIELDS = ["title", "location"];
 const MODES = ["require", "contain", "exclude"];
 const JOBS = fs.readJSONSync(path.join(__dirname, "data-processed.json"));
 const WORD_FILTERS = fs.readJSONSync(path.join(__dirname, "data-filters.json"));
+const WORDS = Object.keys(WORD_FILTERS)
+  .reduce((words, field) => (words[field] = new Set(Object.keys(WORD_FILTERS[field]))) && words, {});
 const MAX_RESULTS = 200;
 
 const db = redis.createClient({
@@ -114,9 +116,8 @@ if (ARGS.hot) {
   }
 })();
 
-const valid_word = str => {
-  // TODO Need to require only known words as otherwise bitfield operations may not work on non-existent keys
-  return /^[\x20-\x7e]{1,50}$/.test(str);
+const valid_word = (str, field) => {
+  return WORDS[field].has(str);
 };
 
 const parse_query = params => {
@@ -138,7 +139,7 @@ const parse_query = params => {
       const words = words_raw.replace(/[;:,]/g, " ")
         .trim()
         .split(/\s+/)
-        .filter(w => valid_word(w))
+        .filter(w => valid_word(w, field))
         .map(w => w.toLowerCase());
       if (words.length) {
         parsed.rules.find(r => r.field == field).terms.push({mode, words});
