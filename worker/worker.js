@@ -1,88 +1,22 @@
 "use strict";
 
 const FIELDS = ["title", "location"];
-const MODES = ["require", "contain", "exclude"];
-const MAX_RESULTS = 200;
-const FILTER_BITS_PER_ELEM = 32;
-const FILTER_MSB_MASK = 0x80000000 | 0;
+const MAX_RESULTS = {__VAR_MAX_RESULTS};
+const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
 
-let data_fetch_queue;
-let data;
+let data_fetch_promise;
+let JOBS, FILTERS;
 
-const get_jobs = () => {
-  if (data) {
-    return Promise.resolve(data.JOBS);
-  }
-  return new Promise(resolve => {
-    data_fetch_queue.push([resolve, "JOBS"]);
-  });
+const valid_word = (str, field) => {
+  return !!FILTERS[field][str];
 };
 
-const get_filters = () => {
-  if (data) {
-    return Promise.resolve(data.FILTERS);
-  }
-  return new Promise(resolve => {
-    data_fetch_queue.push([resolve, "FILTERS"]);
-  });
-};
-
-const typedarray_and = arrays => {
-  const result = arrays[0].slice();
-  for (let typedarray_no = 1; typedarray_no < arrays.length; typedarray_no++) {
-    const src = arrays[typedarray_no];
-    for (let i = 0; i < result.length; i++) {
-      result[i] &= src[i];
-    }
-  }
-  return result;
-};
-
-const typedarray_i_and = arrays => {
-  const result = arrays[0];
-  for (let typedarray_no = 1; typedarray_no < arrays.length; typedarray_no++) {
-    const src = arrays[typedarray_no];
-    for (let i = 0; i < result.length; i++) {
-      result[i] &= src[i];
-    }
-  }
-  return result;
-};
-
-const typedarray_or = arrays => {
-  const result = arrays.shift().slice();
-  for (const src of arrays) {
-    for (let i = 0; i < result.length; i++) {
-      result[i] |= src[i];
-    }
-  }
-  return result;
-};
-
-const typedarray_not = array => {
-  const result = new Int32Array(array.length);
-  for (let i = 0; i < array.length; i++) {
-    result[i] = ~array[i];
-  }
-  return result;
-};
-
-const typedarray_i_not = array => {
-  for (let i = 0; i < array.length; i++) {
-    array[i] = ~array[i];
-  }
-  return array;
-};
-
-const valid_word_or_null = async (str, field) => {
-  return !!(await get_filters())[field][str] ? str : null;
-};
-
-const parse_query = async (params) => {
-  let parsed = FIELDS.map(field => ({
-    field: field,
-    terms: [],
-  }));
+const parse_query = params => {
+  // Don't initialise with all MODES as unused modes will break bitwise operations
+  let parsed = {
+    words: 0,
+    rules: {},
+  };
 
   for (const part of (params.get("q") || "").trim().split("|")) {
     const mode = part.startsWith("!") ? "exclude" :
@@ -91,55 +25,89 @@ const parse_query = async (params) => {
 
     const [field, words_raw] = part.slice(mode != "require").split(":", 2);
 
-    if (FIELDS.includes(field)) {
-      const words = (await Promise.all(words_raw.replace(/[;:,]/g, " ")
-        .trim()
-        .split(/\s+/)
-        .map(w => valid_word_or_null(w, field))
-      ))
-        .filter(w => w)
-        .map(w => w.toLowerCase());
-      if (words.length) {
-        parsed.find(r => r.field == field).terms.push({mode, words});
-      }
+    if (!FIELDS.includes(field)) {
+      continue;
+    }
+
+    // TODO Limit words here
+    const words = words_raw.replace(/[;:,]/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(w => valid_word(w, field))
+      .map(w => w.toLowerCase());
+
+    // Don't create set until at least one word
+    if (!words.length) {
+      continue;
+    }
+
+    if (!parsed.rules[mode]) {
+      parsed.rules[mode] = {}
+    }
+
+    if (!parsed.rules[mode][field]) {
+      parsed.rules[mode][field] = new Set();
+    }
+
+    for (const word of words) {
+      parsed.rules[mode][field].add(word);
+      parsed.words++;
     }
   }
 
   return parsed;
 };
 
+// Instantiate the WebAssembly module with 64KB of memory.
+const wasm_memory = new WebAssembly.Memory({initial: 12});
+const wasm_instance = new WebAssembly.Instance(
+  // RESIZER_WASM is a global variable created through the Resource Bindings UI (or API).
+  QUERY_RUNNER_WASM,
+
+  // This second parameter is the imports object. Our module imports its memory object (so that
+  // we can allocate it ourselves), but doesn't require any other imports.
+  {env: {memory: wasm_memory}}
+);
+
+// Define some shortcuts.
+const query_runner = wasm_instance.exports;
+const query_runner_memory = new DataView(wasm_memory.buffer);
+
 const handler = async (request) => {
-  if (!data_fetch_queue) {
-    data_fetch_queue = [];
-    await fetch("{{{{{ DATA_URL }}}}}")
+  if (!data_fetch_promise) {
+    // TODO .catch
+    data_fetch_promise = fetch("{__VAR_DATA_URL}")
       .then(res => res.json())
       .then(d => {
-        for (const field of Object.keys(d.FILTERS)) {
-          for (const word of Object.keys(d.FILTERS[field])) {
-            d.FILTERS[field][word] = new Int32Array(d.FILTERS[field][word]);
-          }
-        }
-        data = d;
-        data_fetch_queue.forEach(([resolve, prop]) => resolve(d[prop]));
+        JOBS = d.jobs;
+        FILTERS = d.filters;
       });
   }
-
-  const requestURL = new URL(request.url);
-  if (requestURL.pathname == "/") {
-    return Response.redirect(`${requestURL.protocol}//${requestURL.host}/jobs`);
-  } else if (requestURL.pathname == "/jobs") {
-    return fetch("{{{{{ PAGE_URL }}}}}");
-  } else if (requestURL.pathname != "/search") {
-    return new Response("Page not found", {
-      status: 404,
-    });
+  if (!JOBS) {
+    await data_fetch_promise;
   }
 
-  const rules = await parse_query(requestURL.searchParams);
+  const url = new URL(request.url);
 
-  // Don't initialise with all modes as unused modes will break bitwise operations
+  if (url.protocol !== "https:") {
+    url.protocol = "https:";
+    return Response.redirect(url.href);
+  }
+
+  switch (url.pathname) {
+  case "/":
+    return Response.redirect(`${url.protocol}//${url.host}/jobs`);
+  case "/jobs":
+    return fetch("{__VAR_PAGE_URL}");
+  case "/search":
+    // This script
+    break;
+  default:
+    return new Response("Page not found", {status: 404});
+  }
+
   /*
-   *   {
+   *   rules: {
    *     "require": {
    *       "title": Set(["a", "b"])
    *     },
@@ -151,101 +119,55 @@ const handler = async (request) => {
    *
    *   (title_a & title_b) & ~(title_c | location_london)
    */
-  const word_rules = {};
-
-  let search_words_count = 0;
-  let last_search_term;
-  for (const {field, terms} of rules) {
-    for (const {mode, words} of terms) {
-      if (!word_rules[mode]) {
-        word_rules[mode] = {};
-      }
-      if (!word_rules[mode][field]) {
-        word_rules[mode][field] = new Set();
-      }
-      for (const word of words) {
-        search_words_count++;
-        word_rules[mode][field].add(word);
-        last_search_term = {word, field, mode};
-      }
-    }
-  }
+  const {words, rules} = await parse_query(url.searchParams);
 
   let jobs;
-  let overflow = false;
+  let overflow;
 
-  if (!search_words_count) {
-    jobs = await get_jobs();
-    if (jobs.length > MAX_RESULTS) {
-      overflow = true;
-      jobs = jobs.slice(0, MAX_RESULTS);
-    }
+  if (!words) {
+    jobs = JOBS.slice(0, MAX_RESULTS);
+    overflow = jobs.length > MAX_RESULTS;
   } else {
-    let filtered;
+    const bitfield_indexes = {
+      "require": [],
+      "contain": [],
+      "exclude": [],
+    };
 
-    if (search_words_count == 1) {
-      filtered = (await get_filters())[last_search_term.field][last_search_term.word];
-      if (last_search_term.mode == "exclude") {
-        filtered = typedarray_not(filtered);
-      }
-    } else {
-      filtered = [];
-
-      // Don't use MODES as unused modes will break bitwise operations
-      for (const mode of Object.keys(word_rules)) {
-        const mode_source_bufs = [];
-        for (const field of Object.keys(word_rules[mode])) {
-          for (const word of word_rules[mode][field]) {
-            mode_source_bufs.push((await get_filters())[field][word]);
-          }
+    // Don't use MODES as unused modes will break bitwise operations
+    for (const mode of Object.keys(rules)) {
+      for (const field of Object.keys(rules[mode])) {
+        for (const word of rules[mode][field]) {
+          bitfield_indexes[mode].push(FILTERS[field][word]);
         }
-
-        let result_buf;
-        switch (mode) {
-        case "require":
-          result_buf = typedarray_and(mode_source_bufs);
-          break;
-        case "contain":
-          result_buf = typedarray_or(mode_source_bufs);
-          break;
-        case "exclude":
-          result_buf = typedarray_i_not(typedarray_or(mode_source_bufs));
-          break;
-        }
-        filtered.push(result_buf);
-      }
-
-      if (filtered.length > 1) {
-        filtered = typedarray_i_and(to_and);
-      } else {
-        [filtered] = filtered;
       }
     }
+
+    const struct_query_data = ["require", "contain", "exclude"]
+      .map(m => {
+        const data = Array(MAX_WORDS_PER_MODE + 1).fill(-1);
+        // TODO Remove MAX limit here
+        data.splice(0, Math.min(MAX_WORDS_PER_MODE, bitfield_indexes[m].length), ...bitfield_indexes[m]);
+        return data;
+      })
+      .reduce((struct, list) => struct.concat(list));
+
+    const input_ptr = query_runner.init();
+    for (const [no, int16] of struct_query_data.entries()) {
+      query_runner_memory.setInt16(input_ptr + (no * 2), int16, true);
+    }
+
+    const output_ptr = query_runner.search();
 
     jobs = [];
-    for (let idx = 0; idx < filtered.length; idx++) {
-      let anchor = idx * FILTER_BITS_PER_ELEM;
-      let byte = filtered[idx];
-      let done = false;
-      for (let bit = 0; byte; bit++) {
-        if (byte & FILTER_MSB_MASK) {
-          const job = (await get_jobs())[anchor + bit];
-          if (
-            // Reached extra padding bits at end
-            !job ||
-            (overflow = jobs.length >= MAX_RESULTS)
-          ) {
-            done = true;
-            break;
-          }
-          jobs.push(job);
-        }
-        byte <<= 1;
-      }
-      if (done) {
+    for (let result_no = 0; ; result_no++) {
+      const job_idx = query_runner_memory.getInt32(output_ptr + (result_no * 4), true);
+      if (job_idx == -1) {
         break;
       }
+      jobs.push(JOBS[job_idx]);
     }
+    overflow = jobs.length >= MAX_RESULTS;
   }
 
   return new Response(JSON.stringify({jobs, overflow}), {

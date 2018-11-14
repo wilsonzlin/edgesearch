@@ -2,21 +2,21 @@
 
 const fs = require("fs-extra");
 const moment = require("moment");
-const path = require("path");
 const minimist = require("minimist");
+const long = require("long");
 
 const ARGS = minimist(process.argv.slice(2));
 
 const {
   BUILD_DATA_RAW,
 
-  ENV_STATIC_URL,
-
   BUILD_DATA_JOBS,
   BUILD_DATA_FILTERS,
-} = require("../const");
 
-const FIELDS = ["title", "location"];
+  FIELDS,
+  FILTER_BITFIELD_BITS_PER_ELEM,
+  FILTER_BITFIELD_LENGTH_FN,
+} = require("../const");
 
 const WORD_MAP = {
   "architecte": "architect",
@@ -82,7 +82,9 @@ function log_strings_list (description, list) {
   }
 }
 
-const jobs_bitfield = () => Array(Math.ceil(jobs.length / 32)).fill(0);
+const jobs_bitfield = () => Array(FILTER_BITFIELD_LENGTH_FN(jobs.length))
+  .fill(null)
+  .map(() => Array(FILTER_BITFIELD_BITS_PER_ELEM).fill(0));
 
 const word_filters = {};
 for (const field of FIELDS) {
@@ -91,12 +93,17 @@ for (const field of FIELDS) {
 
   const filter = word_filters[field] = {};
   for (const word of words) {
-    const bitfield = filter[word] = jobs_bitfield();
+    const bitfield = jobs_bitfield();
     jobs.forEach((job, job_no) => {
       if (job_words.get(job).get(field).has(word)) {
-        bitfield[Math.floor(job_no / 32)] |= Math.pow(2, 31 - (job_no % 32));
+        const idx = Math.floor(job_no / FILTER_BITFIELD_BITS_PER_ELEM);
+        const elem = bitfield[idx];
+        const bit = job_no % FILTER_BITFIELD_BITS_PER_ELEM;
+        elem[bit] = 1;
+        bitfield[idx] = elem;
       }
     });
+    filter[word] = bitfield.map(arr => long.fromString(arr.join(""), true, 2).toString() + "u");
   }
 }
 

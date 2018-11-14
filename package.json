@@ -39,21 +39,19 @@
     "@babel/plugin-transform-spread": "^7.0.0",
     "@babel/plugin-transform-template-literals": "^7.0.0",
     "animejs": "^2.2.0",
-    "chalk": "^2.4.1",
     "cheerio": "^1.0.0-rc.2",
     "clean-css": "^4.2.1",
     "clipboard": "^2.0.3",
-    "compression": "^1.7.3",
-    "express": "^4.16.4",
     "fs-extra": "^7.0.1",
     "handlebars": "^4.0.11",
     "html-minifier": "^3.5.21",
+    "long": "^4.0.0",
     "minimist": "^1.2.0",
     "moment": "^2.22.2",
     "promise-polyfill": "^8.1.0",
-    "redis": "^2.8.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5",
+    "shelljs": "^0.8.3",
     "uglify-es": "^3.3.9"
   }
 }

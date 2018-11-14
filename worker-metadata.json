@@ -1,0 +1,10 @@
+{
+  "body_part": "script",
+  "bindings": [
+    {
+      "name": "QUERY_RUNNER_WASM",
+      "type": "wasm_module",
+      "part": "wasm"
+    }
+  ]
+}
