@@ -585,7 +585,7 @@ h2.section-heading {
 
 .search-term {
   display: flex;
-  align-items: baseline;
+  align-items: center;
 
   margin: 0.75rem 0;
 }
