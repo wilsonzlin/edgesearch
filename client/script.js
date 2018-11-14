@@ -60,6 +60,8 @@
     const control = autocomplete_current_control;
     autocomplete_clear_list();
     clearTimeout(autocomplete_search_timeout);
+    // Need to clear this so $this_request_id validation works
+    autocomplete_search_timeout = undefined;
     $autocomplete_backdrop.classList.toggle("autocomplete-loading", !!term);
     if (!term) {
       autocomplete_load_control(control);
@@ -206,10 +208,11 @@
   const update_title_or_url = (url, title) => {
     if (url) {
       try {
-      ga('send', 'pageview', {
-        'page': `${location.pathname}${location.search}${location.hash}`,
-      });
-      } catch (_) {};
+        ga("send", "pageview", {
+          "page": `${location.pathname}${location.search}${location.hash}`,
+        });
+      } catch (_) {
+      }
       history.pushState(null, undefined, url);
     }
     if (title) {
