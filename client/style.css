@@ -52,6 +52,7 @@ body {
 button, input, select, textarea {
   font: inherit;
   border-radius: 0; /* iOS */
+  margin: 0; /* iOS */
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -265,7 +266,8 @@ select {
 }
 
 .autocomplete-entry-tick::before {
-  content : "✔";
+  font-family: 'FabricMDL2Icons';
+  content: "\E73E";
   display: block;
 }
 
