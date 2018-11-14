@@ -5,8 +5,13 @@ const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
 const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
 
-let data_fetch_promise;
-let JOBS, FILTERS, AUTOCOMPLETE_LISTS;
+const DATA = {__VAR_DATA};
+const JOBS = DATA.jobs;
+const FILTERS = DATA.filters;
+const AUTOCOMPLETE_LISTS = [...FIELDS].reduce((obj, field) => {
+  obj[field] = Object.keys(FILTERS[field]).sort();
+  return obj;
+}, {});
 
 const response_error = (error, status = 400) =>
   new Response(JSON.stringify({error}), {
@@ -204,7 +209,7 @@ const handle_search = url => {
   return response_success({jobs, overflow});
 };
 
-const entry_handler = async (event) => {
+const entry_handler = event => {
   const request = event.request;
   const url = new URL(request.url);
 
@@ -222,32 +227,6 @@ const entry_handler = async (event) => {
   default:
     // Continue request to origin
     return fetch(request);
-  }
-
-  if (!data_fetch_promise) {
-    // TODO .catch
-    // TODO Cache
-    data_fetch_promise = fetch("{__VAR_DATA_URL}")
-      .then(res => res.json())
-      .then(d => {
-        JOBS = d.jobs;
-        FILTERS = d.filters;
-        AUTOCOMPLETE_LISTS = [...FIELDS].reduce((obj, field) => {
-          obj[field] = Object.keys(FILTERS[field]).sort();
-          return obj;
-        }, {});
-      })
-      .catch(err => {
-        // TODO
-        console.error(err);
-      });
-  }
-  if (!JOBS) {
-    await data_fetch_promise;
-    if (!JOBS) {
-      // Failed
-      return response_error("Internal server error", 500);
-    }
   }
 
   return handler(url);

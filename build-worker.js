@@ -3,6 +3,8 @@
 const fs = require("fs-extra");
 const shelljs = require("shelljs");
 
+const {minify_js} = require("./build-common");
+
 const {
   WORKER_SCRIPT,
   WORKER_WASM,
@@ -13,9 +15,6 @@ const {
 
   BUILD_DATA_JOBS,
   BUILD_DATA_FILTERS,
-
-  BUILD_DATA_WORKER,
-  ENV_WORKER_DATA,
 
   FIELDS,
 
@@ -47,17 +46,11 @@ let filter_bitfields = [];
 
 const filters = fs.readJSONSync(BUILD_DATA_FILTERS);
 for (const field of Object.keys(filters)) {
+  worker_data.filters[field] = {};
   for (const word of Object.keys(filters[field])) {
-    const bitfield_id = filter_bitfields.push(filters[field][word]) - 1;
-    if (!worker_data.filters[field]) {
-      worker_data.filters[field] = {};
-    }
-    worker_data.filters[field][word] = bitfield_id;
+    worker_data.filters[field][word] = filter_bitfields.push(filters[field][word]) - 1;
   }
 }
-
-fs.writeJSONSync(BUILD_DATA_WORKER, worker_data);
-console.log(`Generated worker data`);
 
 fs.readFile(WORKER_WASM, "utf8")
   .then(c => c.replace(/\/\*\s*{{{{{ (.*?) }}}}}\s*\*\//g, (_, param) => {
@@ -78,13 +71,14 @@ fs.readFile(WORKER_WASM, "utf8")
 	    -DMAX_RESULTS=${SEARCH_RESULTS_MAX} \\
 	    -DMAX_WORDS_PER_MODE=${SEARCH_MODE_MAX_WORDS} \\
 	    "${BUILD_WORKER_C}" -o "${BUILD_WORKER_WASM}"
-  `));
+  `))
+  .catch(console.error);
 
 fs.readFile(WORKER_SCRIPT, "utf8")
   .then(js => js.replace(/{__VAR_(.*?)}/g, (_, param) => {
     switch (param) {
-    case "DATA_URL":
-      return ENV_WORKER_DATA;
+    case "DATA":
+      return JSON.stringify(worker_data);
     case "MAX_RESULTS":
       return SEARCH_RESULTS_MAX;
     case "MAX_WORDS_PER_MODE":
@@ -97,6 +91,7 @@ fs.readFile(WORKER_SCRIPT, "utf8")
       throw new ReferenceError(`Unknown parameter ${param}`);
     }
   }))
+  .then(minify_js)
   .then(js => fs.writeFile(BUILD_WORKER, js))
   .catch(console.error)
 ;
