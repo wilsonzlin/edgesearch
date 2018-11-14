@@ -1,17 +1,12 @@
 {
-  "name": "careers-at-microsoft",
-  "version": "0.0.1",
-  "description": "Fast and nice web server + app for finding a job at Microsoft",
-  "main": "dist/main.js",
-  "files": [
-    "dist/**"
-  ],
+  "name": "work-at-microsoft",
+  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bit fields",
+  "private": true,
   "scripts": {
     "clean": "rm -rf cache build",
     "build-data": "node data/retrieve.js && node data/process.js",
     "build-client": "node build-client.js",
-    "build-worker": "node build-worker.js",
-    "start": "node server.js"
+    "build-worker": "node build-worker.js"
   },
   "repository": {
     "type": "git",
