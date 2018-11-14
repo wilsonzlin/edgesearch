@@ -30,12 +30,13 @@ fs.ensureDirSync(CACHE);
 const ENV_ANALYTICS = process.env.MSC_ANALYTICS;
 const ENV_WORKER_DATA = process.env.MSC_WORKER_DATA;
 
-const FIELDS = ["title", "location"];
+const FIELDS = ["title", "location", "description"];
 const FILTER_BITFIELD_BITS_PER_ELEM = 64;
 const FILTER_BITFIELD_LENGTH_FN = jobsCount => Math.ceil(jobsCount / FILTER_BITFIELD_BITS_PER_ELEM);
 
 const SEARCH_RESULTS_MAX = 200;
 const SEARCH_MODE_MAX_WORDS = 25;
+const SEARCH_AUTOCOMPLETE_MAX_RESULTS = 5;
 
 module.exports = {
   CLIENT,
@@ -61,4 +62,5 @@ module.exports = {
   FILTER_BITFIELD_LENGTH_FN,
   SEARCH_RESULTS_MAX,
   SEARCH_MODE_MAX_WORDS,
+  SEARCH_AUTOCOMPLETE_MAX_RESULTS,
 };

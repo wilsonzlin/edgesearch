@@ -1,11 +1,9 @@
 "use strict";
 
-// TODO ABSTRACT
-const FIELDS = ["title", "location"];
+const FIELDS = new Set({__VAR_FIELDS});
 const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
-// TODO Abstract
-const MAX_AUTOCOMPLETE_RESULTS = 5;
+const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
 
 let data_fetch_promise;
 let JOBS, FILTERS, AUTOCOMPLETE_LISTS;
@@ -49,7 +47,7 @@ const find_pos = (words, word, left = 0, right = words.length - 1) => {
 
 const handle_autocomplete = url => {
   const field = url.searchParams.get("f");
-  if (!FIELDS.includes(field)) {
+  if (!FIELDS.has(field)) {
     return response_error("Invalid field", 404);
   }
 
@@ -95,7 +93,7 @@ const parse_query = params => {
 
     const [field, words_raw] = part.slice(mode != "require").split(":", 2);
 
-    if (!FIELDS.includes(field)) {
+    if (!FIELDS.has(field)) {
       continue;
     }
 
@@ -234,7 +232,7 @@ const entry_handler = async (event) => {
       .then(d => {
         JOBS = d.jobs;
         FILTERS = d.filters;
-        AUTOCOMPLETE_LISTS = FIELDS.reduce((obj, field) => {
+        AUTOCOMPLETE_LISTS = [...FIELDS].reduce((obj, field) => {
           obj[field] = Object.keys(FILTERS[field]).sort();
           return obj;
         }, {});

@@ -17,10 +17,13 @@ const {
   BUILD_DATA_WORKER,
   ENV_WORKER_DATA,
 
+  FIELDS,
+
   FILTER_BITFIELD_BITS_PER_ELEM,
   FILTER_BITFIELD_LENGTH_FN,
   SEARCH_RESULTS_MAX,
   SEARCH_MODE_MAX_WORDS,
+  SEARCH_AUTOCOMPLETE_MAX_RESULTS,
 } = require("./const");
 
 /*
@@ -86,6 +89,10 @@ fs.readFile(WORKER_SCRIPT, "utf8")
       return SEARCH_RESULTS_MAX;
     case "MAX_WORDS_PER_MODE":
       return SEARCH_MODE_MAX_WORDS;
+    case "FIELDS":
+      return JSON.stringify(FIELDS);
+    case "MAX_AUTOCOMPLETE_RESULTS":
+      return SEARCH_AUTOCOMPLETE_MAX_RESULTS;
     default:
       throw new ReferenceError(`Unknown parameter ${param}`);
     }
