@@ -424,6 +424,10 @@ h2.section-heading {
   margin: 1rem 0;
 }
 
+.job-description:not(:empty)::after {
+  content: "\2026";
+}
+
 .job-date {
   color: #666; /* neutralSecondary */
 }
