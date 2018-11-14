@@ -16,7 +16,7 @@ The result of a weekend project trying to find a better way to search.
 This app allows the combining of simple filters to form advanced, precise queries.
 Combined with the performance optimisations, it delivers far more filtered results in usually under a second.
 
-As an example, searching for "machine learning researcher engineer" nets over 3000 results, while taking around 1 second.
-Searching for "title:machine+learning|~title:researcher engineer" nets 8 results in less than 0.01 seconds.
+On one of my random tests, searching for "machine learning researcher engineer" returned over 3000 results, while taking around 1 second.
+Searching for "title:machine+learning|~title:researcher engineer" gave 8 results in less than 50 milliseconds.
 
 For a UI comparison, see the [screenshots folder](screenshots).
