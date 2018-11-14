@@ -295,7 +295,7 @@ select {
 }
 
 @media (max-width: 1000px) {
-  #content {
+  #content, #content > * {
     display: block;
   }
 
