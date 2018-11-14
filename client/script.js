@@ -115,9 +115,10 @@
     }
   };
 
+  const autocomplete_values = new WeakMap();
   const autocomplete_control_init = $control => {
     $control.readOnly = true;
-    $control._autocomplete_values = new Set();
+    autocomplete_values.set($control, new Set());
     $control.addEventListener("click", () => {
       $autocomplete_search.value = "";
       $autocomplete_backdrop.classList.add(AUTOCOMPLETE_OPEN_CLASS);
@@ -127,23 +128,23 @@
   };
 
   const autocomplete_has_value = ($control, test) => {
-    return $control._autocomplete_values.has(test);
+    return autocomplete_values.get($control).has(test);
   };
 
   const autocomplete_get_values = $control => {
-    return Array.from($control._autocomplete_values).sort();
+    return Array.from(autocomplete_values.get($control)).sort();
   };
 
   const autocomplete_toggle_value = ($control, value) => {
-    if (!$control._autocomplete_values.delete(value)) {
-      $control._autocomplete_values.add(value);
+    if (!autocomplete_values.get($control).delete(value)) {
+      autocomplete_values.get($control).add(value);
       return true;
     }
     return false;
   };
 
   const autocomplete_set_values = ($control, values) => {
-    $control._autocomplete_values = new Set(values);
+    autocomplete_values.set($control, new Set(values));
     $control.value = autocomplete_get_values($control).join(" ");
   };
 
