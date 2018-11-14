@@ -92,7 +92,7 @@
   });
 
   const autocomplete_clear_list = () => {
-    for (const $existing of $$(".autocomplete-entry")) {
+    for (const $existing of $$(".autocomplete-entry", $autocomplete_list)) {
       $existing.remove();
     }
   };
@@ -144,6 +144,7 @@
 
   const autocomplete_set_values = ($control, values) => {
     $control._autocomplete_values = new Set(values);
+    $control.value = autocomplete_get_values($control).join(" ");
   };
 
   /*
@@ -179,7 +180,7 @@
       $(".search-term-mode", $new).value = mode;
     }
 
-    const $autocomplete = $(".search-term-words");
+    const $autocomplete = $(".search-term-words", $new);
     $autocomplete.dataset.field = field;
     autocomplete_control_init($autocomplete);
     if (words) {
@@ -189,8 +190,6 @@
     $(".search-term-button", $new).addEventListener("click", () => {
       $new.remove();
     });
-
-    return $new;
   };
 
   // Don't use capture event listener as it is buggy and slow
@@ -337,8 +336,9 @@
 
       const words = (words_raw || "").replace(/[;:,]/g, " ")
         .trim()
+        .toLowerCase()
         .split(/\s+/)
-        .map(w => w.toLowerCase());
+        .filter(w => /^[!-z]+$/.test(w));
       if (words.length) {
         if (!parsed[field]) {
           parsed[field] = [];
