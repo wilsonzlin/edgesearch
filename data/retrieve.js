@@ -5,10 +5,13 @@ const cheerio = require("cheerio");
 const fs = require("fs-extra");
 const path = require("path");
 const moment = require("moment");
-const Queue = require("./queue");
+const Queue = require("../queue");
 
-const CACHE = path.join(__dirname, "cache");
-fs.ensureDirSync(CACHE);
+const {
+  CACHE,
+
+  BUILD_DATA_RAW,
+} = require("../const");
 
 const scrape = async (from) => {
   const cache_key = `${from}.json`;
@@ -47,15 +50,14 @@ const scrape = async (from) => {
 const queue = new Queue(8);
 
 const load = async () => {
-  const data_path = path.join(__dirname, "data-raw.json");
   try {
-    return await fs.readJSON(data_path);
+    return await fs.readJSON(BUILD_DATA_RAW);
   } catch (_) {
     const first = await scrape(0);
     const pagination = first.hits;
     const total = first.totalHits;
 
-    console.log(`Need to load ${total} jobs in chunks of ${pagination}`);
+    console.log(`Need to retrieve ${total} jobs in chunks of ${pagination}`);
 
     const scrapes = await Promise.all(Array(Math.ceil(total / pagination)).fill(true).map((_, i) => {
       const from = i * pagination;
@@ -77,13 +79,13 @@ const load = async () => {
       };
     }).filter(j => j)), []);
 
-    await fs.writeJSON(data_path, data);
+    await fs.writeJSON(BUILD_DATA_RAW, data);
 
     return data;
   }
 };
 
 load()
-  .then(() => console.log(`Successfully loaded data`))
-  .catch(e => console.err(e))
+  .then(() => console.log(`Successfully retrieved data`))
+  .catch(e => console.error(e))
 ;

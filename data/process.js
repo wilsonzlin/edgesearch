@@ -2,16 +2,21 @@
 
 const fs = require("fs-extra");
 const moment = require("moment");
-const path = require("path");
 const minimist = require("minimist");
+const long = require("long");
 
 const ARGS = minimist(process.argv.slice(2));
 
-const PATH_DATA_RAW = path.join(__dirname, "data-raw.json");
-const PATH_DATA_PROCESSED = path.join(__dirname, "data-processed.json");
-const PATH_DATA_FILTERS = path.join(__dirname, "data-filters.json");
+const {
+  BUILD_DATA_RAW,
 
-const FIELDS = ["title", "location"];
+  BUILD_DATA_JOBS,
+  BUILD_DATA_FILTERS,
+
+  FIELDS,
+  FILTER_BITFIELD_BITS_PER_ELEM,
+  FILTER_BITFIELD_LENGTH_FN,
+} = require("../const");
 
 const WORD_MAP = {
   "architecte": "architect",
@@ -28,17 +33,15 @@ const WORD_MAP = {
   "office365": ["office", "365"],
 };
 
-const jobs = fs.readJSONSync(PATH_DATA_RAW)
+const jobs = fs.readJSONSync(BUILD_DATA_RAW)
+  .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
   .map(j => ({
     ID: j.jobId,
     title: j.title,
-    date: moment(j.postedDate).toISOString(),
-    humanDate: moment(j.postedDate).format("MMMM Do YYYY"),
+    date: moment(j.postedDate).format("YYYY-M-D"),
     location: j.location,
     description: j.descriptionTeaser,
-    URL: `https://careers.microsoft.com/us/en/job/${j.jobId}`,
-  }))
-  .sort((a, b) => b.date.localeCompare(a.date));
+  }));
 
 function extract_words (sentence) {
   return sentence
@@ -53,7 +56,7 @@ function extract_words (sentence) {
 
 const job_words = new Map();
 for (const job of jobs) {
-  job_words.set(job, new Map())
+  job_words.set(job, new Map());
 }
 
 function collate_words_of_field (field, jobs) {
@@ -79,7 +82,9 @@ function log_strings_list (description, list) {
   }
 }
 
-const jobs_bitfield = () => Array(Math.ceil(jobs.length / 32)).fill(0);
+const jobs_bitfield = () => Array(FILTER_BITFIELD_LENGTH_FN(jobs.length))
+  .fill(null)
+  .map(() => Array(FILTER_BITFIELD_BITS_PER_ELEM).fill(0));
 
 const word_filters = {};
 for (const field of FIELDS) {
@@ -88,16 +93,19 @@ for (const field of FIELDS) {
 
   const filter = word_filters[field] = {};
   for (const word of words) {
-    const bitfield = filter[word] = jobs_bitfield();
+    const bitfield = jobs_bitfield();
     jobs.forEach((job, job_no) => {
       if (job_words.get(job).get(field).has(word)) {
-        const idx = Math.floor(job_no / 32);
-        const bor = Math.pow(2, 31 - (job_no % 32));
-        bitfield[idx] |= bor;
+        const idx = Math.floor(job_no / FILTER_BITFIELD_BITS_PER_ELEM);
+        const elem = bitfield[idx];
+        const bit = job_no % FILTER_BITFIELD_BITS_PER_ELEM;
+        elem[bit] = 1;
+        bitfield[idx] = elem;
       }
-    })
+    });
+    filter[word] = bitfield.map(arr => long.fromString(arr.join(""), true, 2).toString() + "u");
   }
 }
 
-fs.writeJSONSync(PATH_DATA_PROCESSED, jobs);
-fs.writeJSONSync(PATH_DATA_FILTERS, word_filters);
+fs.writeJSONSync(BUILD_DATA_JOBS, jobs);
+fs.writeJSONSync(BUILD_DATA_FILTERS, word_filters);
