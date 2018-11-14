@@ -71,20 +71,21 @@
       $(".search-term-words", $new).value = words.join(" ");
     }
 
+    $(".search-term-button", $new).addEventListener("click", () => {
+      $new.remove();
+    });
+
     return $new;
   };
 
+  // Don't use capture event listener as it is buggy and slow
   const $template_search_term = $("#template-search-term");
-  window.addEventListener("click", e => {
-    if (e.target.classList.contains("search-term-button")) {
-      const $button = e.target;
-      $button.parentNode.remove();
-    } else if (e.target.classList.contains("search-category-button")) {
-      const $button = e.target;
+  for (const $button of $$(".search-category-button")) {
+    $button.addEventListener("click", () => {
       const field = $button.dataset.field;
       new_search_term(field);
-    }
-  }, true);
+    });
+  }
 
   const $$share_links = $$("[data-service]");
   const $share_URL = $("#share-URL");
