@@ -126,7 +126,7 @@ const parse_query = params => {
   return parsed;
 };
 
-const wasm_memory = new WebAssembly.Memory({initial: 12});
+const wasm_memory = new WebAssembly.Memory({initial: 48});
 const wasm_instance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
   env: {
     memory: wasm_memory,
