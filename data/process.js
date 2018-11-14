@@ -45,11 +45,11 @@ const jobs = fs.readJSONSync(BUILD_DATA_RAW)
 
 function extract_words (sentence) {
   return sentence
-    .replace(/[\[\]\-\/&_(),:;.（）、*"+!?$|]/g, " ")
+    .replace(/[\[\]\-\/&_(),:;.（）、*"’'+!?$|]/g, " ")
     .trim()
+    .toLowerCase()
     .split(/\s+/u)
-    .filter(w => /^[\x20-\x7e]+$/.test(w))
-    .map(w => w.toLowerCase())
+    .filter(w => /^[a-z0-9-]+$/.test(w))
     .reduce((words, w) => words.concat(WORD_MAP[w] || [w]), [])
     ;
 }
