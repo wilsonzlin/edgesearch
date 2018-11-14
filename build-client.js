@@ -31,13 +31,13 @@ const generate_analytics = tracking_id => `
   <script async src="https://www.googletagmanager.com/gtag/js?id=${tracking_id}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    
+
     function gtag () {
       dataLayer.push(arguments);
     }
-    
+
     gtag("js", new Date());
-    
+
     gtag("config", "${tracking_id}");
   </script>
 `;
@@ -136,7 +136,9 @@ const minify_html = html => ARGS.debug ? html : htmlminifier.minify(html, {
   removeComments: true,
   removeEmptyAttributes: false,
   removeEmptyElements: false,
-  removeOptionalTags: true,
+  // Don't remove optional tags as this breaks IE 11
+  // (it doesn't end <li>s properly sometimes)
+  removeOptionalTags: false,
   removeRedundantAttributes: true,
   removeScriptTypeAttributes: true,
   removeStyleLinkTypeAttributes: true,
