@@ -38,7 +38,7 @@ Each object represents a job, with fields describing some aspect of the job:
 }
 ```
 
-The `title` and `location` fields are searchable. This means that their words have to be indexed using bit fields.
+The `title`, `location`, and `description` fields are searchable. This means that their words have to be indexed using bit fields.
 
 ### Bit field
 
