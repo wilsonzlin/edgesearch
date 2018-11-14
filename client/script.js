@@ -41,6 +41,113 @@
 
   /*
    *
+   *  AUTOCOMPLETE
+   *
+   */
+
+  const AUTOCOMPLETE_OPEN_CLASS = "autocomplete-open";
+  const $autocomplete_backdrop = $("#autocomplete-backdrop");
+  const $autocomplete_done = $("#autocomplete-done");
+  const $template_autocomplete_entry = $("#template-autocomplete-entry");
+  const $autocomplete_search = $("#autocomplete-search");
+  const $autocomplete_list = $("#autocomplete-list");
+
+  let autocomplete_current_control;
+  let autocomplete_search_timeout;
+
+  $autocomplete_search.addEventListener("input", () => {
+    const term = $autocomplete_search.value.trim();
+    const control = autocomplete_current_control;
+    autocomplete_clear_list();
+    clearTimeout(autocomplete_search_timeout);
+    $autocomplete_backdrop.classList.toggle("autocomplete-loading", !!term);
+    if (!term) {
+      autocomplete_load_control(control);
+      return;
+    }
+    const this_request_id = autocomplete_search_timeout = setTimeout(() => {
+      fetch(`/autocomplete?f=${control.dataset.field}&t=${encodeURIComponent(term)}`)
+        .then(res => res.json())
+        .then(results => {
+          if (autocomplete_search_timeout !== this_request_id) {
+            // This request is stale
+            return;
+          }
+          for (const res of results) {
+            autocomplete_append_entry(res, autocomplete_has_value(control, res));
+          }
+          // Don't put in post-.then as this request might be stale
+          $autocomplete_backdrop.classList.remove("autocomplete-loading");
+        })
+        .catch(err => {
+          // TODO
+        });
+    }, 100);
+  });
+
+  $autocomplete_done.addEventListener("click", () => {
+    $autocomplete_backdrop.classList.remove(AUTOCOMPLETE_OPEN_CLASS);
+    autocomplete_current_control.value = autocomplete_get_values(autocomplete_current_control).join(" ");
+    autocomplete_current_control = undefined;
+  });
+
+  const autocomplete_clear_list = () => {
+    for (const $existing of $$(".autocomplete-entry")) {
+      $existing.remove();
+    }
+  };
+
+  const autocomplete_append_entry = (value, checked) => {
+    const $entry = import_template($template_autocomplete_entry);
+    $autocomplete_list.appendChild($entry);
+    $entry.classList.toggle("autocomplete-entry-ticked", !!checked);
+    $(".autocomplete-entry-value", $entry).textContent = value;
+    $entry.addEventListener("click", () => {
+      $entry.classList.toggle("autocomplete-entry-ticked",
+        autocomplete_toggle_value(autocomplete_current_control, value));
+    });
+  };
+
+  const autocomplete_load_control = $control => {
+    autocomplete_clear_list();
+    for (const val of autocomplete_get_values($control)) {
+      autocomplete_append_entry(val, true);
+    }
+  };
+
+  const autocomplete_control_init = $control => {
+    $control.readOnly = true;
+    $control._autocomplete_values = new Set();
+    $control.addEventListener("click", () => {
+      $autocomplete_search.value = "";
+      $autocomplete_backdrop.classList.add(AUTOCOMPLETE_OPEN_CLASS);
+      autocomplete_current_control = $control;
+      autocomplete_load_control($control);
+    });
+  };
+
+  const autocomplete_has_value = ($control, test) => {
+    return $control._autocomplete_values.has(test);
+  };
+
+  const autocomplete_get_values = $control => {
+    return Array.from($control._autocomplete_values).sort();
+  };
+
+  const autocomplete_toggle_value = ($control, value) => {
+    if (!$control._autocomplete_values.delete(value)) {
+      $control._autocomplete_values.add(value);
+      return true;
+    }
+    return false;
+  };
+
+  const autocomplete_set_values = ($control, values) => {
+    $control._autocomplete_values = new Set(values);
+  };
+
+  /*
+   *
    *  PANE
    *
    */
@@ -71,8 +178,12 @@
     if (mode) {
       $(".search-term-mode", $new).value = mode;
     }
+
+    const $autocomplete = $(".search-term-words");
+    $autocomplete.dataset.field = field;
+    autocomplete_control_init($autocomplete);
     if (words) {
-      $(".search-term-words", $new).value = words.join(" ");
+      autocomplete_set_values($autocomplete, words);
     }
 
     $(".search-term-button", $new).addEventListener("click", () => {

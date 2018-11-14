@@ -150,6 +150,125 @@ select {
   padding: 0.25rem;
 }
 
+.autocomplete-control {
+
+}
+
+#autocomplete-backdrop {
+  z-index: 99;
+  background: rgba(230, 230, 230, 0.9);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+
+  display: none;
+}
+
+#autocomplete-backdrop.autocomplete-open {
+  display: flex;
+}
+
+#autocomplete {
+  height: 100%;
+  width: 100%;
+  margin: auto;
+
+  max-height: 32rem;
+  max-width: 27.5rem;
+  background: rgba(192, 192, 192, 0.66);
+}
+
+#autocomplete-head {
+  display: flex;
+  align-items: stretch;
+
+  height: 3.5rem;
+  line-height: 3.5rem;
+}
+
+#autocomplete-head > * {
+  padding: 0 1rem;
+}
+
+#autocomplete-search {
+  flex-grow: 1;
+  border: 0;
+
+  background: #333;
+  color: #eaeaea;
+  font-size: 1.25rem;
+}
+
+#autocomplete-done {
+  background: #a6a6a6;
+  color: #333;
+  border: 0;
+  cursor: pointer;
+}
+
+#autocomplete-list {
+  overflow: auto;
+
+  height: calc(100% - 3.5rem);
+}
+
+#autocomplete-list::before {
+  color: #666;
+  text-align: center;
+  display: block;
+  padding: 1rem;
+}
+
+#autocomplete-list:empty::before {
+  content: "Nothing to see here...";
+}
+
+.autocomplete-loading #autocomplete-list::before {
+  content: "Loading...";
+}
+
+.autocomplete-entry, .autocomplete-entry * {
+  cursor: pointer;
+}
+
+.autocomplete-entry {
+  display: block;
+  font-size: 1.25rem;
+  color: #666;
+  padding: 1rem;
+}
+
+.autocomplete-entry-ticked {
+  color: #0078d4;
+}
+
+.autocomplete-entry:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.autocomplete-entry > label {
+  display: flex;
+  align-items: center;
+}
+
+.autocomplete-entry-tick {
+  border: 0.25rem solid currentColor;
+  border-radius: 100%;
+  height: 3rem;
+  width: 3rem;
+  line-height: 2.5rem;
+  margin-right: 1rem;
+  text-align: center;
+}
+
+.autocomplete-entry-tick::before {
+  content : "✔";
+  display: block;
+}
+
 #header {
   background: #333; /* neutralPrimary */
 

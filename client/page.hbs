@@ -48,11 +48,30 @@
           <option value="contain">Has any of</option>
           <option value="exclude">Does not have</option>
         </select>
-        <input class="ipt-text search-term-words" placeholder="Enter space-separated words">
+        <input class="ipt-text search-term-words autocomplete-control">
         <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
         </button>
       </li>
     </template>
+
+    <template id="template-autocomplete-entry">
+      <li class="autocomplete-entry">
+        <label>
+          <span class="autocomplete-entry-tick"></span>
+          <span class="autocomplete-entry-value"></span>
+        </label>
+      </li>
+    </template>
+
+    <div id="autocomplete-backdrop">
+      <div id="autocomplete">
+        <div id="autocomplete-head">
+          <input id="autocomplete-search" placeholder="Search for a term" autocomplete="off">
+          <button id="autocomplete-done">Done</button>
+        </div>
+        <ul id="autocomplete-list"></ul>
+      </div>
+    </div>
 
     <header id="header">
       <a rel=noopener href="https://microsoft.com" target="_blank" id="header-logo" style="opacity: 0">
@@ -70,18 +89,25 @@
       <div class="flex-spacer"></div>
 
       <ul id="header-brands" class="header-brands-init">
-        <li><a class="ms-Icon ms-Icon--AzureLogo" rel=noopener target="_blank" href="https://azure.com" aria-hidden="true"></a></li>
-        <li><a class="ms-Icon ms-Icon--BingLogo" rel=noopener target="_blank" href="https://bing.com" aria-hidden="true"></a></li>
-        <li><a class="ms-Icon ms-Icon--MSNLogo" rel=noopener target="_blank" href="https://msn.com" aria-hidden="true"></a></li>
-        <li><a class="ms-Icon ms-Icon--OfficeLogo" rel=noopener target="_blank" href="https://office.com" aria-hidden="true"></a>
+        <li><a class="ms-Icon ms-Icon--AzureLogo" rel=noopener target="_blank" href="https://azure.com"
+               aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--BingLogo" rel=noopener target="_blank" href="https://bing.com"
+               aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--MSNLogo" rel=noopener target="_blank" href="https://msn.com"
+               aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--OfficeLogo" rel=noopener target="_blank" href="https://office.com"
+               aria-hidden="true"></a>
         </li>
-        <li><a class="ms-Icon ms-Icon--OneDriveLogo" rel=noopener target="_blank" href="https://onedrive.com" aria-hidden="true"></a>
+        <li><a class="ms-Icon ms-Icon--OneDriveLogo" rel=noopener target="_blank" href="https://onedrive.com"
+               aria-hidden="true"></a>
         </li>
-        <li><a class="ms-Icon ms-Icon--SkypeLogo" rel=noopener target="_blank" href="https://skype.com" aria-hidden="true"></a></li>
+        <li><a class="ms-Icon ms-Icon--SkypeLogo" rel=noopener target="_blank" href="https://skype.com"
+               aria-hidden="true"></a></li>
         <li><a class="ms-Icon ms-Icon--StoreLogo16" rel=noopener target="_blank" href="https://store.microsoft.com"
                aria-hidden="true"></a>
         </li>
-        <li><a class="ms-Icon ms-Icon--WindowsLogo" rel=noopener target="_blank" href="https://windows.com" aria-hidden="true"></a>
+        <li><a class="ms-Icon ms-Icon--WindowsLogo" rel=noopener target="_blank" href="https://windows.com"
+               aria-hidden="true"></a>
         </li>
       </ul>
     </header>

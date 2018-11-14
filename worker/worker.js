@@ -1,11 +1,81 @@
 "use strict";
 
+// TODO ABSTRACT
 const FIELDS = ["title", "location"];
 const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
+// TODO Abstract
+const MAX_AUTOCOMPLETE_RESULTS = 5;
 
 let data_fetch_promise;
-let JOBS, FILTERS;
+let JOBS, FILTERS, AUTOCOMPLETE_LISTS;
+
+const response_error = (error, status = 400) =>
+  new Response(JSON.stringify({error}), {
+    status: status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+const response_success = (data, status = 200) =>
+  new Response(JSON.stringify(data), {
+    status: status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+// Find where a word would be inserted into an ordered list
+const find_pos = (words, word, left = 0, right = words.length - 1) => {
+  if (left >= right) {
+    return left;
+  }
+  if (left + 1 == right) {
+    return word <= words[left] ? left : right;
+  }
+  const mid_pos = left + Math.floor((right - left) / 2);
+  const mid_word = words[mid_pos];
+  if (word === mid_word) {
+    return mid_pos;
+  }
+  if (word < mid_word) {
+    // Could still be $mid_pos, i.e. $mid_pos -1 <= x < $mid_pos
+    return find_pos(words, word, left, mid_pos);
+  }
+  // Could still be $mid_pos, i.e. $mid_pos < x <= $mid_pos + 1
+  return find_pos(words, word, mid_pos, right);
+};
+
+const handle_autocomplete = url => {
+  const field = url.searchParams.get("f");
+  if (!FIELDS.includes(field)) {
+    return response_error("Invalid field", 404);
+  }
+
+  const term = (url.searchParams.get("t") || "")
+    .trim()
+    .toLowerCase();
+
+  if (!/^[!-z]+$/.test(term)) {
+    return response_error("Bad term");
+  }
+
+  const results = [];
+  const words = AUTOCOMPLETE_LISTS[field];
+
+  for (let pos = find_pos(words, term), count = 0;
+       pos < words.length && count < MAX_AUTOCOMPLETE_RESULTS;
+       pos++, count++) {
+    const word = words[pos];
+    if (!word.startsWith(term)) {
+      break;
+    }
+    results.push(word);
+  }
+
+  return response_success(results);
+};
 
 const valid_word = (str, field) => {
   return !!FILTERS[field][str];
@@ -32,9 +102,9 @@ const parse_query = params => {
     // TODO Limit words here
     const words = words_raw.replace(/[;:,]/g, " ")
       .trim()
+      .toLowerCase()
       .split(/\s+/)
-      .filter(w => valid_word(w, field))
-      .map(w => w.toLowerCase());
+      .filter(w => valid_word(w, field));
 
     // Don't create set until at least one word
     if (!words.length) {
@@ -68,48 +138,7 @@ const wasm_instance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
 const query_runner = wasm_instance.exports;
 const query_runner_memory = new DataView(wasm_memory.buffer);
 
-const handler = async (request) => {
-  const url = new URL(request.url);
-
-  switch (url.pathname) {
-  case "/":
-    url.pathname = "/jobs";
-    return Response.redirect(url.href);
-  case "/search":
-    // This script
-    break;
-  default:
-    // Continue request to origin
-    return fetch(request);
-  }
-
-  if (!data_fetch_promise) {
-    // TODO .catch
-    data_fetch_promise = fetch("{__VAR_DATA_URL}")
-      .then(res => res.json())
-      .then(d => {
-        JOBS = d.jobs;
-        FILTERS = d.filters;
-      })
-      .catch(err => {
-        // TODO
-        console.error(err);
-      });
-  }
-  if (!JOBS) {
-    await data_fetch_promise;
-    if (!JOBS) {
-      // Failed
-      // TODO
-      return new Response(JSON.stringify({error: "Internal server error"}), {
-        status: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    }
-  }
-
+const handle_search = url => {
   /*
    *   rules: {
    *     "require": {
@@ -123,14 +152,14 @@ const handler = async (request) => {
    *
    *   (title_a & title_b) & ~(title_c | location_london)
    */
-  const {words, rules} = await parse_query(url.searchParams);
+  const {words, rules} = parse_query(url.searchParams);
 
   let jobs;
   let overflow;
 
   if (!words) {
     jobs = JOBS.slice(0, MAX_RESULTS);
-    overflow = jobs.length > MAX_RESULTS;
+    overflow = JOBS.length > MAX_RESULTS;
   } else {
     const bitfield_indexes = {
       "require": [],
@@ -174,13 +203,58 @@ const handler = async (request) => {
     overflow = jobs.length >= MAX_RESULTS;
   }
 
-  return new Response(JSON.stringify({jobs, overflow}), {
-    headers: {
-      "Content-Type": "application/json",
+  return response_success({jobs, overflow});
+};
+
+const entry_handler = async (event) => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  let handler;
+  switch (url.pathname) {
+  case "/":
+    url.pathname = "/jobs";
+    return Response.redirect(url.href);
+  case "/search":
+    handler = handle_search;
+    break;
+  case "/autocomplete":
+    handler = handle_autocomplete;
+    break;
+  default:
+    // Continue request to origin
+    return fetch(request);
+  }
+
+  if (!data_fetch_promise) {
+    // TODO .catch
+    // TODO Cache
+    data_fetch_promise = fetch("{__VAR_DATA_URL}")
+      .then(res => res.json())
+      .then(d => {
+        JOBS = d.jobs;
+        FILTERS = d.filters;
+        AUTOCOMPLETE_LISTS = FIELDS.reduce((obj, field) => {
+          obj[field] = Object.keys(FILTERS[field]).sort();
+          return obj;
+        }, {});
+      })
+      .catch(err => {
+        // TODO
+        console.error(err);
+      });
+  }
+  if (!JOBS) {
+    await data_fetch_promise;
+    if (!JOBS) {
+      // Failed
+      return response_error("Internal server error", 500);
     }
-  });
+  }
+
+  return handler(url);
 };
 
 addEventListener("fetch", event => {
-  event.respondWith(handler(event.request));
+  event.respondWith(entry_handler(event));
 });
