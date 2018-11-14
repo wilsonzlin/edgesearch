@@ -6,6 +6,14 @@ const cleancss = require("clean-css");
 const htmlminifier = require("html-minifier");
 const handlebars = require("handlebars");
 const babel = require("@babel/core");
+const uglifyes = require("uglify-es");
+const minimist = require("minimist");
+
+const ARGS = minimist(process.argv.slice(2));
+
+if (ARGS.debug) {
+  console.log(`Debug mode`);
+}
 
 const {
   BUILD_CLIENT,
@@ -70,6 +78,10 @@ const transpile_js = js => babel.transformAsync(js, {
 }).then(res => res.code);
 
 const minify_js = js => {
+  if (ARGS.debug) {
+    return js;
+  }
+
   const {error, warnings, code} = uglifyes.minify(js, {
     mangle: true,
     compress: {
@@ -106,7 +118,7 @@ const minify_js = js => {
   return code;
 };
 
-const minify_html = html => htmlminifier.minify(html, {
+const minify_html = html => ARGS.debug ? html : htmlminifier.minify(html, {
   collapseBooleanAttributes: true,
   collapseInlineTagWhitespace: true,
   collapseWhitespace: true,
@@ -134,7 +146,7 @@ const minify_html = html => htmlminifier.minify(html, {
   useShortDoctype: true,
 });
 
-const minify_css = css => new cleancss({
+const minify_css = css => ARGS.debug ? css : new cleancss({
   returnPromise: true,
 }).minify(css)
   .then(({styles}) => styles);

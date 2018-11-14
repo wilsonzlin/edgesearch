@@ -5,8 +5,7 @@
    *  COMPATIBILITY
    */
   const COMPAT_TEMPLATE = !!window.HTMLTemplateElement;
-  const import_template = $template =>
-    (COMPAT_TEMPLATE ? $template_search_term.content : $template_search_term).cloneNode(true).children[0];
+  const import_template = $template => (COMPAT_TEMPLATE ? $template.content : $template).cloneNode(true).children[0];
   if (!HTMLElement.prototype.remove) {
     HTMLElement.prototype.remove = function () {
       this.parentNode.removeChild(this);
@@ -28,8 +27,20 @@
     Array.from = src => Array.prototype.slice.call(src);
   }
 
+  /*
+   *
+   *  DOM
+   *
+   */
+
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+
+  /*
+   *
+   *  PANE
+   *
+   */
 
   const $pane = $("#pane");
   const $pane_toggle_button = $("#pane-toggle-button");
@@ -37,40 +48,100 @@
     $pane.classList.toggle("pane-open");
   });
 
-  const $$search_category_buttons = $$(".search-category-button");
+  /*
+   *
+   *  FORM BUTTONS
+   *
+   */
+
+  const new_search_term = (field, mode, words) => {
+    const $target = $(`.search-terms[data-field="${field}"]`);
+    if (!$target) {
+      return null;
+    }
+
+    const $new = import_template($template_search_term);
+    $new.dataset.field = field;
+    $target.appendChild($new);
+
+    if (mode) {
+      $(".search-term-mode", $new).value = mode;
+    }
+    if (words) {
+      $(".search-term-words", $new).value = words.join(" ");
+    }
+
+    return $new;
+  };
+
   const $template_search_term = $("#template-search-term");
-  for (const $button of $$search_category_buttons) {
-    $button.addEventListener("click", () => {
-      const field = $button.dataset.field;
-      const $new = import_template($template_search_term);
-      $new.dataset.field = field;
-      $button.parentNode.parentNode.nextElementSibling.appendChild($new);
-    });
-  }
-
-  for (const $select of $$("select[data-value]")) {
-    $select.value = $select.dataset.value;
-  }
-
   window.addEventListener("click", e => {
     if (e.target.classList.contains("search-term-button")) {
       const $button = e.target;
-      switch ($button.value) {
-      case "delete":
-        $button.parentNode.remove();
-        break;
-      }
+      $button.parentNode.remove();
+    } else if (e.target.classList.contains("search-category-button")) {
+      const $button = e.target;
+      const field = $button.dataset.field;
+      new_search_term(field);
     }
   }, true);
 
+  const $$share_links = $$("[data-service]");
+  const $share_URL = $("#share-URL");
+  const update_title_or_url = (url, title) => {
+    if (url) {
+      history.pushState(null, undefined, url);
+    }
+    if (title) {
+      document.title = title;
+    }
+
+    $share_URL.value = location.href;
+    let ue_title = encodeURIComponent(document.title);
+    let ue_url = encodeURIComponent(location.href);
+    let ue_hostname = encodeURIComponent(location.hostname);
+    // TODO Abstract
+    const description = `Find your next career at Microsoft`;
+    let ue_description = encodeURIComponent(description);
+
+    const shareLinkedIn = `https://www.linkedin.com/shareArticle?mini=true&url=${ue_url}&title=${ue_title}&summary=${ue_description}&source=${ue_hostname}`;
+    const shareFacebook = `https://www.facebook.com/sharer/sharer.php?u=${ue_url}`;
+    const shareTwitter = `https://twitter.com/home?status=${ue_title}%20${ue_url}`;
+    const shareEmail = `mailto:?&subject=${ue_title}&body=${ue_title}%0A${ue_url}`;
+
+    for (const $link of $$share_links) {
+      $link.href = {
+        "LinkedIn": shareLinkedIn,
+        "Facebook": shareFacebook,
+        "Twitter": shareTwitter,
+        "Email": shareEmail,
+      }[$link.dataset.service];
+    }
+  };
+
+  const $template_job = $("#template-job");
+  const $jobs = $("#jobs");
   const $filter_form = $("#filter-form");
-  $filter_form.addEventListener("submit", e => {
-    e.preventDefault();
+  const $filter_form_submit = $("#filter-form-submit");
+  const $jobs_heading = $("#jobs-heading");
+  const MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
 
-    const parts = [];
-
+  const search = () => {
     // Always query for latest set of .search-term elements
-    for (const $term of $$(".search-term")) {
+    const parts = $$(".search-term").map($term => {
       const field = $term.dataset.field;
       const prefix = {
         "require": "",
@@ -78,13 +149,112 @@
         "exclude": "!",
       }[$term.children[0].value];
       const words = $term.children[1].value.trim();
-      parts.push(`${prefix}${field}:${encodeURIComponent(words)}`);
-    }
+      return `${prefix}${field}:${encodeURIComponent(words)}`;
+    });
 
-    location.href = `/jobs?q=${parts.join("|")}`;
+    update_title_or_url(`${location.pathname}${!parts.length ? "" : `#${parts.join("|")}`}`, "Microsoft Careers");
+    $jobs_heading.textContent = "Searching";
+    for (const $job of $$(".job", $jobs)) {
+      $job.remove();
+    }
+    $filter_form_submit.disabled = true;
+
+    fetch(`/search?q=${parts.join("|")}`)
+      .then(res => res.json())
+      .then(({jobs, overflow}) => {
+        const count = `${jobs.length}${overflow ? "+" : ""}`;
+        const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Microsoft Careers`;
+        const heading = jobs.length == 1 ? "1 match" : `${count} matches`;
+
+        update_title_or_url(false, title);
+        $jobs_heading.textContent = heading;
+
+        for (const job of jobs) {
+          const $job = import_template($template_job);
+          $(".job-title-link", $job).textContent = job.title;
+          $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+          $(".job-location", $job).textContent = job.location;
+          $(".job-description", $job).textContent = job.description;
+          const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
+          $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
+          $(".job-date", $job).dateTime = `${year}-${month}-${day}T00:00:00.000Z`;
+          $jobs.appendChild($job);
+        }
+      })
+      .catch(err => {
+        // TODO
+      })
+      .then(() => {
+        $filter_form_submit.disabled = false;
+      });
+  };
+
+  $filter_form.addEventListener("submit", e => {
+    e.preventDefault();
+    search();
   });
 
+  /*
+   *
+   *  URL
+   *
+   */
+
+  const parse_hash = () => {
+    /*
+     *  {
+     *    field: [
+     *      {
+     *        mode: "require",
+     *        words: ["a", "b"],
+     *      },
+     *    ],
+     *  }
+     */
+    let parsed = {};
+
+    for (const part of decodeURIComponent(location.hash.slice(1)).trim().split("|")) {
+      const mode = /^!/.test(part) ? "exclude" :
+                   /^~/.test(part) ? "contain" :
+                   "require";
+
+      const [field, words_raw] = part.slice(mode != "require").split(":", 2);
+
+      const words = (words_raw || "").replace(/[;:,]/g, " ")
+        .trim()
+        .split(/\s+/)
+        .map(w => w.toLowerCase());
+      if (words.length) {
+        if (!parsed[field]) {
+          parsed[field] = [];
+        }
+        parsed[field].push({mode, words});
+      }
+    }
+
+    for (const field of Object.keys(parsed)) {
+      for (const term of parsed[field]) {
+        new_search_term(field, term.mode, term.words);
+      }
+    }
+  };
+
+  parse_hash();
+  search();
+
+  /*
+   *
+   *  SHARING
+   *
+   */
+
   new ClipboardJS("#share-copy-button");
+
+  /*
+   *
+   *  ANIMATIONS
+   *
+   */
 
   const $header_logo = $("#header-logo");
   const $$header_logo_quads = [

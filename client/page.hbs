@@ -43,34 +43,34 @@
       </ul>
     </header>
 
-    <template id="template-job">
-      <article class="job">
-        <div class="job-left">
-          <div class="job-head">
-            <h1 class="job-title"><a class="job-title-link" target="_blank"></a></h1>
-            <h2 class="job-location"></h2>
-          </div>
-          <p class="job-description"></p>
-        </div>
-        <div class="job-right">
-          <time class="job-date"></time>
-        </div>
-      </article>
-    </template>
-
     <div id="content">
       <main id="jobs">
         <div class="section-heading-container">
           <h1 id="jobs-heading" class="section-heading"></h1>
           <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
+
+        <template id="template-job">
+          <article class="job">
+            <div class="job-left">
+              <div class="job-head">
+                <h1 class="job-title"><a class="job-title-link" target="_blank"></a></h1>
+                <h2 class="job-location"></h2>
+              </div>
+              <p class="job-description"></p>
+            </div>
+            <div class="job-right">
+              <time class="job-date"></time>
+            </div>
+          </article>
+        </template>
       </main>
 
       <aside id="pane">
         <form id="filter-form" method="get">
           <div class="section-heading-container">
             <h1 class="section-heading">Filter</h1>
-            <button class="btn btn-teal">Search</button>
+            <button id="filter-form-submit" class="btn btn-teal">Search</button>
           </div>
 
           {{#each fields}}
@@ -84,7 +84,7 @@
                 </div>
               </div>
 
-              <ul class="search-terms"></ul>
+              <ul class="search-terms" data-field="{{this}}"></ul>
             </div>
           {{/each}}
 

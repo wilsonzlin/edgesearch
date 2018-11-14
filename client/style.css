@@ -108,6 +108,11 @@ select {
   color: #212121;
 }
 
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .btn-blue {
   background: #0078d4; /* themePrimary */
   color: white;
@@ -360,6 +365,11 @@ h2.section-heading {
 
 .job-left, .job-right {
   padding: 0 1rem;
+}
+
+.job-left {
+  /* Some jobs are very small */
+  flex-grow: 1;
 }
 
 .job-right {
