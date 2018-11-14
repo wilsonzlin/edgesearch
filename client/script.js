@@ -205,6 +205,11 @@
   const $share_URL = $("#share-URL");
   const update_title_or_url = (url, title) => {
     if (url) {
+      try {
+      ga('send', 'pageview', {
+        'page': `${location.pathname}${location.search}${location.hash}`,
+      });
+      } catch (_) {};
       history.pushState(null, undefined, url);
     }
     if (title) {
@@ -288,7 +293,7 @@
           $(".job-title-link", $job).textContent = job.title;
           $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
           $(".job-location", $job).textContent = job.location;
-          $(".job-description", $job).textContent = job.description;
+          $(".job-description", $job).innerHTML = job.description;
           const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
           $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
           $(".job-date", $job).dateTime = `${year}-${month}-${day}T00:00:00.000Z`;
