@@ -104,9 +104,7 @@
     let ue_title = encodeURIComponent(document.title);
     let ue_url = encodeURIComponent(location.href);
     let ue_hostname = encodeURIComponent(location.hostname);
-    // TODO Abstract
-    const description = `Find your next career at Microsoft`;
-    let ue_description = encodeURIComponent(description);
+    let ue_description = encodeURIComponent(window.msc_description);
 
     const shareLinkedIn = `https://www.linkedin.com/shareArticle?mini=true&url=${ue_url}&title=${ue_title}&summary=${ue_description}&source=${ue_hostname}`;
     const shareFacebook = `https://www.facebook.com/sharer/sharer.php?u=${ue_url}`;

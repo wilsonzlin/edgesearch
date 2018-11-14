@@ -15,7 +15,6 @@ const {
   BUILD_DATA_FILTERS,
 
   BUILD_DATA_WORKER,
-  ENV_WORKER_PAGE,
   ENV_WORKER_DATA,
 
   FILTER_BITFIELD_BITS_PER_ELEM,
@@ -83,8 +82,6 @@ fs.readFile(WORKER_SCRIPT, "utf8")
     switch (param) {
     case "DATA_URL":
       return ENV_WORKER_DATA;
-    case "PAGE_URL":
-      return ENV_WORKER_PAGE;
     case "MAX_RESULTS":
       return SEARCH_RESULTS_MAX;
     case "MAX_WORDS_PER_MODE":

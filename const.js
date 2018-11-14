@@ -28,7 +28,6 @@ const CACHE = path.join(__dirname, "cache");
 fs.ensureDirSync(CACHE);
 
 const ENV_ANALYTICS = process.env.MSC_ANALYTICS;
-const ENV_WORKER_PAGE = process.env.MSC_WORKER_PAGE;
 const ENV_WORKER_DATA = process.env.MSC_WORKER_DATA;
 
 const FIELDS = ["title", "location"];
@@ -56,7 +55,6 @@ module.exports = {
   BUILD_DATA_FILTERS,
   CACHE,
   ENV_ANALYTICS,
-  ENV_WORKER_PAGE,
   ENV_WORKER_DATA,
   FIELDS,
   FILTER_BITFIELD_BITS_PER_ELEM,

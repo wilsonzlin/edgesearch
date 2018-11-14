@@ -42,7 +42,7 @@ const parse_query = params => {
     }
 
     if (!parsed.rules[mode]) {
-      parsed.rules[mode] = {}
+      parsed.rules[mode] = {};
     }
 
     if (!parsed.rules[mode][field]) {
@@ -58,22 +58,31 @@ const parse_query = params => {
   return parsed;
 };
 
-// Instantiate the WebAssembly module with 64KB of memory.
 const wasm_memory = new WebAssembly.Memory({initial: 12});
-const wasm_instance = new WebAssembly.Instance(
-  // RESIZER_WASM is a global variable created through the Resource Bindings UI (or API).
-  QUERY_RUNNER_WASM,
+const wasm_instance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
+  env: {
+    memory: wasm_memory,
+  },
+});
 
-  // This second parameter is the imports object. Our module imports its memory object (so that
-  // we can allocate it ourselves), but doesn't require any other imports.
-  {env: {memory: wasm_memory}}
-);
-
-// Define some shortcuts.
 const query_runner = wasm_instance.exports;
 const query_runner_memory = new DataView(wasm_memory.buffer);
 
 const handler = async (request) => {
+  const url = new URL(request.url);
+
+  switch (url.pathname) {
+  case "/":
+    url.pathname = "/jobs";
+    return Response.redirect(url.href);
+  case "/search":
+    // This script
+    break;
+  default:
+    // Continue request to origin
+    return fetch(request);
+  }
+
   if (!data_fetch_promise) {
     // TODO .catch
     data_fetch_promise = fetch("{__VAR_DATA_URL}")
@@ -81,29 +90,24 @@ const handler = async (request) => {
       .then(d => {
         JOBS = d.jobs;
         FILTERS = d.filters;
+      })
+      .catch(err => {
+        // TODO
+        console.error(err);
       });
   }
   if (!JOBS) {
     await data_fetch_promise;
-  }
-
-  const url = new URL(request.url);
-
-  if (url.protocol !== "https:") {
-    url.protocol = "https:";
-    return Response.redirect(url.href);
-  }
-
-  switch (url.pathname) {
-  case "/":
-    return Response.redirect(`${url.protocol}//${url.host}/jobs`);
-  case "/jobs":
-    return fetch("{__VAR_PAGE_URL}");
-  case "/search":
-    // This script
-    break;
-  default:
-    return new Response("Page not found", {status: 404});
+    if (!JOBS) {
+      // Failed
+      // TODO
+      return new Response(JSON.stringify({error: "Internal server error"}), {
+        status: 500,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    }
   }
 
   /*

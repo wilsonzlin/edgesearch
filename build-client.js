@@ -167,6 +167,7 @@ Promise.all([
 ])
   .then(([js, css, html, jobsCount]) => handlebars.compile(html)({
     analytics: ENV_ANALYTICS && generate_analytics(ENV_ANALYTICS),
+    description: `Find your next career at Microsoft.`,
     jobsCount: jobsCount,
     fields: FIELDS,
     script: js,
