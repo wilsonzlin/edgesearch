@@ -151,7 +151,8 @@
         "exclude": "!",
       }[$term.children[0].value];
       const words = $term.children[1].value.trim();
-      return `${prefix}${field}:${encodeURIComponent(words)}`;
+      // Replace `%20` with nicer looking `+`
+      return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
     });
 
     update_title_or_url(`${location.pathname}${!parts.length ? "" : `#${parts.join("|")}`}`, "Microsoft Careers");
@@ -216,7 +217,7 @@
      */
     let parsed = {};
 
-    for (const part of decodeURIComponent(location.hash.slice(1)).trim().split("|")) {
+    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).trim().split("|")) {
       const mode = /^!/.test(part) ? "exclude" :
                    /^~/.test(part) ? "contain" :
                    "require";
