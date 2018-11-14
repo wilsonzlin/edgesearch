@@ -11,6 +11,36 @@
   </head>
 
   <body>
+    <!-- Don't put in #jobs as otherwise .job deletion will remove template content
+         in browsers that don't support templates -->
+    <template id="template-job">
+      <article class="job">
+        <div class="job-left">
+          <div class="job-head">
+            <h1 class="job-title"><a class="job-title-link" rel=noopener target="_blank"></a></h1>
+            <h2 class="job-location"></h2>
+          </div>
+          <p class="job-description"></p>
+        </div>
+        <div class="job-right">
+          <time class="job-date"></time>
+        </div>
+      </article>
+    </template>
+
+    <template id="template-search-term">
+      <li class="search-term">
+        <select class="search-term-mode">
+          <option value="require" selected>Must contain</option>
+          <option value="contain">Has any of</option>
+          <option value="exclude">Does not have</option>
+        </select>
+        <input class="ipt-text search-term-words" placeholder="Enter space-separated words">
+        <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
+        </button>
+      </li>
+    </template>
+
     <header id="header">
       <a rel=noopener href="https://microsoft.com" target="_blank" id="header-logo" style="opacity: 0">
         <span id="ms-logo-nw"></span>
@@ -49,21 +79,6 @@
           <h1 id="jobs-heading" class="section-heading"></h1>
           <button id="pane-toggle-button" class="btn">Filter</button>
         </div>
-
-        <template id="template-job">
-          <article class="job">
-            <div class="job-left">
-              <div class="job-head">
-                <h1 class="job-title"><a class="job-title-link" rel=noopener target="_blank"></a></h1>
-                <h2 class="job-location"></h2>
-              </div>
-              <p class="job-description"></p>
-            </div>
-            <div class="job-right">
-              <time class="job-date"></time>
-            </div>
-          </article>
-        </template>
       </main>
 
       <aside id="pane">
@@ -87,19 +102,6 @@
               <ul class="search-terms" data-field="{{this}}"></ul>
             </div>
           {{/each}}
-
-          <template id="template-search-term">
-            <li class="search-term">
-              <select class="search-term-mode">
-                <option value="require" selected>Must contain</option>
-                <option value="contain">Has any of</option>
-                <option value="exclude">Does not have</option>
-              </select>
-              <input class="ipt-text search-term-words" placeholder="Enter space-separated words">
-              <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
-              </button>
-            </li>
-          </template>
         </form>
 
         <div id="share">

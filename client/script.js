@@ -26,6 +26,9 @@
   if (!Array.from) {
     Array.from = src => Array.prototype.slice.call(src);
   }
+  if (!Number.parseInt) {
+    Number.parseInt = parseInt;
+  }
 
   /*
    *
@@ -54,6 +57,7 @@
    *
    */
 
+  const $template_search_term = $("#template-search-term");
   const new_search_term = (field, mode, words) => {
     const $target = $(`.search-terms[data-field="${field}"]`);
     if (!$target) {
@@ -79,7 +83,6 @@
   };
 
   // Don't use capture event listener as it is buggy and slow
-  const $template_search_term = $("#template-search-term");
   for (const $button of $$(".search-category-button")) {
     $button.addEventListener("click", () => {
       const field = $button.dataset.field;
@@ -183,6 +186,7 @@
         }
       })
       .catch(err => {
+        console.error(err);
         // TODO
       })
       .then(() => {
