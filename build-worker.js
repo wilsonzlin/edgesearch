@@ -17,6 +17,7 @@ const {
   BUILD_DATA_FILTERS,
 
   FIELDS,
+  MODES,
 
   FILTER_BITFIELD_BITS_PER_ELEM,
   FILTER_BITFIELD_LENGTH_FN,
@@ -80,14 +81,16 @@ fs.readFile(WORKER_SCRIPT, "utf8")
     switch (param) {
     case "DATA":
       return JSON.stringify(worker_data);
-    case "MAX_RESULTS":
-      return SEARCH_RESULTS_MAX;
-    case "MAX_WORDS_PER_MODE":
-      return SEARCH_MODE_MAX_WORDS;
     case "FIELDS":
       return JSON.stringify(FIELDS);
     case "MAX_AUTOCOMPLETE_RESULTS":
       return SEARCH_AUTOCOMPLETE_MAX_RESULTS;
+    case "MAX_RESULTS":
+      return SEARCH_RESULTS_MAX;
+    case "MAX_WORDS_PER_MODE":
+      return SEARCH_MODE_MAX_WORDS;
+    case "MODES_COUNT":
+      return MODES.length;
     default:
       throw new ReferenceError(`Unknown parameter ${param}`);
     }

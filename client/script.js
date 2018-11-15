@@ -329,57 +329,84 @@
   ];
 
   const search = () => {
-    // Always query for latest set of .search-term elements
-    // Only find in form to avoid finding in templates on unsupported browsers
-    const parts = $$(".search-term", $filter_form).map($term => {
-      const field = $term.dataset.field;
-      const prefix = {
-        "require": "",
-        "contain": "~",
-        "exclude": "!",
-      }[$term.children[0].value];
-      const words = $term.children[1].children[0].value.trim();
-      // Replace `%20` with nicer looking `+`
-      return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
-    });
+      // { mode: { field: Set() } }
+      const terms = {};
 
-    update_title_or_url(`${location.pathname}${!parts.length ? "" : `#${parts.join("|")}`}`, "Work @ Microsoft");
-    $jobs_heading.textContent = "Searching";
-    for (const $job of $$(".job", $jobs)) {
-      $job.remove();
-    }
-    $filter_form_submit.disabled = true;
+      // Always query for latest set of .search-term elements
+      // Only find in form to avoid finding in templates on unsupported browsers
+      const hash = "#" + $$(".search-term", $filter_form).map($term => {
+        const mode = $term.children[0].value;
+        const field = $term.dataset.field;
+        const prefix = {
+          "1": "",
+          "2": "~",
+          "3": "!",
+        }[mode];
+        const words = $term.children[1].children[0].value.trim();
 
-    fetch(`/search?q=${parts.join("|")}`)
-      .then(res => res.json())
-      .then(({jobs, overflow}) => {
-        const count = `${jobs.length}${overflow ? "+" : ""}`;
-        const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Work @ Microsoft`;
-        const heading = jobs.length == 1 ? "1 match" : `${count} matches`;
-
-        update_title_or_url(false, title);
-        $jobs_heading.textContent = heading;
-
-        for (const job of jobs) {
-          const $job = import_template($template_job);
-          $(".job-title-link", $job).textContent = job.title;
-          $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
-          $(".job-location", $job).textContent = job.location;
-          $(".job-description", $job).innerHTML = job.description;
-          const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
-          $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
-          $(".job-date", $job).dateTime = `${year}-${month}-${day}T00:00:00.000Z`;
-          $jobs.appendChild($job);
+        if (!terms[mode]) {
+          terms[mode] = {};
         }
-      })
-      .catch(err => {
-        console.error(err);
-        // TODO
-      })
-      .then(() => {
-        $filter_form_submit.disabled = false;
-      });
-  };
+        if (!terms[mode][field]) {
+          terms[mode][field] = new Set();
+        }
+        for (const w of words.split(/\s+/)) {
+          terms[mode][field].add(w);
+        }
+
+        // Replace `%20` with nicer looking `+`
+        return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
+      }).join("|");
+
+      const query_parts = [];
+      for (const mode of Object.keys(terms).sort()) {
+        for (const field of Object.keys(terms[mode]).sort()) {
+          for (const word of Array.from(terms[mode][field]).sort()) {
+            // Mode and field should be URL safe; word should be too but encode just to be sure
+            query_parts.push(`${mode}_${field}_${encodeURIComponent(word)}`);
+          }
+        }
+      }
+      const query = `?q=${query_parts.join("&")}`;
+
+      update_title_or_url(`${location.pathname}${hash.length == 1 ? "" : hash}`, "Work @ Microsoft");
+      $jobs_heading.textContent = "Searching";
+      for (const $job of $$(".job", $jobs)) {
+        $job.remove();
+      }
+      $filter_form_submit.disabled = true;
+
+      fetch(`/search${query}`)
+        .then(res => res.json())
+        .then(({jobs, overflow}) => {
+          const count = `${jobs.length}${overflow ? "+" : ""}`;
+          const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Work @ Microsoft`;
+          const heading = jobs.length == 1 ? "1 match" : `${count} matches`;
+
+          update_title_or_url(false, title);
+          $jobs_heading.textContent = heading;
+
+          for (const job of jobs) {
+            const $job = import_template($template_job);
+            $(".job-title-link", $job).textContent = job.title;
+            $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+            $(".job-location", $job).textContent = job.location;
+            $(".job-description", $job).innerHTML = job.description;
+            const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
+            $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
+            $(".job-date", $job).dateTime = `${year}-${month}-${day}T00:00:00.000Z`;
+            $jobs.appendChild($job);
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          // TODO
+        })
+        .then(() => {
+          $filter_form_submit.disabled = false;
+        });
+    }
+  ;
 
   $filter_form.addEventListener("submit", e => {
     e.preventDefault();

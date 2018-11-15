@@ -1,13 +1,10 @@
 "use strict";
 
 const FIELDS = new Set({__VAR_FIELDS});
+const MODES_COUNT = {__VAR_MODES_COUNT};
 const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
 const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
-
-const MODE_REQUIRE = 1;
-const MODE_CONTAIN = 2;
-const MODE_EXCLUDE = 3;
 
 const DATA = {__VAR_DATA};
 const JOBS = DATA.jobs;
@@ -84,47 +81,67 @@ const handle_autocomplete = url => {
   return response_success(results);
 };
 
-const parse_query = params => {
-  // Don't initialise with all MODES as unused modes will break bitwise operations
-  let parsed = {
-    words: 0,
-    rules: {},
-  };
+const parse_query = qs => {
+  let parsed = new Array((MAX_WORDS_PER_MODE + 1) * MODES_COUNT).fill(-1);
 
-  for (const part of (params.get("q") || "").trim().split("|")) {
-    const mode = part.startsWith("!") ? "exclude" :
-                 part.startsWith("~") ? "contain" :
-                 "require";
+  if (!qs.startsWith("?q=")) {
+    return;
+  }
+  qs = qs.slice(3);
 
-    const [field, words_raw] = part.slice(mode != "require").split(":", 2);
+  let last_mode = 0;
+  let last_mode_field = "";
+  let last_mode_field_word = "";
+
+  let mode_words_count = 0;
+
+  while (qs) {
+    // TODO Abstract out field and word regex parts
+    const matches = /^([123])_([a-z]+)_([a-z0-9-]+)(?:&|$)/.exec(qs);
+    if (!matches) {
+      return;
+    }
+    qs = qs.slice(matches[0].length);
+    const mode = Number.parseInt(matches[1], 10);
+    const field = matches[2];
+    const word = matches[3];
 
     if (!FIELDS.has(field)) {
-      continue;
+      return;
     }
 
-    // TODO Limit words here
-    const words = words_raw.replace(/[;:,]/g, " ")
-      .trim()
-      .toLowerCase()
-      .split(/\s+/);
+    // Enforce query string must be sorted for caching
 
-    // Don't create set until at least one word
-    if (!words.length) {
-      continue;
+    if (last_mode > mode) {
+      return;
+    } else if (last_mode != mode) {
+      last_mode = mode;
+      // Changing this will cause $last_mode_field_word to be invalidated
+      last_mode_field = "";
+      mode_words_count = 0;
     }
 
-    if (!parsed.rules[mode]) {
-      parsed.rules[mode] = {};
+    if (last_mode_field > field) {
+      return;
+    } else if (last_mode_field != field) {
+      last_mode_field = field;
+      last_mode_field_word = "";
     }
 
-    if (!parsed.rules[mode][field]) {
-      parsed.rules[mode][field] = new Set();
+    if (last_mode_field_word >= word) {
+      // Words must be unique per mode-field
+      return;
+    } else if (last_mode_field_word != word) {
+      last_mode_field_word = word;
     }
 
-    for (const word of words) {
-      parsed.rules[mode][field].add(word);
-      parsed.words++;
+    mode_words_count++;
+    if (mode_words_count > MAX_WORDS_PER_MODE) {
+      return;
     }
+
+    // The zeroth field is a fully-zero field, used for non-existent words
+    parsed[(mode - 1) * (MAX_WORDS_PER_MODE + 1) + (mode_words_count - 1)] = FILTERS[field][word] || 0;
   }
 
   return parsed;
@@ -141,53 +158,18 @@ const query_runner = wasm_instance.exports;
 const query_runner_memory = new DataView(wasm_memory.buffer);
 
 const handle_search = url => {
-  /*
-   *   rules: {
-   *     "require": {
-   *       "title": Set(["a", "b"])
-   *     },
-   *     "exclude": {
-   *       "title": Set(["c"]),
-   *       "location": Set(["london"])
-   *     }
-   *   }
-   *
-   *   (title_a & title_b) & ~(title_c | location_london)
-   */
-  const {words, rules} = parse_query(url.searchParams);
+  const struct_query_data = parse_query(url.search);
+  if (!struct_query_data) {
+    return response_error("Invalid query");
+  }
 
   let jobs;
   let overflow;
 
-  if (!words) {
+  if (struct_query_data.every(q => q == -1)) {
     jobs = JOBS.slice(0, MAX_RESULTS);
     overflow = JOBS.length > MAX_RESULTS;
   } else {
-    const bitfield_indexes = {
-      "require": [],
-      "contain": [],
-      "exclude": [],
-    };
-
-    // Don't use MODES as unused modes will break bitwise operations
-    for (const mode of Object.keys(rules)) {
-      for (const field of Object.keys(rules[mode])) {
-        for (const word of rules[mode][field]) {
-          // The zeroth field is a fully-zero field, used for non-existent words
-          bitfield_indexes[mode].push(FILTERS[field][word] || 0);
-        }
-      }
-    }
-
-    const struct_query_data = ["require", "contain", "exclude"]
-      .map(m => {
-        const data = Array(MAX_WORDS_PER_MODE + 1).fill(-1);
-        // TODO Remove MAX limit here
-        data.splice(0, Math.min(MAX_WORDS_PER_MODE, bitfield_indexes[m].length), ...bitfield_indexes[m]);
-        return data;
-      })
-      .reduce((struct, list) => struct.concat(list));
-
     const input_ptr = query_runner.init();
     for (const [no, int16] of struct_query_data.entries()) {
       query_runner_memory.setInt16(input_ptr + (no * 2), int16, true);

@@ -27,8 +27,13 @@ const CACHE = path.join(__dirname, "cache");
 fs.ensureDirSync(CACHE);
 
 const ENV_ANALYTICS = process.env.MSC_ANALYTICS;
+if (!ENV_ANALYTICS) {
+  console.warn(`[WARN] Environment variable MSC_ANALYTICS missing`);
+}
 
 const FIELDS = ["title", "location", "description"];
+// TODO These words are no longer used, but length is
+const MODES = ["require", "contain", "exclude"];
 const FILTER_BITFIELD_BITS_PER_ELEM = 64;
 const FILTER_BITFIELD_LENGTH_FN = jobsCount => Math.ceil(jobsCount / FILTER_BITFIELD_BITS_PER_ELEM);
 
@@ -54,6 +59,7 @@ module.exports = {
   CACHE,
   ENV_ANALYTICS,
   FIELDS,
+  MODES,
   FILTER_BITFIELD_BITS_PER_ELEM,
   FILTER_BITFIELD_LENGTH_FN,
   SEARCH_RESULTS_MAX,
