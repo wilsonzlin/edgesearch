@@ -1,23 +1,23 @@
-# [work-at-microsoft](https://work-at-microsoft.wilsonl.in/jobs).wilsonl.in
+# [work-at-microsoft.wilsonl.in](https://work-at-microsoft.wilsonl.in/jobs)
 
-A web server + client that searches for careers at Microsoft.
-Faster and more precise than official website, and comes with a nice UI.
+An at-edge web service + app for finding careers at Microsoft.
+Faster and more precise than the official website, and comes with a nice UI.
 The result of a weekend project trying to find a better way to search.
 
 ## Features
 
 - Uses bit fields to search for keywords very quickly, efficiently, and accurately
 - All data is stored in a few MBs of memory as code&mdash;no database or storage required
-- Runs only on Cloudflare Workers and WebAssembly for extremely fast, scalable performance
+- Runs on Cloudflare Workers and WebAssembly for extremely fast, scalable performance
 - Clean, responsive UI using vanilla JS and Microsoft Fabric design
 
-## Comparison
+## Improvements
 
 This app allows the combining of simple filters to form advanced, precise queries.
 Combined with the performance optimisations, it delivers far more filtered results in usually under a second.
 
-On one of my random tests, searching for "machine learning researcher engineer" returned over 3000 results, while taking around 1 second.
-Searching for "title:machine+learning|~title:researcher engineer"<sup id="a1">[1](#f1)</sup> gave 8 results in less than 50 milliseconds.
+As an example, during a test run, searching for "machine learning researcher engineer" returned over 3000 results, while taking around 2 seconds.
+Searching for `title requires machine learning + title contains researcher or engineer` gave 8 results in less than 50 milliseconds.
 
 For a UI comparison, see the [screenshots folder](screenshots).
 
@@ -40,7 +40,7 @@ Each object represents a job, with fields describing some aspect of the job:
 
 The `title`, `location`, and `description` fields are searchable. This means that their words have to be indexed using bit fields.
 
-### Bit field
+### Bit fields
 
 All words in a searchable field (not bit field) are combined to form a set of words.
 A bit field of *n* bytes, where *n* is the amount of jobs, is created for each word in the field.
@@ -85,6 +85,4 @@ It takes advantage of Cloudflare Workers technology:
 - takes advantage of Cloudflare for SSL, caching, and protection
 - no need to worry about scaling, networking, or servers
 
-## Footnotes
-
-<sup id="f1">1</sup> Requires in the title "software", "engineer", and one of "researcher" or "engineer". [↩](#a1)
+The job listings data is embedded within the JS code, and the bit fields are `uint64_t` array literals in C code.
