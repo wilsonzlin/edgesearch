@@ -53,11 +53,11 @@
       .split(/\s+/)
       .filter(w => /^[a-z0-9-]{1,25}$/.test(w));
   };
-  const $template_autocomplete_entry = document.querySelector("#template-autocomplete-entry");
+  const $template_autocomplete_entry = $("#template-autocomplete-entry");
   const autocomplete_init = $auto => {
-    const $list = document.querySelector(".autocomplete-list");
+    const $list = $(".autocomplete-list", $auto);
 
-    const $input = $auto.querySelector(".autocomplete-input");
+    const $input = $(".autocomplete-input", $auto);
     let last_selection_start;
     let last_selection_end;
 
@@ -88,7 +88,7 @@
     };
 
     const autocomplete_append_entry = value => {
-      const $li = $template_autocomplete_entry.content.cloneNode(true).children[0];
+      const $li = import_template($template_autocomplete_entry);
       $li.textContent = value;
       $list.appendChild($li);
       const id = $$entries.push($li) - 1;
@@ -157,6 +157,10 @@
     // Don't clean on "change" as that will break autocomplete insertion
     $input.addEventListener("paste", () => setTimeout(autocomplete_sanitise, 100));
     $input.addEventListener("input", () => {
+      clearTimeout(search_timeout);
+      // Necessary to invalidate previous fetch requests (see below)
+      search_timeout = undefined;
+
       autocomplete_empty_list();
       const pos = $input.selectionStart - 1; // val[pos] == new_char
       const val = $input.value;
@@ -184,7 +188,6 @@
       last_selection_start = start;
       last_selection_end = end;
 
-      clearTimeout(search_timeout);
       // Cache $search_timeout locally so that when results come back,
       // we will know if another search has already been made and therefore
       // these results are stale
@@ -202,6 +205,7 @@
           })
           .catch(err => {
             // TODO
+            console.error(err);
           });
       }, 100);
     });
@@ -326,7 +330,8 @@
 
   const search = () => {
     // Always query for latest set of .search-term elements
-    const parts = $$(".search-term").map($term => {
+    // Only find in form to avoid finding in templates on unsupported browsers
+    const parts = $$(".search-term", $filter_form).map($term => {
       const field = $term.dataset.field;
       const prefix = {
         "require": "",
