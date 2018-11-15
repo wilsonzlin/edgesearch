@@ -132,9 +132,11 @@
           autocomplete_focus_entry(new_id);
           break;
         case 13: // Enter
-          // Prevent submitting form
-          e.preventDefault();
-          autocomplete_use_focused_entry();
+          if (entry_focus != undefined) {
+            // Prevent submitting form
+            e.preventDefault();
+            autocomplete_use_focused_entry();
+          }
           break;
         }
       }
