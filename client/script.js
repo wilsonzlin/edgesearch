@@ -433,11 +433,11 @@
     let parsed = {};
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).trim().split("|")) {
-      const mode = /^!/.test(part) ? "exclude" :
-                   /^~/.test(part) ? "contain" :
-                   "require";
+      const mode = /^!/.test(part) ? "3" :
+                   /^~/.test(part) ? "2" :
+                   "1";
 
-      const [field, words_raw] = part.slice(mode != "require").split(":", 2);
+      const [field, words_raw] = part.slice(mode != "1").split(":", 2);
 
       const words = (words_raw || "").replace(/[;:,]/g, " ")
         .trim()
