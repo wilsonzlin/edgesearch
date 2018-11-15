@@ -42,7 +42,8 @@ let worker_data = {
   jobs,
   filters: {},
 };
-let filter_bitfields = [];
+// First bit field is the one used for non-existent words
+let filter_bitfields = [Array(FILTER_BITFIELD_LENGTH_FN(jobs.length)).fill(0)];
 
 const filters = fs.readJSONSync(BUILD_DATA_FILTERS);
 for (const field of Object.keys(filters)) {

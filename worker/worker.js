@@ -5,6 +5,10 @@ const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
 const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
 
+const MODE_REQUIRE = 1;
+const MODE_CONTAIN = 2;
+const MODE_EXCLUDE = 3;
+
 const DATA = {__VAR_DATA};
 const JOBS = DATA.jobs;
 const FILTERS = DATA.filters;
@@ -80,10 +84,6 @@ const handle_autocomplete = url => {
   return response_success(results);
 };
 
-const valid_word = (str, field) => {
-  return !!FILTERS[field][str];
-};
-
 const parse_query = params => {
   // Don't initialise with all MODES as unused modes will break bitwise operations
   let parsed = {
@@ -106,8 +106,7 @@ const parse_query = params => {
     const words = words_raw.replace(/[;:,]/g, " ")
       .trim()
       .toLowerCase()
-      .split(/\s+/)
-      .filter(w => valid_word(w, field));
+      .split(/\s+/);
 
     // Don't create set until at least one word
     if (!words.length) {
@@ -174,7 +173,8 @@ const handle_search = url => {
     for (const mode of Object.keys(rules)) {
       for (const field of Object.keys(rules[mode])) {
         for (const word of rules[mode][field]) {
-          bitfield_indexes[mode].push(FILTERS[field][word]);
+          // The zeroth field is a fully-zero field, used for non-existent words
+          bitfield_indexes[mode].push(FILTERS[field][word] || 0);
         }
       }
     }
