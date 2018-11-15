@@ -558,3 +558,21 @@ h2.section-heading {
   color: #ea4300;
   cursor: pointer;
 }
+
+#wilsonzlin {
+  margin: 3rem 0 2rem 0;
+
+  /* Copy #header */
+  background: #333;
+  color: #eaeaea;
+  padding: 1rem;
+}
+
+#wilsonzlin a {
+  color: #00B294; /* tealLight */
+  text-decoration: none;
+}
+
+#wilsonzlin a:hover {
+  text-decoration: underline;
+}
