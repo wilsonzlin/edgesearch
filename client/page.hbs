@@ -48,30 +48,18 @@
           <option value="contain">Has any of</option>
           <option value="exclude">Does not have</option>
         </select>
-        <input class="ipt-text search-term-words autocomplete-control">
+        <div class="search-term-words autocomplete">
+          <input class="ipt-text autocomplete-input">
+          <ul class="autocomplete-list"></ul>
+        </div>
         <button type="button" class="search-term-button" value="delete"><i class="ms-Icon ms-Icon--Delete"></i>
         </button>
       </li>
     </template>
 
     <template id="template-autocomplete-entry">
-      <li class="autocomplete-entry">
-        <label>
-          <span class="autocomplete-entry-tick"></span>
-          <span class="autocomplete-entry-value"></span>
-        </label>
-      </li>
+      <li class="autocomplete-entry"></li>
     </template>
-
-    <div id="autocomplete-backdrop">
-      <div id="autocomplete">
-        <div id="autocomplete-head">
-          <input id="autocomplete-search" placeholder="Search for a term" autocomplete="off">
-          <button id="autocomplete-done">Done</button>
-        </div>
-        <ul id="autocomplete-list"></ul>
-      </div>
-    </div>
 
     <header id="header">
       <a rel=noopener href="https://microsoft.com" target="_blank" id="header-logo" style="opacity: 0">

@@ -45,109 +45,171 @@
    *
    */
 
-  const AUTOCOMPLETE_OPEN_CLASS = "autocomplete-open";
-  const $autocomplete_backdrop = $("#autocomplete-backdrop");
-  const $autocomplete_done = $("#autocomplete-done");
-  const $template_autocomplete_entry = $("#template-autocomplete-entry");
-  const $autocomplete_search = $("#autocomplete-search");
-  const $autocomplete_list = $("#autocomplete-list");
+  const autocomplete_parse_raw = str => {
+    return str
+      .toLowerCase()
+      .replace(/[~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}]/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(w => /^[a-z0-9-]{1,25}$/.test(w));
+  };
+  const $template_autocomplete_entry = document.querySelector("#template-autocomplete-entry");
+  const autocomplete_init = $auto => {
+    const $list = document.querySelector(".autocomplete-list");
 
-  let autocomplete_current_control;
-  let autocomplete_search_timeout;
+    const $input = $auto.querySelector(".autocomplete-input");
+    let last_selection_start;
+    let last_selection_end;
 
-  $autocomplete_search.addEventListener("input", () => {
-    const term = $autocomplete_search.value.trim();
-    const control = autocomplete_current_control;
-    autocomplete_clear_list();
-    clearTimeout(autocomplete_search_timeout);
-    // Need to clear this so $this_request_id validation works
-    autocomplete_search_timeout = undefined;
-    $autocomplete_backdrop.classList.toggle("autocomplete-loading", !!term);
-    if (!term) {
-      autocomplete_load_control(control);
-      return;
-    }
-    const this_request_id = autocomplete_search_timeout = setTimeout(() => {
-      fetch(`/autocomplete?f=${control.dataset.field}&t=${encodeURIComponent(term)}`)
-        .then(res => res.json())
-        .then(results => {
-          if (autocomplete_search_timeout !== this_request_id) {
-            // This request is stale
-            return;
+    const $$entries = [];
+    let entry_focus;
+
+    let search_timeout;
+
+    const autocomplete_focus_entry = id => {
+      if (entry_focus != undefined) {
+        $$entries[entry_focus].classList.remove("autocomplete-entry-focus");
+      }
+      entry_focus = id;
+      if (id != undefined) {
+        $$entries[id].classList.add("autocomplete-entry-focus");
+      }
+    };
+
+    const autocomplete_use_focused_entry = () => {
+      const value = $$entries[entry_focus].textContent;
+      $input.value = $input.value.slice(0, last_selection_start) +
+                     value +
+                     $input.value.slice(last_selection_end + 1);
+      const new_cursor = last_selection_start + value.length;
+      $input.focus();
+      $input.setSelectionRange(new_cursor, new_cursor);
+      autocomplete_empty_list();
+    };
+
+    const autocomplete_append_entry = value => {
+      const $li = $template_autocomplete_entry.content.cloneNode(true).children[0];
+      $li.textContent = value;
+      $list.appendChild($li);
+      const id = $$entries.push($li) - 1;
+
+      $li.addEventListener("click", autocomplete_use_focused_entry);
+
+      $li.addEventListener("mouseover", () => {
+        autocomplete_focus_entry(id);
+      });
+      $li.addEventListener("mouseout", () => {
+        autocomplete_focus_entry(undefined);
+      });
+    };
+
+    const autocomplete_empty_list = () => {
+      let $li;
+      while ($li = $$entries.pop()) {
+        $li.remove();
+      }
+      entry_focus = undefined;
+    };
+
+    const autocomplete_sanitise = () => {
+      $input.value = autocomplete_parse_raw($input.value).join(" ");
+    };
+    autocomplete_sanitise();
+
+    $input.addEventListener("keydown", e => {
+      const key = e.keyCode;
+      if ($$entries.length) {
+        switch (key) {
+        case 38: // Up
+        case 40: // Down
+          const dir = key - 39;
+          let new_id;
+          if (entry_focus == undefined) {
+            new_id = dir == -1 ? $$entries.length - 1 : 0;
+          } else {
+            new_id = ((entry_focus || $$entries.length) + dir) % $$entries.length;
           }
-          for (const res of results) {
-            autocomplete_append_entry(res, autocomplete_has_value(control, res));
-          }
-          // Don't put in post-.then as this request might be stale
-          $autocomplete_backdrop.classList.remove("autocomplete-loading");
-        })
-        .catch(err => {
-          // TODO
-        });
-    }, 100);
-  });
-
-  $autocomplete_done.addEventListener("click", () => {
-    $autocomplete_backdrop.classList.remove(AUTOCOMPLETE_OPEN_CLASS);
-    autocomplete_current_control.value = autocomplete_get_values(autocomplete_current_control).join(" ");
-    autocomplete_current_control = undefined;
-  });
-
-  const autocomplete_clear_list = () => {
-    for (const $existing of $$(".autocomplete-entry", $autocomplete_list)) {
-      $existing.remove();
-    }
-  };
-
-  const autocomplete_append_entry = (value, checked) => {
-    const $entry = import_template($template_autocomplete_entry);
-    $autocomplete_list.appendChild($entry);
-    $entry.classList.toggle("autocomplete-entry-ticked", !!checked);
-    $(".autocomplete-entry-value", $entry).textContent = value;
-    $entry.addEventListener("click", () => {
-      $entry.classList.toggle("autocomplete-entry-ticked",
-        autocomplete_toggle_value(autocomplete_current_control, value));
+          autocomplete_focus_entry(new_id);
+          break;
+        case 13: // Enter
+          // Prevent submitting form
+          e.preventDefault();
+          autocomplete_use_focused_entry();
+          break;
+        }
+      }
     });
-  };
 
-  const autocomplete_load_control = $control => {
-    autocomplete_clear_list();
-    for (const val of autocomplete_get_values($control)) {
-      autocomplete_append_entry(val, true);
-    }
-  };
-
-  const autocomplete_values = new WeakMap();
-  const autocomplete_control_init = $control => {
-    $control.readOnly = true;
-    autocomplete_values.set($control, new Set());
-    $control.addEventListener("click", () => {
-      $autocomplete_search.value = "";
-      $autocomplete_backdrop.classList.add(AUTOCOMPLETE_OPEN_CLASS);
-      autocomplete_current_control = $control;
-      autocomplete_load_control($control);
+    $input.addEventListener("keypress", e => {
+      const key = e.key;
+      // Don't try to control spaces, as it makes it difficult to split and insert words at weird places
+      if (!(
+        key >= "a" && key <= "z" ||
+        key >= "A" && key <= "Z" ||
+        key >= "0" && key <= "9" ||
+        key == " " || key == "-"
+      )) {
+        e.preventDefault();
+      }
     });
-  };
+    // Don't clean on "change" as that will break autocomplete insertion
+    $input.addEventListener("paste", () => setTimeout(autocomplete_sanitise, 100));
+    $input.addEventListener("input", () => {
+      autocomplete_empty_list();
+      const pos = $input.selectionStart - 1; // val[pos] == new_char
+      const val = $input.value;
 
-  const autocomplete_has_value = ($control, test) => {
-    return autocomplete_values.get($control).has(test);
-  };
+      if (val[pos] == " ") {
+        return;
+      }
 
-  const autocomplete_get_values = $control => {
-    return Array.from(autocomplete_values.get($control)).sort();
-  };
+      let start = pos;
+      while (start > 0 && val[start - 1] != " ") {
+        start--;
+      }
 
-  const autocomplete_toggle_value = ($control, value) => {
-    if (!autocomplete_values.get($control).delete(value)) {
-      autocomplete_values.get($control).add(value);
-      return true;
-    }
-    return false;
-  };
+      let end = pos;
+      while (end < val.length - 1 && val[end + 1] != " ") {
+        end++;
+      }
 
-  const autocomplete_set_values = ($control, values) => {
-    autocomplete_values.set($control, new Set(values));
-    $control.value = autocomplete_get_values($control).join(" ");
+      // val[start, end] == word (NOT [start, end)]
+      const term = val.slice(start, end + 1);
+      if (!term) {
+        return;
+      }
+
+      last_selection_start = start;
+      last_selection_end = end;
+
+      clearTimeout(search_timeout);
+      // Cache $search_timeout locally so that when results come back,
+      // we will know if another search has already been made and therefore
+      // these results are stale
+      const this_search_timeout = search_timeout = setTimeout(() => {
+        fetch(`/autocomplete?f=${$auto.dataset.field}&t=${encodeURIComponent(term)}`)
+          .then(res => res.json())
+          .then(results => {
+            if (search_timeout !== this_search_timeout) {
+              // This request is stale
+              return;
+            }
+            for (const res of results) {
+              autocomplete_append_entry(res);
+            }
+          })
+          .catch(err => {
+            // TODO
+          });
+      }, 100);
+    });
+
+    return {
+      set_value: val => {
+        $input.value = val;
+        autocomplete_sanitise();
+      },
+    };
   };
 
   /*
@@ -185,9 +247,9 @@
 
     const $autocomplete = $(".search-term-words", $new);
     $autocomplete.dataset.field = field;
-    autocomplete_control_init($autocomplete);
+    const {set_value} = autocomplete_init($autocomplete);
     if (words) {
-      autocomplete_set_values($autocomplete, words);
+      set_value(words);
     }
 
     $(".search-term-button", $new).addEventListener("click", () => {
@@ -269,7 +331,7 @@
         "contain": "~",
         "exclude": "!",
       }[$term.children[0].value];
-      const words = $term.children[1].value.trim();
+      const words = $term.children[1].children[0].value.trim();
       // Replace `%20` with nicer looking `+`
       return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
     });
