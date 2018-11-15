@@ -307,14 +307,14 @@ select {
   margin: 0.05rem;
 }
 
-#header-text {
+#header-text-container {
   color: #eaeaea; /* neutralLight */
   font-weight: lighter;
   font-size: 1.75rem;
   margin: 0;
 }
 
-#header-text > span {
+#header-text {
   display: inline-block;
   vertical-align: top;
   overflow: hidden;

@@ -78,7 +78,7 @@ const transpile_js = js => babel.transformAsync(js, {
   ],
 }).then(res => res.code);
 
-const minify_js = ARGS.debug ? js : common.minify_js(js);
+const minify_js = js => ARGS.debug ? js : common.minify_js(js);
 
 const minify_html = html => ARGS.debug ? html : htmlminifier.minify(html, {
   collapseBooleanAttributes: true,

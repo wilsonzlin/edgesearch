@@ -274,7 +274,7 @@
       return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
     });
 
-    update_title_or_url(`${location.pathname}${!parts.length ? "" : `#${parts.join("|")}`}`, "Microsoft Careers");
+    update_title_or_url(`${location.pathname}${!parts.length ? "" : `#${parts.join("|")}`}`, "Work @ Microsoft");
     $jobs_heading.textContent = "Searching";
     for (const $job of $$(".job", $jobs)) {
       $job.remove();
@@ -285,7 +285,7 @@
       .then(res => res.json())
       .then(({jobs, overflow}) => {
         const count = `${jobs.length}${overflow ? "+" : ""}`;
-        const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Microsoft Careers`;
+        const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Work @ Microsoft`;
         const heading = jobs.length == 1 ? "1 match" : `${count} matches`;
 
         update_title_or_url(false, title);
@@ -387,8 +387,7 @@
     [$("#ms-logo-se"), "#ffba00"],
     [$("#ms-logo-sw"), "#00a6f0"],
   ];
-  const $header_text_init = $("#header-text-init");
-  const $header_text_name = $("#header-text-name");
+  const $header_text = $("#header-text");
   const $header_brands = $("#header-brands");
   const $$header_brand_icons = $$("li", $header_brands);
 
@@ -400,28 +399,24 @@
       ...opts,
     }).finished;
 
+  const INIT_DELAY = 400;
+
   Promise.all([
     ...$$header_brand_icons.map(($icon, no) => animate($icon, {
       translateX: -(no * 40),
       opacity: 0,
-      delay: 450 + (no * 50),
+      delay: INIT_DELAY + 450 + (no * 50),
     })),
     animate($header_logo, {
       opacity: 1,
-      delay: 750,
+      delay: INIT_DELAY + 750,
     }),
     ...$$header_logo_quads.map(([$quad, to], no) => animate($quad, {
       backgroundColor: ["#fff", to],
-      delay: 950 + (no * 100),
+      delay: INIT_DELAY + 950 + (no * 100),
     })),
-  ]).then(() => animate($header_text_init, {
-    opacity: 1,
-  })).then(() => animate($header_text_init, {
-    width: 0,
-    delay: 2000,
-  })).then(() => $header_text_init.remove()).then(() => animate($header_text_name, {
+  ]).then(() => animate($header_text, {
     width: "100%",
-    delay: 500,
   })).then(() => {
     $header_brands.classList.remove("header-brands-init");
   }).then(() => Promise.all($$header_brand_icons.map(($icon, no) => animate($icon, {
