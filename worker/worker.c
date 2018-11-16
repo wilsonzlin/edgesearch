@@ -52,48 +52,54 @@ void* malloc(size_t n) {
   return last_malloc;
 }
 
-void filter_and(uint64_t* a, uint64_t* b) {
+#define WASM_EXPORT __attribute__((visibility("default")))
+#define BITFIELD_BYTES BITFIELD_LENGTH * BITFIELD_BITS_PER_ELEM
+#define FILTER_MSB_MASK (1ull << (BITFIELD_BITS_PER_ELEM - 1))
+
+// The type of each element in a bit field array; should be large enough
+// to hold BITFIELD_BITS_PER_ELEM; must be unsigned
+typedef uint64_t bf_elem_t;
+// A type large enough to hold FILTERS_COUNT as well as special negative
+// values (so it must be signed)
+typedef int16_t filter_idx_t;
+// A type large enough to hold BITFIELD_LENGTH as well as speical negative
+// values
+typedef int32_t job_idx_t;
+// A type large enough to hold BITFIELD_BITS_PER_ELEM
+// NOTE: This is NOT to hold a value of an element, just the bit position,
+// so this value should be maximum 64
+typedef uint8_t bf_elem_bit_pos_t;
+
+typedef struct {
+  filter_idx_t words[MAX_WORDS + MODES_COUNT];
+} query_t;
+
+typedef struct {
+  // Will return MAX_RESULTS + 1, terminated with -1
+  // Returns one more so that overflow is detectable
+  job_idx_t jobs[MAX_RESULTS + 2];
+} results_t;
+
+query_t* init(void) WASM_EXPORT;
+results_t* search(void) WASM_EXPORT;
+
+void filter_and(bf_elem_t* a, bf_elem_t* b) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     a[n] &= b[n];
   }
 }
 
-void filter_or(uint64_t* a, uint64_t* b) {
+void filter_or(bf_elem_t* a, bf_elem_t* b) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     a[n] |= b[n];
   }
 }
 
-void filter_not(uint64_t* filter) {
+void filter_not(bf_elem_t* filter) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     filter[n] = ~filter[n];
   }
 }
-
-static uint64_t filters[FILTERS_COUNT][BITFIELD_LENGTH] = {/* {{{{{ FILTERS }}}}} */};
-
-static uint64_t working_require[BITFIELD_LENGTH];
-static uint64_t working_contain[BITFIELD_LENGTH];
-static uint64_t working_exclude[BITFIELD_LENGTH];
-#define BITFIELD_BYTES BITFIELD_LENGTH * BITFIELD_BITS_PER_ELEM
-
-static uint64_t working_final[BITFIELD_LENGTH];
-#define FILTER_MSB_MASK (1ull << (BITFIELD_BITS_PER_ELEM - 1))
-
-typedef struct {
-  int16_t requires[MAX_WORDS_PER_MODE + 1];
-  int16_t contains[MAX_WORDS_PER_MODE + 1];
-  int16_t excludes[MAX_WORDS_PER_MODE + 1];
-} query_t;
-
-typedef struct {
-  /* If last is -1, then overflow */
-  int32_t jobs[MAX_RESULTS + 1];
-} results_t;
-
-#define WASM_EXPORT __attribute__((visibility("default")))
-query_t* init(void) WASM_EXPORT;
-results_t* search(void) WASM_EXPORT;
 
 query_t* query;
 
@@ -105,46 +111,53 @@ query_t* init(void) {
   return query;
 }
 
-results_t* search(void) {
-  bool using_requires = query->requires[0] != -1;
-  bool using_contains = query->contains[0] != -1;
-  bool using_excludes = query->excludes[0] != -1;
+static bf_elem_t filters[FILTERS_COUNT][BITFIELD_LENGTH] = {/* {{{{{ FILTERS }}}}} */};
+static bf_elem_t working_fields[MODES_COUNT][BITFIELD_LENGTH];
+static bf_elem_t working_final[BITFIELD_LENGTH];
 
+results_t* search(void) {
   bool copied_to_final = false;
 
-  if (using_requires) {
-    memcpy(working_require, filters[query->requires[0]], BITFIELD_BYTES);
-    for (int i = 1; query->requires[i] != -1 ; i++) {
-      filter_and(working_require, filters[query->requires[i]]);
-    }
-    memcpy(working_final, working_require, BITFIELD_BYTES);
-    copied_to_final = true;
-  }
+  int mode = 0;
+  bool copied_to_mode_working = false;
 
-  if (using_contains) {
-    memcpy(working_contain, filters[query->contains[0]], BITFIELD_BYTES);
-    for (int i = 1; query->contains[i] != -1 ; i++) {
-      filter_or(working_contain, filters[query->contains[i]]);
-    }
-    if (!copied_to_final) {
-      memcpy(working_final, working_contain, BITFIELD_BYTES);
-      copied_to_final = true;
-    } else {
-      filter_and(working_final, working_contain);
-    }
-  }
+  for (size_t word_idx = 0; word_idx < MAX_WORDS; word_idx++) {
+    filter_idx_t filter_idx = query->words[word_idx];
 
-  if (using_excludes) {
-    memcpy(working_exclude, filters[query->excludes[0]], BITFIELD_BYTES);
-    for (int i = 1; query->excludes[i] != -1 ; i++) {
-      filter_or(working_exclude, filters[query->excludes[i]]);
+    if (filter_idx == -1) {
+      if (copied_to_mode_working) {
+        if (mode == 2) {
+          filter_not(working_fields[mode]);
+        }
+        if (!copied_to_final) {
+          memcpy(working_final, working_fields[mode], BITFIELD_BYTES);
+          copied_to_final = true;
+        } else {
+          filter_and(working_final, working_fields[mode]);
+        }
+      }
+
+      mode++;
+      copied_to_mode_working = false;
+      if (mode == MODES_COUNT) {
+        break;
+      }
+      continue;
     }
-    filter_not(working_exclude);
-    if (!copied_to_final) {
-      memcpy(working_final, working_exclude, BITFIELD_BYTES);
-      copied_to_final = true;
+
+    if (!copied_to_mode_working) {
+      memcpy(working_fields[mode], filters[filter_idx], BITFIELD_BYTES);
+      copied_to_mode_working = true;
     } else {
-      filter_and(working_final, working_exclude);
+      switch (mode) {
+      case 0:
+        filter_and(working_fields[mode], filters[filter_idx]);
+        break;
+      case 1:
+      case 2:
+        filter_or(working_fields[mode], filters[filter_idx]);
+        break;
+      }
     }
   }
 
@@ -152,25 +165,22 @@ results_t* search(void) {
   size_t results_count = 0;
 
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
-    uint32_t anchor = n * BITFIELD_BITS_PER_ELEM;
-    uint64_t elem = working_final[n];
-    bool done = false;
-    for (uint8_t bit = 0; elem; bit++) {
+    job_idx_t anchor = n * BITFIELD_BITS_PER_ELEM;
+    bf_elem_t elem = working_final[n];
+    for (bf_elem_bit_pos_t bit = 0; elem; bit++) {
       if (elem & FILTER_MSB_MASK) {
         results->jobs[results_count] = anchor + bit;
         results_count++;
-        if (results_count >= MAX_RESULTS) {
-          done = true;
-          break;
+        // Get up to MAX_RESULTS + 1 so that overflow is detectable
+        if (results_count == MAX_RESULTS + 1) {
+          goto done;
         }
       }
       elem <<= 1;
     }
-    if (done) {
-      break;
-    }
   }
-  results->jobs[results_count] = -1;
+  done:
+    results->jobs[results_count] = -1;
 
-  return results;
+    return results;
 }

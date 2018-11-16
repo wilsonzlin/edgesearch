@@ -3,7 +3,7 @@
 const FIELDS = new Set({__VAR_FIELDS});
 const MODES_COUNT = {__VAR_MODES_COUNT};
 const MAX_RESULTS = {__VAR_MAX_RESULTS};
-const MAX_WORDS_PER_MODE = {__VAR_MAX_WORDS_PER_MODE};
+const MAX_WORDS = {__VAR_MAX_WORDS};
 const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
 
 const DATA = {__VAR_DATA};
@@ -82,7 +82,7 @@ const handle_autocomplete = url => {
 };
 
 const parse_query = qs => {
-  let parsed = new Array((MAX_WORDS_PER_MODE + 1) * MODES_COUNT).fill(-1);
+  let parsed = [];
 
   if (!qs.startsWith("?q=")) {
     return;
@@ -93,7 +93,7 @@ const parse_query = qs => {
   let last_mode_field = "";
   let last_mode_field_word = "";
 
-  let mode_words_count = 0;
+  let words_count = 0;
 
   while (qs) {
     // TODO Abstract out field and word regex parts
@@ -110,7 +110,7 @@ const parse_query = qs => {
       return;
     }
 
-    // Enforce query string must be sorted for caching
+    // Query string must be sorted for caching
 
     if (last_mode > mode) {
       return;
@@ -118,7 +118,7 @@ const parse_query = qs => {
       last_mode = mode;
       // Changing this will cause $last_mode_field_word to be invalidated
       last_mode_field = "";
-      mode_words_count = 0;
+      parsed.push(-1);
     }
 
     if (last_mode_field > field) {
@@ -135,13 +135,20 @@ const parse_query = qs => {
       last_mode_field_word = word;
     }
 
-    mode_words_count++;
-    if (mode_words_count > MAX_WORDS_PER_MODE) {
+    words_count++;
+    if (words_count > MAX_WORDS) {
       return;
     }
 
     // The zeroth field is a fully-zero field, used for non-existent words
-    parsed[(mode - 1) * (MAX_WORDS_PER_MODE + 1) + (mode_words_count - 1)] = FILTERS[field][word] || 0;
+    parsed.push(FILTERS[field][word] || 0);
+  }
+
+  // Just return empty array if no words
+  if (parsed.length) {
+    for (let i = parsed.length; i < MAX_WORDS + 3; i++) {
+      parsed.push(-1);
+    }
   }
 
   return parsed;
@@ -166,7 +173,7 @@ const handle_search = url => {
   let jobs;
   let overflow;
 
-  if (struct_query_data.every(q => q == -1)) {
+  if (!struct_query_data.length) {
     jobs = JOBS.slice(0, MAX_RESULTS);
     overflow = JOBS.length > MAX_RESULTS;
   } else {
@@ -185,7 +192,10 @@ const handle_search = url => {
       }
       jobs.push(JOBS[job_idx]);
     }
-    overflow = jobs.length >= MAX_RESULTS;
+    // Worker returns MAX_RESULTS + 1 jobs so as to detect overflow
+    if (overflow = jobs.length == MAX_RESULTS + 1) {
+      jobs.pop();
+    }
   }
 
   return response_success({jobs, overflow});
@@ -198,7 +208,7 @@ const entry_handler = event => {
   let handler;
   switch (url.pathname) {
   case "/":
-    url.pathname = "/jobs";
+    url.pathname = "/jobs/";
     return Response.redirect(url.href);
   case "/search":
     handler = handle_search;

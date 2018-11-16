@@ -22,7 +22,7 @@ const {
   FILTER_BITFIELD_BITS_PER_ELEM,
   FILTER_BITFIELD_LENGTH_FN,
   SEARCH_RESULTS_MAX,
-  SEARCH_MODE_MAX_WORDS,
+  SEARCH_WORDS_MAX,
   SEARCH_AUTOCOMPLETE_MAX_RESULTS,
 } = require("./const");
 
@@ -71,7 +71,8 @@ fs.readFile(WORKER_WASM, "utf8")
 	    -DBITFIELD_LENGTH=${FILTER_BITFIELD_LENGTH_FN(jobs.length)} \\
 	    -DFILTERS_COUNT=${filter_bitfields.length} \\
 	    -DMAX_RESULTS=${SEARCH_RESULTS_MAX} \\
-	    -DMAX_WORDS_PER_MODE=${SEARCH_MODE_MAX_WORDS} \\
+	    -DMAX_WORDS=${SEARCH_WORDS_MAX} \\
+	    -DMODES_COUNT=${MODES.length} \\
 	    "${BUILD_WORKER_C}" -o "${BUILD_WORKER_WASM}"
   `))
   .catch(console.error);
@@ -87,8 +88,8 @@ fs.readFile(WORKER_SCRIPT, "utf8")
       return SEARCH_AUTOCOMPLETE_MAX_RESULTS;
     case "MAX_RESULTS":
       return SEARCH_RESULTS_MAX;
-    case "MAX_WORDS_PER_MODE":
-      return SEARCH_MODE_MAX_WORDS;
+    case "MAX_WORDS":
+      return SEARCH_WORDS_MAX;
     case "MODES_COUNT":
       return MODES.length;
     default:
