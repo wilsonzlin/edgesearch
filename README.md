@@ -73,16 +73,43 @@ The general algorithm can be summarised as:
 result = (req_a & req_b & req_c & ...) & (con_a | con_b | con_c | ...) & ~(exc_a | exc_b | exc_c | ...)
 ```
 
-Bits set in the resulting bit field are mapped to the job at their corresponding position.
+Bits set in the resulting bit field are mapped to the job at their corresponding positions.
 
 ### Cloudflare
 
-This app only needs on back-end serice: a single JS script + accompanying WASM code.
-It takes advantage of Cloudflare Workers technology:
+The entire app runs off a single JS script + accompanying WASM code. It does not need any database or storage, and uses Cloudflare Workers. This allows some cool features:
 
 - faster than a VM or container with less cold starts, as code is run on a V8 Isolate
 - naturally distributed to the edge for very low latency, despite being dynamic code
 - takes advantage of Cloudflare for SSL, caching, and protection
 - no need to worry about scaling, networking, or servers
 
-The job listings data is embedded within the JS code, and the bit fields are `uint64_t` array literals in C code.
+The job listings data is embedded within the JS code, and the bit fields are `uint64_t` array literals in the C code.
+
+## Code
+
+### Back-end
+
+The worker code can be found in the "[worker](worker/)" directory. The JS worker is called `worker.js` and the WASM code is in `worker.c`.
+
+### Front-end
+
+All the app files are located in "[client](client/)":
+
+- `page.hbs`: main HTML file, written as a Handlebars template to remove repetition and allow conditional content
+- `script.js`: custom JS that contains logic for autocomplete, animations, searching, and general UX
+- `style.css`: styling for the app
+- various external libraries and styles
+- `assets/*`: files relating to app metadata, such as `favicon.ico`
+
+All files except for `assets/*` are minified and bundled together into one HTML file to reduce the file size and amount of round trips required for the end user.
+
+### Data
+
+Data retrieval is done by [`data/retrieve.js`](data/retrieve.js), while processing is done by [`data/process.js`](data/process.js).
+
+### Build
+
+Both the worker and client app need to be built. [`build-client.js`](build-client.js) and [`build-worker.js`](build-worker.js) take care of building.
+
+Building the worker requires at least clang 7 and lld 7. 
