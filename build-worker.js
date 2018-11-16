@@ -24,6 +24,9 @@ const {
   SEARCH_RESULTS_MAX,
   SEARCH_WORDS_MAX,
   SEARCH_AUTOCOMPLETE_MAX_RESULTS,
+
+  VALID_WORD_SUBREGEX,
+  FIELD_SUBREGEX,
 } = require("./const");
 
 /*
@@ -92,6 +95,10 @@ fs.readFile(WORKER_SCRIPT, "utf8")
       return SEARCH_WORDS_MAX;
     case "MODES_COUNT":
       return MODES.length;
+    case "FIELD_SUBREGEX":
+      return FIELD_SUBREGEX;
+    case "VALID_WORD_SUBREGEX":
+      return VALID_WORD_SUBREGEX;
     default:
       throw new ReferenceError(`Unknown parameter ${param}`);
     }

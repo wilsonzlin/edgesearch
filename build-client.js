@@ -25,7 +25,13 @@ const {
 
   ENV_ANALYTICS,
 
+  DESCRIPTION,
   FIELDS,
+
+  WORD_MAP,
+
+  VALID_WORD_REGEX,
+  EXTRACT_WORDS_FN,
 } = require("./const");
 
 const generate_analytics = tracking_id => `
@@ -117,6 +123,20 @@ const minify_css = css => ARGS.debug ? css : new cleancss({
 
 Promise.all([
   concat_static_source_files_of_type("js")
+    .then(js => js.replace(/{__VAR_(.*?)}/g, (_, param) => {
+      switch (param) {
+      case "DESCRIPTION":
+        return DESCRIPTION;
+      case "EXTRACT_WORDS_FN":
+        return EXTRACT_WORDS_FN.toString()
+          .replace("VALID_WORD_REGEX", VALID_WORD_REGEX.toString())
+          .replace("WORD_MAP", JSON.stringify(WORD_MAP));
+      case "VALID_WORD_REGEX":
+        return VALID_WORD_REGEX.toString();
+      default:
+        throw new ReferenceError(`Unknown parameter ${param}`);
+      }
+    }))
     .then(transpile_js)
     .then(minify_js),
 
@@ -131,7 +151,7 @@ Promise.all([
 ])
   .then(([js, css, html, jobsCount]) => handlebars.compile(html)({
     analytics: ENV_ANALYTICS && generate_analytics(ENV_ANALYTICS),
-    description: `Find your next career at Microsoft.`,
+    description: DESCRIPTION,
     jobsCount: jobsCount,
     fields: FIELDS,
     script: js,

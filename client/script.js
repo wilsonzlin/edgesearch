@@ -32,6 +32,16 @@
 
   /*
    *
+   *  EXTERNAL VARIABLES
+   *
+   */
+
+  const msc_description = "{__VAR_DESCRIPTION}";
+  const msc_extract_words_fn = {__VAR_EXTRACT_WORDS_FN};
+  const msc_valid_word_regex = {__VAR_VALID_WORD_REGEX};
+
+  /*
+   *
    *  DOM
    *
    */
@@ -45,15 +55,6 @@
    *
    */
 
-  // TODO Use common word validation functions
-  const autocomplete_parse_raw = str => {
-    return str
-      .toLowerCase()
-      .replace(/[~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}]/g, " ")
-      .trim()
-      .split(/\s+/)
-      .filter(w => /^[a-z0-9-]{1,25}$/.test(w));
-  };
   const $template_autocomplete_entry = $("#template-autocomplete-entry");
   const autocomplete_init = $auto => {
     const $list = $(".autocomplete-list", $auto);
@@ -67,13 +68,13 @@
 
     let search_timeout;
 
-    const autocomplete_focus_entry = id => {
+    const autocomplete_focus_entry = idx => {
       if (entry_focus != undefined) {
         $$entries[entry_focus].classList.remove("autocomplete-entry-focus");
       }
-      entry_focus = id;
-      if (id != undefined) {
-        $$entries[id].classList.add("autocomplete-entry-focus");
+      entry_focus = idx;
+      if (idx != undefined) {
+        $$entries[idx].classList.add("autocomplete-entry-focus");
       }
     };
 
@@ -113,7 +114,7 @@
     };
 
     const autocomplete_sanitise = () => {
-      $input.value = autocomplete_parse_raw($input.value).join(" ");
+      $input.value = msc_extract_words_fn($input.value).join(" ");
     };
     autocomplete_sanitise();
 
@@ -147,14 +148,10 @@
     });
 
     $input.addEventListener("keypress", e => {
-      const key = e.key;
+      const key = e.key.toLowerCase();
       // Don't try to control spaces, as it makes it difficult to split and insert words at weird places
-      if (!(
-        key >= "a" && key <= "z" ||
-        key >= "A" && key <= "Z" ||
-        key >= "0" && key <= "9" ||
-        key == " " || key == "-"
-      )) {
+      if (key != " " &&
+          !msc_valid_word_regex.test(key)) {
         e.preventDefault();
       }
     });
@@ -210,7 +207,7 @@
           .catch(err => {
             // TODO
           });
-      }, 100);
+      }, 0 /* Debounce rate */);
     });
 
     return {
@@ -293,19 +290,14 @@
     let ue_title = encodeURIComponent(document.title);
     let ue_url = encodeURIComponent(location.href);
     let ue_hostname = encodeURIComponent(location.hostname);
-    let ue_description = encodeURIComponent(window.msc_description);
-
-    const shareLinkedIn = `https://www.linkedin.com/shareArticle?mini=true&url=${ue_url}&title=${ue_title}&summary=${ue_description}&source=${ue_hostname}`;
-    const shareFacebook = `https://www.facebook.com/sharer/sharer.php?u=${ue_url}`;
-    const shareTwitter = `https://twitter.com/home?status=${ue_title}%20${ue_url}`;
-    const shareEmail = `mailto:?&subject=${ue_title}&body=${ue_title}%0A${ue_url}`;
+    let ue_description = encodeURIComponent(msc_description);
 
     for (const $link of $$share_links) {
       $link.href = {
-        "LinkedIn": shareLinkedIn,
-        "Facebook": shareFacebook,
-        "Twitter": shareTwitter,
-        "Email": shareEmail,
+        LinkedIn: `https://www.linkedin.com/shareArticle?mini=true&url=${ue_url}&title=${ue_title}&summary=${ue_description}&source=${ue_hostname}`,
+        Facebook: `https://www.facebook.com/sharer/sharer.php?u=${ue_url}`,
+        Twitter: `https://twitter.com/home?status=${ue_title}%20${ue_url}`,
+        Email: `mailto:?&subject=${ue_title}&body=${ue_title}%0A${ue_url}`,
       }[$link.dataset.service];
     }
   };
@@ -346,7 +338,10 @@
           "2": "~",
           "3": "!",
         }[mode];
-        const words = $term.children[1].children[0].value.trim();
+        const words = msc_extract_words_fn($term.children[1].children[0].value);
+        if (!words.length) {
+          return null;
+        }
 
         if (!terms[mode]) {
           terms[mode] = {};
@@ -354,14 +349,13 @@
         if (!terms[mode][field]) {
           terms[mode][field] = new Set();
         }
-        // TODO Use sanitise function
-        for (const w of words.trim().toLowerCase().replace(/[~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}]/g, " ").split(/\s+/)) {
+        for (const w of words) {
           terms[mode][field].add(w);
         }
 
         // Replace `%20` with nicer looking `+`
         return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
-      }).join("|");
+      }).filter(w => w).join("|");
 
       const query_parts = [];
       for (const mode of Object.keys(terms).sort()) {
@@ -441,18 +435,16 @@
      */
     let parsed = {};
 
-    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).trim().split("|")) {
+    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).split("|")) {
       const mode = /^!/.test(part) ? "3" :
                    /^~/.test(part) ? "2" :
                    "1";
 
       const [field, words_raw] = part.slice(mode != "1").split(":", 2);
 
-      const words = (words_raw || "").replace(/[;:,]/g, " ")
-        .trim()
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(w => /^[!-z]+$/.test(w));
+      // TODO Validate field
+
+      const words = msc_extract_words_fn(words_raw || "");
       if (words.length) {
         if (!parsed[field]) {
           parsed[field] = [];

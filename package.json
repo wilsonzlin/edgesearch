@@ -37,6 +37,7 @@
     "cheerio": "^1.0.0-rc.2",
     "clean-css": "^4.2.1",
     "clipboard": "^2.0.3",
+    "escape-string-regexp": "^1.0.5",
     "fs-extra": "^7.0.1",
     "handlebars": "^4.0.11",
     "html-minifier": "^3.5.21",

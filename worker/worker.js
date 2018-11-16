@@ -1,12 +1,14 @@
 "use strict";
 
-const FIELDS = new Set({__VAR_FIELDS});
-const MODES_COUNT = {__VAR_MODES_COUNT};
+const DATA = {__VAR_DATA};
+const FIELDS = {__VAR_FIELDS};
+const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
 const MAX_RESULTS = {__VAR_MAX_RESULTS};
 const MAX_WORDS = {__VAR_MAX_WORDS};
-const MAX_AUTOCOMPLETE_RESULTS = {__VAR_MAX_AUTOCOMPLETE_RESULTS};
+const MODES_COUNT = {__VAR_MODES_COUNT};
+const VALID_FIELD_SUBREGEX = "{__VAR_FIELD_SUBREGEX}";
+const VALID_WORD_SUBREGEX = "{__VAR_VALID_WORD_SUBREGEX}";
 
-const DATA = {__VAR_DATA};
 const JOBS = DATA.jobs;
 const FILTERS = DATA.filters;
 const AUTOCOMPLETE_LISTS = [...FIELDS].reduce((obj, field) => {
@@ -51,19 +53,15 @@ const find_pos = (words, word, left = 0, right = words.length - 1) => {
   return find_pos(words, word, mid_pos, right);
 };
 
+const autocomplete_qs_regex = new RegExp(`^\\?f=(${VALID_FIELD_SUBREGEX})&t=(${VALID_WORD_SUBREGEX})$`);
+
 const handle_autocomplete = url => {
-  const field = url.searchParams.get("f");
-  if (!FIELDS.has(field)) {
-    return response_error("Invalid field", 404);
+  const matches = autocomplete_qs_regex.exec(url.search);
+  if (!matches) {
+    return response_error("Bad query");
   }
 
-  const term = (url.searchParams.get("t") || "")
-    .trim()
-    .toLowerCase();
-
-  if (!/^[!-z]+$/.test(term)) {
-    return response_error("Bad term");
-  }
+  const [_, field, term] = matches;
 
   const results = [];
   const words = AUTOCOMPLETE_LISTS[field];
@@ -81,6 +79,8 @@ const handle_autocomplete = url => {
   return response_success(results);
 };
 
+const search_qs_part_regex = new RegExp(`^([123])_(${VALID_FIELD_SUBREGEX})_(${VALID_WORD_SUBREGEX})(?:&|$)`);
+
 const parse_query = qs => {
   if (!qs.startsWith("?q=")) {
     return;
@@ -96,8 +96,7 @@ const parse_query = qs => {
   const mode_words = Array(MODES_COUNT).fill(null).map(() => []);
 
   while (qs) {
-    // TODO Abstract out field and word regex parts
-    const matches = /^([123])_([a-z]+)_([a-z0-9-]+)(?:&|$)/.exec(qs);
+    const matches = search_qs_part_regex.exec(qs);
     if (!matches) {
       return;
     }
@@ -105,10 +104,6 @@ const parse_query = qs => {
     const mode = Number.parseInt(matches[1], 10);
     const field = matches[2];
     const word = matches[3];
-
-    if (!FIELDS.has(field)) {
-      return;
-    }
 
     // Query string must be sorted for caching
 

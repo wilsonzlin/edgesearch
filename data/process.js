@@ -16,43 +16,19 @@ const {
   FIELDS,
   FILTER_BITFIELD_BITS_PER_ELEM,
   FILTER_BITFIELD_LENGTH_FN,
-} = require("../const");
 
-const WORD_MAP = {
-  "architecte": "architect",
-  "ii": ["2"],
-  "ll": ["2"],
-  "iii": ["3"],
-  "iv": ["4"],
-  "sr": ["senior"],
-  "sw": ["software"],
-  "engineerv": ["engineer"],
-  "m365": ["microsoft", "365"],
-  "ms": ["microsoft"],
-  "o365": ["office", "365"],
-  "office365": ["office", "365"],
-};
+  EXTRACT_WORDS_FN,
+} = require("../const");
 
 const jobs = fs.readJSONSync(BUILD_DATA_RAW)
   .sort((a, b) => b.postedDate.localeCompare(a.postedDate))
   .map(j => ({
     ID: j.jobId,
     title: j.title,
-    date: moment(j.postedDate).format("YYYY-M-D"),
+    date: moment.utc(j.postedDate).format("YYYY-M-D"),
     location: j.location,
     description: j.descriptionTeaser,
   }));
-
-function extract_words (sentence) {
-  return sentence
-    .replace(/[\[\]\-\/&_(),:;.（）、*"’'+!?$|]/g, " ")
-    .trim()
-    .toLowerCase()
-    .split(/\s+/u)
-    .filter(w => /^[a-z0-9-]+$/.test(w))
-    .reduce((words, w) => words.concat(WORD_MAP[w] || [w]), [])
-    ;
-}
 
 const job_words = new Map();
 for (const job of jobs) {
@@ -63,7 +39,7 @@ function collate_words_of_field (field, jobs) {
   const set = new Set();
 
   for (const job of jobs) {
-    const extracted = extract_words(job[field]);
+    const extracted = EXTRACT_WORDS_FN(job[field]);
     job_words.get(job).set(field, new Set(extracted));
     for (const word of extracted) {
       set.add(word);

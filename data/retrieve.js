@@ -4,7 +4,6 @@ const request = require("request-promise-native");
 const cheerio = require("cheerio");
 const fs = require("fs-extra");
 const path = require("path");
-const moment = require("moment");
 const Queue = require("../queue");
 
 const {
@@ -30,6 +29,7 @@ const scrape = async (from) => {
         rt: "professional", // Progressional jobs
       },
       headers: {
+        // User agent is required, as otherwise the page responds with an error
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36",
       },
     });
@@ -66,18 +66,14 @@ const load = async () => {
 
     const jobIds = new Set();
 
-    const data = scrapes.reduce((jobs, data) => jobs.concat(data.data.jobs.map(j => {
+    const data = scrapes.reduce((jobs, data) => jobs.concat(data.data.jobs.filter(j => {
       if (jobIds.has(j.jobId)) {
-        return null;
+        return false;
       }
 
       jobIds.add(j.jobId);
-      return {
-        ...j,
-        postedDate: moment(j.postedDate),
-        dateCreated: moment(j.dateCreated),
-      };
-    }).filter(j => j)), []);
+      return true;
+    })), []);
 
     await fs.writeJSON(BUILD_DATA_RAW, data);
 
