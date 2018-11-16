@@ -90,11 +90,11 @@ The job listings data is embedded within the JS code, and the bit fields are `ui
 
 ### Back-end
 
-The worker code can be found in the "[worker](worker/)" directory. The JS worker is called `worker.js` and the WASM code is in `worker.c`.
+The worker code can be found in the [`worker`](worker/) directory. The JS worker is called `worker.js` and the WASM code is in `worker.c`.
 
 ### Front-end
 
-All the app files are located in "[client](client/)":
+All the app files are located in [`client`](client/):
 
 - `page.hbs`: main HTML file, written as a Handlebars template to remove repetition and allow conditional content
 - `script.js`: custom JS that contains logic for autocomplete, animations, searching, and general UX
