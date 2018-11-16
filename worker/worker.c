@@ -53,8 +53,14 @@ void* malloc(size_t n) {
 }
 
 #define WASM_EXPORT __attribute__((visibility("default")))
-#define BITFIELD_BYTES BITFIELD_LENGTH * BITFIELD_BITS_PER_ELEM
+#define BITFIELD_BYTES (BITFIELD_LENGTH * BITFIELD_BITS_PER_ELEM / 8)
 #define FILTER_MSB_MASK (1ull << (BITFIELD_BITS_PER_ELEM - 1))
+
+// One -1 terminator for each mode
+#define MAX_INPUT_ARR_LEN (MAX_WORDS + MODES_COUNT)
+  // Will return up to MAX_RESULTS + 1, terminated with -1
+  // Returns one more so that overflow is detectable
+#define MAX_OUTPUT_ARR_LEN (MAX_RESULTS + 2)
 
 // The type of each element in a bit field array; should be large enough
 // to hold BITFIELD_BITS_PER_ELEM; must be unsigned
@@ -71,37 +77,35 @@ typedef int32_t job_idx_t;
 typedef uint8_t bf_elem_bit_pos_t;
 
 typedef struct {
-  filter_idx_t words[MAX_WORDS + MODES_COUNT];
+  filter_idx_t words[MAX_INPUT_ARR_LEN];
 } query_t;
 
 typedef struct {
-  // Will return MAX_RESULTS + 1, terminated with -1
-  // Returns one more so that overflow is detectable
-  job_idx_t jobs[MAX_RESULTS + 2];
+  job_idx_t jobs[MAX_OUTPUT_ARR_LEN];
 } results_t;
 
 query_t* init(void) WASM_EXPORT;
 results_t* search(void) WASM_EXPORT;
 
-void filter_and(bf_elem_t* a, bf_elem_t* b) {
+void bf_op_and(bf_elem_t* a, bf_elem_t* b) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     a[n] &= b[n];
   }
 }
 
-void filter_or(bf_elem_t* a, bf_elem_t* b) {
+void bf_op_or(bf_elem_t* a, bf_elem_t* b) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     a[n] |= b[n];
   }
 }
 
-void filter_not(bf_elem_t* filter) {
+void bf_op_not(bf_elem_t* filter) {
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     filter[n] = ~filter[n];
   }
 }
 
-query_t* query;
+static query_t* query;
 
 query_t* init(void) {
   heap = &__heap_base;
@@ -112,50 +116,51 @@ query_t* init(void) {
 }
 
 static bf_elem_t filters[FILTERS_COUNT][BITFIELD_LENGTH] = {/* {{{{{ FILTERS }}}}} */};
-static bf_elem_t working_fields[MODES_COUNT][BITFIELD_LENGTH];
-static bf_elem_t working_final[BITFIELD_LENGTH];
+static bf_elem_t bf_working[MODES_COUNT][BITFIELD_LENGTH];
+static bf_elem_t bf_result[BITFIELD_LENGTH];
 
 results_t* search(void) {
-  bool copied_to_final = false;
+  bool copied_to_result = false;
 
+  // 0 == require, 1 == contain, 2 == exclude
   int mode = 0;
-  bool copied_to_mode_working = false;
+  bool copied_to_working = false;
 
-  for (size_t word_idx = 0; word_idx < MAX_WORDS; word_idx++) {
+  for (size_t word_idx = 0; ; word_idx++) {
     filter_idx_t filter_idx = query->words[word_idx];
 
     if (filter_idx == -1) {
-      if (copied_to_mode_working) {
+      if (copied_to_working) {
         if (mode == 2) {
-          filter_not(working_fields[mode]);
+          bf_op_not(bf_working[mode]);
         }
-        if (!copied_to_final) {
-          memcpy(working_final, working_fields[mode], BITFIELD_BYTES);
-          copied_to_final = true;
+        if (!copied_to_result) {
+          memcpy(bf_result, bf_working[mode], BITFIELD_BYTES);
+          copied_to_result = true;
         } else {
-          filter_and(working_final, working_fields[mode]);
+          bf_op_and(bf_result, bf_working[mode]);
         }
       }
 
       mode++;
-      copied_to_mode_working = false;
+      copied_to_working = false;
       if (mode == MODES_COUNT) {
         break;
       }
       continue;
     }
 
-    if (!copied_to_mode_working) {
-      memcpy(working_fields[mode], filters[filter_idx], BITFIELD_BYTES);
-      copied_to_mode_working = true;
+    if (!copied_to_working) {
+      memcpy(bf_working[mode], filters[filter_idx], BITFIELD_BYTES);
+      copied_to_working = true;
     } else {
       switch (mode) {
       case 0:
-        filter_and(working_fields[mode], filters[filter_idx]);
+        bf_op_and(bf_working[mode], filters[filter_idx]);
         break;
       case 1:
       case 2:
-        filter_or(working_fields[mode], filters[filter_idx]);
+        bf_op_or(bf_working[mode], filters[filter_idx]);
         break;
       }
     }
@@ -166,7 +171,7 @@ results_t* search(void) {
 
   for (size_t n = 0; n < BITFIELD_LENGTH; n++) {
     job_idx_t anchor = n * BITFIELD_BITS_PER_ELEM;
-    bf_elem_t elem = working_final[n];
+    bf_elem_t elem = bf_result[n];
     for (bf_elem_bit_pos_t bit = 0; elem; bit++) {
       if (elem & FILTER_MSB_MASK) {
         results->jobs[results_count] = anchor + bit;
@@ -179,8 +184,9 @@ results_t* search(void) {
       elem <<= 1;
     }
   }
-  done:
-    results->jobs[results_count] = -1;
 
-    return results;
+  done:
+  results->jobs[results_count] = -1;
+
+  return results;
 }
