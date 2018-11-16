@@ -45,6 +45,7 @@
    *
    */
 
+  // TODO Use common word validation functions
   const autocomplete_parse_raw = str => {
     return str
       .toLowerCase()
@@ -131,8 +132,11 @@
           }
           autocomplete_focus_entry(new_id);
           break;
+        case 9: // Tab
         case 13: // Enter
-          if (entry_focus != undefined) {
+          if (entry_focus == undefined) {
+            autocomplete_empty_list();
+          } else {
             // Prevent submitting form
             e.preventDefault();
             autocomplete_use_focused_entry();
@@ -205,7 +209,6 @@
           })
           .catch(err => {
             // TODO
-            console.error(err);
           });
       }, 100);
     });
@@ -350,7 +353,8 @@
         if (!terms[mode][field]) {
           terms[mode][field] = new Set();
         }
-        for (const w of words.split(/\s+/)) {
+        // TODO Use sanitise function
+        for (const w of words.trim().toLowerCase().replace(/[~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}]/g, " ").split(/\s+/)) {
           terms[mode][field].add(w);
         }
 
@@ -399,8 +403,12 @@
           }
         })
         .catch(err => {
-          console.error(err);
           // TODO
+          const title = `0 results | Work @ Microsoft`;
+          const heading = `0 matches`;
+
+          update_title_or_url(false, title);
+          $jobs_heading.textContent = heading;
         })
         .then(() => {
           $filter_form_submit.disabled = false;
