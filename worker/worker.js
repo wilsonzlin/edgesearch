@@ -82,8 +82,6 @@ const handle_autocomplete = url => {
 };
 
 const parse_query = qs => {
-  let parsed = [];
-
   if (!qs.startsWith("?q=")) {
     return;
   }
@@ -94,6 +92,8 @@ const parse_query = qs => {
   let last_mode_field_word = "";
 
   let words_count = 0;
+
+  const mode_words = Array(MODES_COUNT).fill(null).map(() => []);
 
   while (qs) {
     // TODO Abstract out field and word regex parts
@@ -118,7 +118,6 @@ const parse_query = qs => {
       last_mode = mode;
       // Changing this will cause $last_mode_field_word to be invalidated
       last_mode_field = "";
-      parsed.push(-1);
     }
 
     if (last_mode_field > field) {
@@ -140,18 +139,15 @@ const parse_query = qs => {
       return;
     }
 
-    // The zeroth field is a fully-zero field, used for non-existent words
-    parsed.push(FILTERS[field][word] || 0);
+    // The zeroth bit field is a fully-zero bit field, used for non-existent words
+    mode_words[mode - 1].push(FILTERS[field][word] || 0);
   }
 
-  // Just return empty array if no words
-  if (parsed.length) {
-    for (let i = parsed.length; i < MAX_WORDS + 3; i++) {
-      parsed.push(-1);
-    }
+  if (!words_count) {
+    return [];
   }
 
-  return parsed;
+  return mode_words.reduce((comb, m) => comb.concat(m, -1), []);
 };
 
 const wasm_memory = new WebAssembly.Memory({initial: 48});
@@ -173,6 +169,8 @@ const handle_search = url => {
   let jobs;
   let overflow;
 
+  // NOTE: Just because there are no valid words means that there are no valid results
+  // e.g. excluding an invalid word actually results in all jobs matching
   if (!struct_query_data.length) {
     jobs = JOBS.slice(0, MAX_RESULTS);
     overflow = JOBS.length > MAX_RESULTS;
