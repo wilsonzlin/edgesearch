@@ -279,9 +279,8 @@
   const update_title_or_url = (url, title) => {
     if (url) {
       try {
-        ga("send", "pageview", {
-          "page": `${location.pathname}${location.search}${location.hash}`,
-        });
+        ga("set", "page", `${location.pathname}${location.search}${location.hash}`);
+        ga("send", "pageview");
       } catch (_) {
       }
       history.pushState(null, undefined, url);
@@ -332,6 +331,8 @@
   ];
 
   const search = () => {
+      // NOTE: Don't rerender or normalise form on submit, as user might be
+      // in middle of typing or quickly switching terms
       // { mode: { field: Set() } }
       const terms = {};
 
