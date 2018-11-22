@@ -39,6 +39,7 @@
   const msc_description = "{__VAR_DESCRIPTION}";
   const msc_extract_words_fn = {__VAR_EXTRACT_WORDS_FN};
   const msc_valid_word_regex = {__VAR_VALID_WORD_REGEX};
+  const msc_fields = new Set({__VAR_FIELDS});
 
   /*
    *
@@ -48,6 +49,28 @@
 
   const $ = (sel, ctx = document) => ctx.querySelector(sel);
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+
+  /*
+   *
+   *  HTTP
+   *
+   */
+
+  const http_get = (url, callback) => {
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === XMLHttpRequest.DONE) {
+        const status = xhr.status;
+        if (status === 200) {
+          callback(JSON.parse(xhr.responseText));
+        } else {
+          callback();
+        }
+      }
+    };
+    xhr.open("GET", url);
+    xhr.send();
+  };
 
   /*
    *
@@ -232,11 +255,18 @@
 
   /*
    *
-   *  FORM BUTTONS
+   *  SEARCH TERMS
    *
    */
 
   const $template_search_term = $("#template-search-term");
+
+  const clear_search_terms = () => {
+    for (const $term of $$(".search-term", $filter_form)) {
+      $term.remove();
+    }
+  };
+
   const new_search_term = (field, mode, words) => {
     const $target = $(`.search-terms[data-field="${field}"]`);
     if (!$target) {
@@ -271,21 +301,15 @@
     });
   }
 
+  /*
+   *
+   *  SHARING
+   *
+   */
+
   const $$share_links = $$("[data-service]");
   const $share_URL = $("#share-URL");
-  const update_title_or_url = (url, title) => {
-    if (url) {
-      try {
-        ga("set", "page", `${location.pathname}${location.search}${location.hash}`);
-        ga("send", "pageview");
-      } catch (_) {
-      }
-      history.pushState(null, undefined, url);
-    }
-    if (title) {
-      document.title = title;
-    }
-
+  const reflect_url = () => {
     $share_URL.value = location.href;
     let ue_title = encodeURIComponent(document.title);
     let ue_url = encodeURIComponent(location.href);
@@ -323,6 +347,7 @@
   ];
 
   const left_pad = (s, n, p = "0") => {
+    s = `${s}`;
     const delta = n - s.length;
     if (delta <= 0) {
       return s;
@@ -331,118 +356,143 @@
     return `${Array(delta + 1).join(p)}${s}`;
   };
 
-  const search = () => {
-      // NOTE: Don't rerender or normalise form on submit, as user might be
-      // in middle of typing or quickly switching terms
+  class Query {
+    constructor () {
       // { mode: { field: Set() } }
-      const terms = {};
+      this.terms = {};
+    }
 
-      // Always query for latest set of .search-term elements
-      // Only find in form to avoid finding in templates on unsupported browsers
-      const hash = "#" + $$(".search-term", $filter_form).map($term => {
-        const mode = $term.children[0].value;
-        const field = $term.dataset.field;
-        const prefix = {
-          "1": "",
-          "2": "~",
-          "3": "!",
-        }[mode];
-        const words = msc_extract_words_fn($term.children[1].children[0].value);
-        if (!words.length) {
-          return null;
-        }
+    add (mode, field, words) {
+      const terms = this.terms;
+      if (!terms[mode]) {
+        terms[mode] = {};
+      }
+      if (!terms[mode][field]) {
+        terms[mode][field] = new Set();
+      }
+      for (const w of words) {
+        terms[mode][field].add(w);
+      }
+    }
 
-        if (!terms[mode]) {
-          terms[mode] = {};
-        }
-        if (!terms[mode][field]) {
-          terms[mode][field] = new Set();
-        }
-        for (const w of words) {
-          terms[mode][field].add(w);
-        }
-
-        // Replace `%20` with nicer looking `+`
-        return `${prefix}${field}:${encodeURIComponent(words.join(" ")).replace(/%20/g, "+")}`;
-      }).filter(w => w).join("|");
-
+    build () {
+      const terms = this.terms;
       const query_parts = [];
+      // TODO Abstract modes
       for (const mode of Object.keys(terms).sort()) {
         for (const field of Object.keys(terms[mode]).sort()) {
           for (const word of Array.from(terms[mode][field]).sort()) {
             // Mode and field should be URL safe; word should be too but encode just to be sure
-            query_parts.push(`${mode}_${field}_${encodeURIComponent(word)}`);
+            query_parts.push(encodeURIComponent(`${mode}_${field}_${word}`));
           }
         }
       }
-      const query = `?q=${query_parts.join("&")}`;
+      return `?q=${query_parts.join("&")}`;
+    }
+  }
 
-      update_title_or_url(`${location.pathname}${hash.length == 1 ? "" : hash}`, "Work @ Microsoft");
-      $jobs_heading.textContent = "Searching";
+  const set_title_and_heading = (title, heading) => {
+    // TODO Abstract title suffix
+    document.title = `${title ? `${title} | ` : ""}Work @ Microsoft`;
+    $jobs_heading.textContent = heading;
+  };
+
+  // It's possible to have concurrent searches when using the Back and Forward history buttons
+  let current_search_query;
+  const search = query => {
+      const query_string = query.build();
+      if (current_search_query === query_string) {
+        return;
+      }
+      current_search_query = query_string;
+
+      set_title_and_heading(undefined, "Searching");
       for (const $job of $$(".job", $jobs)) {
         $job.remove();
       }
       $filter_form_submit.disabled = true;
 
-      fetch(`/search${query}`)
-        .then(res => res.json())
-        .then(({jobs, overflow}) => {
-          const count = `${jobs.length}${overflow ? "+" : ""}`;
-          const title = `${jobs.length == 1 ? "1 result" : `${count} results`} | Work @ Microsoft`;
-          const heading = jobs.length == 1 ? "1 match" : `${count} matches`;
+      http_get(`/search${query_string}`, data => {
+        if (current_search_query !== query_string) {
+          // Stale results
+          return;
+        }
 
-          update_title_or_url(false, title);
-          $jobs_heading.textContent = heading;
+        $filter_form_submit.disabled = false;
 
-          for (const job of jobs) {
-            const $job = import_template($template_job);
-            $(".job-title-link", $job).textContent = job.title;
-            $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
-            $(".job-location", $job).textContent = job.location;
-            $(".job-description", $job).textContent = job.description;
-            const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
-            $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
-            $(".job-date", $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
-            $jobs.appendChild($job);
-          }
-        })
-        .catch(err => {
-          // TODO
-          const title = `0 results | Work @ Microsoft`;
-          const heading = `0 matches`;
+        if (!data) {
+          set_title_and_heading("Error", "Something went wrong");
+          return;
+        }
 
-          update_title_or_url(false, title);
-          $jobs_heading.textContent = heading;
-        })
-        .then(() => {
-          $filter_form_submit.disabled = false;
-        });
+        const {jobs, overflow} = data;
+
+        const count = `${jobs.length}${overflow ? "+" : ""}`;
+        const plural = jobs.length != 1;
+        const title = `${count} result${plural ? "s" : ""}`;
+        const heading = `${count} match${plural ? "es" : ""}`;
+
+        set_title_and_heading(title, heading);
+
+        for (const job of jobs) {
+          const $job = import_template($template_job);
+          $(".job-title-link", $job).textContent = job.title;
+          $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+          $(".job-location", $job).textContent = job.location;
+          $(".job-description", $job).textContent = job.description;
+          const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
+          $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
+          $(".job-date", $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
+          $jobs.appendChild($job);
+        }
+      });
     }
   ;
 
-  $filter_form.addEventListener("submit", e => {
+  const handle_form = e => {
+    // NOTE: Don't rerender or normalise form on submit, as user might be
+    // in middle of typing or quickly switching terms
     e.preventDefault();
-    search();
-  });
+
+    // Always query for latest set of .search-term elements
+    // Only find in form to avoid finding in templates on unsupported browsers
+    const query = new Query();
+    const hash = "#" + $$(".search-term", $filter_form).map($term => {
+      const mode = $term.children[0].value;
+      const field = $term.dataset.field;
+      const prefix = {
+        "1": "",
+        "2": "~",
+        "3": "!",
+      }[mode];
+      const words = msc_extract_words_fn($term.children[1].children[0].value);
+      if (!words.length) {
+        return null;
+      }
+
+      query.add(mode, field, words);
+
+      // Replace `%20` with nicer looking `+`
+      return `${prefix}${field}:${encodeURIComponent(words.join(" ")).replace(/%20/g, "+")}`;
+    }).filter(w => w).join("|");
+
+    history.pushState(null, undefined, hash);
+    reflect_url();
+    search(query);
+  };
+
+  $filter_form.addEventListener("submit", handle_form);
 
   /*
    *
-   *  URL
+   *  HASH
    *
    */
 
-  const parse_hash = () => {
-    /*
-     *  {
-     *    field: [
-     *      {
-     *        mode: "require",
-     *        words: ["a", "b"],
-     *      },
-     *    ],
-     *  }
-     */
-    let parsed = {};
+  const handle_hash = () => {
+    reflect_url();
+    clear_search_terms();
+    const query = new Query();
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).split("|")) {
       const mode = /^!/.test(part) ? "3" :
@@ -451,26 +501,24 @@
 
       const [field, words_raw] = part.slice(mode != "1").split(":", 2);
 
-      // TODO Validate field
+      if (!msc_fields.has(field)) {
+        continue;
+      }
 
       const words = msc_extract_words_fn(words_raw || "");
-      if (words.length) {
-        if (!parsed[field]) {
-          parsed[field] = [];
-        }
-        parsed[field].push({mode, words});
+      if (!words.length) {
+        continue;
       }
+
+      query.add(mode, field, words);
+      new_search_term(field, mode, words);
     }
 
-    for (const field of Object.keys(parsed)) {
-      for (const term of parsed[field]) {
-        new_search_term(field, term.mode, term.words);
-      }
-    }
+    search(query);
   };
 
-  parse_hash();
-  search();
+  window.addEventListener("popstate", handle_hash);
+  handle_hash();
 
   /*
    *

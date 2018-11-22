@@ -131,6 +131,8 @@ Promise.all([
         return EXTRACT_WORDS_FN.toString()
           .replace("VALID_WORD_REGEX", VALID_WORD_REGEX.toString())
           .replace("WORD_MAP", JSON.stringify(WORD_MAP));
+      case "FIELDS":
+        return JSON.stringify(FIELDS);
       case "VALID_WORD_REGEX":
         return VALID_WORD_REGEX.toString();
       default:
