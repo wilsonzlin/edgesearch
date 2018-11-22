@@ -47,24 +47,27 @@ const SEARCH_AUTOCOMPLETE_MAX_RESULTS = 5;
 
 const WORD_MAP = {
   "architecte": "architect",
+  "engineeer": ["engineer"],
+  "engineerv": ["engineer"],
+  "hw": ["hardware"],
   "ii": ["2"],
-  "ll": ["2"],
   "iii": ["3"],
   "iv": ["4"],
-  "sr": ["senior"],
-  "sw": ["software"],
-  "engineerv": ["engineer"],
+  "ll": ["2"],
   "m365": ["microsoft", "365"],
   "ms": ["microsoft"],
   "o365": ["office", "365"],
   "office365": ["office", "365"],
+  "sr": ["senior"],
+  "sw": ["software"],
 };
 
-const VALID_WORD_SUBREGEX = "[a-z0-9-]{1,25}";
+// NOTE: This regex is used to filter keypresses, so it should accept single-character strings
+const VALID_WORD_SUBREGEX = "[a-z0-9]{1,25}";
 const VALID_WORD_REGEX = new RegExp(`^${VALID_WORD_SUBREGEX}$`);
 
 const EXTRACT_WORDS_FN = sentence => sentence
-  .replace(/[~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}（）、’]/g, " ")
+  .replace(/[\-~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}（）、’]/g, " ")
   .trim()
   .toLowerCase()
   .split(/\s+/)
