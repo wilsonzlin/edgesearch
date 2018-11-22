@@ -322,6 +322,15 @@
     "December",
   ];
 
+  const left_pad = (s, n, p = "0") => {
+    const delta = n - s.length;
+    if (delta <= 0) {
+      return s;
+    }
+    // String.prototype.repeat not compatible with IE 11
+    return `${Array(delta + 1).join(p)}${s}`;
+  };
+
   const search = () => {
       // NOTE: Don't rerender or normalise form on submit, as user might be
       // in middle of typing or quickly switching terms
@@ -393,7 +402,7 @@
             $(".job-description", $job).textContent = job.description;
             const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
             $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
-            $(".job-date", $job).dateTime = `${year}-${month}-${day}T00:00:00.000Z`;
+            $(".job-date", $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
             $jobs.appendChild($job);
           }
         })
