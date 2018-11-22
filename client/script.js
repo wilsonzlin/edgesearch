@@ -68,7 +68,7 @@
 
     let search_timeout;
 
-    const autocomplete_focus_entry = idx => {
+    const focus_entry = idx => {
       if (entry_focus != undefined) {
         $$entries[entry_focus].classList.remove("autocomplete-entry-focus");
       }
@@ -78,7 +78,7 @@
       }
     };
 
-    const autocomplete_use_focused_entry = () => {
+    const use_focused_entry = () => {
       const value = $$entries[entry_focus].textContent;
       $input.value = $input.value.slice(0, last_selection_start) +
                      value +
@@ -86,26 +86,26 @@
       const new_cursor = last_selection_start + value.length;
       $input.focus();
       $input.setSelectionRange(new_cursor, new_cursor);
-      autocomplete_empty_list();
+      empty_list();
     };
 
-    const autocomplete_append_entry = value => {
+    const append_entry = value => {
       const $li = import_template($template_autocomplete_entry);
       $li.textContent = value;
       $list.appendChild($li);
       const id = $$entries.push($li) - 1;
 
-      $li.addEventListener("click", autocomplete_use_focused_entry);
+      $li.addEventListener("click", use_focused_entry);
 
       $li.addEventListener("mouseover", () => {
-        autocomplete_focus_entry(id);
+        focus_entry(id);
       });
       $li.addEventListener("mouseout", () => {
-        autocomplete_focus_entry(undefined);
+        focus_entry(undefined);
       });
     };
 
-    const autocomplete_empty_list = () => {
+    const empty_list = () => {
       let $li;
       while ($li = $$entries.pop()) {
         $li.remove();
@@ -113,10 +113,10 @@
       entry_focus = undefined;
     };
 
-    const autocomplete_sanitise = () => {
+    const sanitise = () => {
       $input.value = msc_extract_words_fn($input.value).join(" ");
     };
-    autocomplete_sanitise();
+    sanitise();
 
     $input.addEventListener("keydown", e => {
       const key = e.keyCode;
@@ -131,16 +131,16 @@
           } else {
             new_id = ((entry_focus || $$entries.length) + dir) % $$entries.length;
           }
-          autocomplete_focus_entry(new_id);
+          focus_entry(new_id);
           break;
         case 9: // Tab
         case 13: // Enter
           if (entry_focus == undefined) {
-            autocomplete_empty_list();
+            empty_list();
           } else {
             // Prevent submitting form
             e.preventDefault();
-            autocomplete_use_focused_entry();
+            use_focused_entry();
           }
           break;
         }
@@ -156,13 +156,13 @@
       }
     });
     // Don't clean on "change" as that will break autocomplete insertion
-    $input.addEventListener("paste", () => setTimeout(autocomplete_sanitise, 100));
+    $input.addEventListener("paste", () => setTimeout(sanitise, 100));
     $input.addEventListener("input", () => {
       clearTimeout(search_timeout);
       // Necessary to invalidate previous fetch requests (see below)
       search_timeout = undefined;
 
-      autocomplete_empty_list();
+      empty_list();
       const pos = $input.selectionStart - 1; // val[pos] == new_char
       const val = $input.value;
 
@@ -182,7 +182,7 @@
 
       // val[start, end] == word (NOT [start, end)]
       const term = val.slice(start, end + 1);
-      if (!term) {
+      if (!msc_valid_word_regex.test(term)) {
         return;
       }
 
@@ -201,7 +201,7 @@
               return;
             }
             for (const res of results) {
-              autocomplete_append_entry(res);
+              append_entry(res);
             }
           })
           .catch(err => {
@@ -213,7 +213,7 @@
     return {
       set_value: val => {
         $input.value = val;
-        autocomplete_sanitise();
+        sanitise();
       },
     };
   };
@@ -354,7 +354,7 @@
         }
 
         // Replace `%20` with nicer looking `+`
-        return `${prefix}${field}:${encodeURIComponent(words).replace(/%20/g, "+")}`;
+        return `${prefix}${field}:${encodeURIComponent(words.join(" ")).replace(/%20/g, "+")}`;
       }).filter(w => w).join("|");
 
       const query_parts = [];
