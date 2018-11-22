@@ -4,6 +4,9 @@ const fs = require("fs-extra");
 const moment = require("moment");
 const minimist = require("minimist");
 const long = require("long");
+const Entities = require("html-entities").AllHtmlEntities;
+
+const entities = new Entities();
 
 const ARGS = minimist(process.argv.slice(2));
 
@@ -27,7 +30,7 @@ const jobs = fs.readJSONSync(BUILD_DATA_RAW)
     title: j.title,
     date: moment.utc(j.postedDate).format("YYYY-M-D"),
     location: j.location,
-    description: j.descriptionTeaser,
+    description: entities.decode(j.descriptionTeaser),
   }));
 
 const job_words = new Map();
