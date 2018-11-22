@@ -216,20 +216,21 @@
       // we will know if another search has already been made and therefore
       // these results are stale
       const this_search_timeout = search_timeout = setTimeout(() => {
-        fetch(`/autocomplete?f=${$auto.dataset.field}&t=${encodeURIComponent(term)}`)
-          .then(res => res.json())
-          .then(results => {
-            if (search_timeout !== this_search_timeout) {
-              // This request is stale
-              return;
-            }
-            for (const res of results) {
-              append_entry(res);
-            }
-          })
-          .catch(err => {
+        http_get(`/autocomplete?f=${$auto.dataset.field}&t=${encodeURIComponent(term)}`, results => {
+          if (search_timeout !== this_search_timeout) {
+            // This request is stale
+            return;
+          }
+
+          if (!results) {
             // TODO
-          });
+            return;
+          }
+
+          for (const res of results) {
+            append_entry(res);
+          }
+        });
       }, 0 /* Debounce rate */);
     });
 
@@ -397,7 +398,8 @@
     $jobs_heading.textContent = heading;
   };
 
-  // It's possible to have concurrent searches when using the Back and Forward history buttons
+  // It's possible to have concurrent searches when using the Back and Forward history buttons,
+  // as well as hitting Enter to submit form
   let current_search_query;
   const search = query => {
       const query_string = query.build();
@@ -417,6 +419,7 @@
           // Stale results
           return;
         }
+        current_search_query = undefined;
 
         $filter_form_submit.disabled = false;
 
