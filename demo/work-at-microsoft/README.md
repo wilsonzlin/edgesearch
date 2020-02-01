@@ -1,4 +1,4 @@
-# [wilsonl.in/msft](https://work-at-microsoft.wilsonl.in/jobs)
+# [wilsonl.in/msft](https://wilsonl.in/msft)
 
 An at-edge web service + app for finding careers at Microsoft, built as a demo for [edgesearch](https://github.com/wilsonzlin/edgesearch).
 
@@ -18,7 +18,7 @@ Faster and more precise than the official website, and comes with a nice UI.
 This app allows the combining of simple filters to form advanced, precise queries.
 Combined with the performance optimisations, it delivers far more filtered results in usually under a second.
 
-For a UI comparison, see the [screenshots folder](screenshots).
+For a UI comparison, see the [screenshots folder](./screenshots).
 
 ## Technical
 
@@ -93,7 +93,7 @@ The worker code is built using [edgesearch](https://github.com/wilsonzlin/edgese
 
 ### Frontend
 
-All the app files are located in [src](src):
+All the app files are located in [src](./src/):
 
 - `page.hbs`: main HTML file, written as a Handlebars template to remove repetition and allow conditional content
 - `script.js`: custom JS that contains logic for autocomplete, animations, searching, and general UX
@@ -105,10 +105,10 @@ All files except for `assets/*` are minified and bundled together into one HTML 
 
 ### Data
 
-Data fetching and processing is done by [data.ts](build/src/data/data.ts).
+Data fetching and processing is done by [data.ts](./build/src/data/data.ts).
 
 ### Build
 
-Both the worker and client app need to be built. [client.ts](build/src/client/client.ts) and [worker.js](build/src/worker/worker.ts) take care of building.
+Both the worker and client app need to be built. [client.ts](./build/src/client/client.ts) and [worker.js](./build/src/worker/worker.ts) take care of building.
 
 Building the worker requires at least clang 7 and lld 7. 
