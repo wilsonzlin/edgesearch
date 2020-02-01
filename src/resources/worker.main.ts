@@ -57,7 +57,7 @@ const findWordPos = (words: string[], word: string, left: number = 0, right: num
       : findWordPos(words, word, midPos, right);
 };
 
-const autocompleteQsRegex = /^\\?f=([^&]+)&t=(.*)$/;
+const autocompleteQsRegex = /^\?f=([^&]+)&t=(.*)$/;
 
 const handleAutocomplete = (url: URL) => {
   const matches = autocompleteQsRegex.exec(url.search);
