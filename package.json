@@ -1,6 +1,6 @@
 {
   "name": "edgesearch",
-  "description": "Build a full text search API using Cloudflare Workers, WebAssembly, and bit fields",
+  "description": "Fast serverless full-text search at the edge using Cloudflare Workers, WebAssembly, and bit fields",
   "version": "0.0.1",
   "main": "dist/main.js",
   "files": [
