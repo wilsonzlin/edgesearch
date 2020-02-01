@@ -32,17 +32,6 @@
 
   /*
    *
-   *  EXTERNAL VARIABLES
-   *
-   */
-
-  const msc_description = "{__VAR_DESCRIPTION}";
-  const msc_extract_words_fn = {__VAR_EXTRACT_WORDS_FN};
-  const msc_valid_word_regex = {__VAR_VALID_WORD_REGEX};
-  const msc_fields = new Set({__VAR_FIELDS});
-
-  /*
-   *
    *  DOM
    *
    */

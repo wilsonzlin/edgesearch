@@ -1,54 +1,40 @@
 {
-  "name": "work-at-microsoft",
-  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bit fields",
-  "private": true,
+  "name": "edgesearch",
+  "description": "Build a full text search API using Cloudflare Workers, WebAssembly, and bit fields",
+  "version": "0.0.1",
+  "main": "dist/main.js",
+  "files": [
+    "dist/**"
+  ],
   "scripts": {
-    "clean": "rm -rf cache build",
-    "build-data": "node data/retrieve.js && node data/process.js",
-    "build-client": "node build-client.js",
-    "build-worker": "node build-worker.js"
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && cp -r src/resources/* dist/resources && chmod +x dist/main.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wilsonzlin/careers-at-microsoft.git"
+    "url": "git+https://github.com/wilsonzlin/edgesearch.git"
   },
   "author": {
-    "email": "contact@wilsonl.in",
+    "email": "code@wilsonl.in",
     "name": "Wilson Lin",
     "url": "https://wilsonl.in/"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/wilsonzlin/careers-at-microsoft/issues"
+    "url": "https://github.com/wilsonzlin/edgesearch/issues"
   },
-  "homepage": "https://github.com/wilsonzlin/careers-at-microsoft#readme",
+  "homepage": "https://github.com/wilsonzlin/edgesearch#readme",
   "dependencies": {
-    "@babel/core": "^7.1.5",
-    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
-    "@babel/plugin-transform-arrow-functions": "^7.0.0",
-    "@babel/plugin-transform-block-scoping": "^7.1.5",
-    "@babel/plugin-transform-destructuring": "^7.1.3",
-    "@babel/plugin-transform-for-of": "^7.0.0",
-    "@babel/plugin-transform-parameters": "^7.1.0",
-    "@babel/plugin-transform-shorthand-properties": "^7.0.0",
-    "@babel/plugin-transform-spread": "^7.0.0",
-    "@babel/plugin-transform-template-literals": "^7.0.0",
-    "animejs": "^2.2.0",
-    "cheerio": "^1.0.0-rc.2",
-    "clean-css": "^4.2.1",
-    "clipboard": "^2.0.3",
-    "escape-string-regexp": "^1.0.5",
-    "fs-extra": "^7.0.1",
-    "handlebars": "^4.0.11",
-    "html-entities": "^1.2.1",
-    "html-minifier": "^3.5.21",
     "long": "^4.0.0",
     "minimist": "^1.2.0",
-    "moment": "^2.22.2",
-    "promise-polyfill": "^8.1.0",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.5",
-    "shelljs": "^0.8.3",
-    "uglify-es": "^3.3.9"
+    "terser": "^4.4.0",
+    "tmp": "^0.1.0",
+    "typescript": "^3.7.2"
+  },
+  "devDependencies": {
+    "@types/long": "^4.0.1",
+    "@types/node": "^12.12.12",
+    "@types/terser": "^3.12.0",
+    "@types/tmp": "^0.1.0"
   }
 }

@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "dependencies": {
+    "edgesearch": "file:../../.."
+  },
+  "devDependencies": {
+    "@types/node": "^13.7.0",
+    "typescript": "^3.7.5"
+  }
+}

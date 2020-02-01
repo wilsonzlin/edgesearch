@@ -166,6 +166,14 @@
 
     <style>{{{style}}}</style>
     <script>
+      const msc_description = "{{{description}}}";
+      const msc_extract_words_fn = {{{wordsExtractor}}};
+      const msc_valid_word_regex = {{{validWordRegExp}}};
+      const msc_fields = new Set([
+        {{#each fields}}
+          "{{this}}",
+        {{/each}}
+      ]);
       {{{script}}}
     </script>
   </body>

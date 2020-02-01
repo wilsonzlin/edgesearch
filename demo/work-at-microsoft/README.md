@@ -106,10 +106,10 @@ All files except for `assets/*` are minified and bundled together into one HTML 
 
 ### Data
 
-Data retrieval is done by [`data/retrieve.js`](data/retrieve.js), while processing is done by [`data/process.js`](data/process.js).
+Data retrieval is done by [`data/data.ts`](build/data/retrieve.js), while processing is done by [`data/process.js`](build/data/process.js).
 
 ### Build
 
-Both the worker and client app need to be built. [`build-client.js`](build-client.js) and [`build-worker.js`](build-worker.js) take care of building.
+Both the worker and client app need to be built. [`client.ts`](build-client.js) and [`build-worker.js`](build-worker.js) take care of building.
 
 Building the worker requires at least clang 7 and lld 7. 

@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "dependencies": {
+    "animejs": "^2.2.0",
+    "clipboard": "^2.0.3",
+    "promise-polyfill": "^8.1.0"
+  }
+}

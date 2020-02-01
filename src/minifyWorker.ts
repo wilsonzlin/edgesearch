@@ -1,7 +1,7 @@
-const uglifyes = require("uglify-es");
+import terser from 'terser';
 
-module.exports.minify_js = js => {
-  const {error, warnings, code} = uglifyes.minify(js, {
+export const minifyWorker = (js: string): string => {
+  const {error, warnings, code} = terser.minify(js, {
     mangle: true,
     compress: {
       booleans: true,
@@ -28,11 +28,18 @@ module.exports.minify_js = js => {
     },
     warnings: true,
   });
+
   if (error) {
     throw error;
   }
+
+  if (!code) {
+    throw new Error(`Failed to minify`);
+  }
+
   if (warnings) {
     warnings.forEach(console.log);
   }
+
   return code;
 };

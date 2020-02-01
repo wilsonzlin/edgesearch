@@ -1,0 +1,24 @@
+{
+  "private": true,
+  "dependencies": {
+    "@babel/core": "^7.1.5",
+    "@babel/plugin-proposal-object-rest-spread": "^7.0.0",
+    "@babel/plugin-transform-arrow-functions": "^7.0.0",
+    "@babel/plugin-transform-block-scoping": "^7.1.5",
+    "@babel/plugin-transform-destructuring": "^7.1.3",
+    "@babel/plugin-transform-for-of": "^7.0.0",
+    "@babel/plugin-transform-parameters": "^7.1.0",
+    "@babel/plugin-transform-shorthand-properties": "^7.0.0",
+    "@babel/plugin-transform-spread": "^7.0.0",
+    "@babel/plugin-transform-template-literals": "^7.0.0",
+    "clean-css": "^4.2.1",
+    "handlebars": "^4.0.11",
+    "html-minifier": "^3.5.21",
+    "terser": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/babel__core": "^7.1.3",
+    "@types/clean-css": "^4.2.1",
+    "@types/html-minifier": "^3.5.3"
+  }
+}
