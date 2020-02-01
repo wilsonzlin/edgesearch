@@ -87,5 +87,5 @@ export const buildData = <E extends Entry, Searchable extends Field<E>> (entries
     ])),
   ])) as BitFieldIds<E, Searchable>;
 
-  return {bitFields: bitFields, bitfieldIds: bitFieldIds};
+  return {bitFields, bitFieldIds};
 };

@@ -1,8 +1,6 @@
 {
   "include": [
-    "*.ts",
-    "client/*.ts",
-    "data/*.ts"
+    "src/**/*.ts"
   ],
   "compilerOptions": {
     "allowJs": false,
@@ -15,8 +13,7 @@
       "es7",
       "es2017",
       "es2018",
-      "es2019",
-      "webworker"
+      "es2019"
     ],
     "module": "commonjs",
     "noFallthroughCasesInSwitch": true,
@@ -31,6 +28,6 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es6"
+    "target": "es2019"
   }
 }

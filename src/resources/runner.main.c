@@ -60,7 +60,7 @@ query_t* init(void) {
 	return query;
 }
 
-static bf_elem_t bitfields[BITFIELDS_COUNT][BITFIELD_LENGTH] = BITFIELDS;
+static bf_elem_t bitfields[BITFIELDS_COUNT][BITFIELD_LENGTH] = __BITFIELDS_ARRAY_INITIALISER;
 static bf_elem_t bf_working[3][BITFIELD_LENGTH];
 static bf_elem_t bf_result[BITFIELD_LENGTH];
 

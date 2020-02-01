@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf dist build/dist",
-    "build-build": "cd build && tsc",
-    "build-client": "npm run build-build && node build/client/dist/client.js",
-    "build-data": "npm run build-build && node build/data/dist/data.js",
-    "build-worker": "npm run build-build && node build/worker/dist/worker.js"
+    "build-build": "cd build && npm i && npx tsc",
+    "build-client": "node build/dist/client/client.js",
+    "build-data": "node build/dist/data/data.js",
+    "build-worker": "node build/dist/worker/worker.js"
   },
   "repository": {
     "type": "git",

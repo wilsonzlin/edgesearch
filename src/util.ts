@@ -8,9 +8,10 @@ export const uniq = <T> (vals: T[]): T[] => [...new Set(vals)];
 
 export const mapSet = <T, R> (set: Set<T>, map: (v: T) => R): R[] => [...set].map(map);
 
-
-export const tmpFile = () => new Promise<{ path: string, fd: number }>((resolve, reject) => {
-  tmp.file((err, path, fd) => {
+export const tmpFile = (ext: string) => new Promise<{ path: string, fd: number }>((resolve, reject) => {
+  tmp.file({
+    postfix: `.${ext}`,
+  }, (err, path, fd) => {
     if (err) {
       return reject(err);
     }
@@ -24,15 +25,6 @@ export const writeFile = (fd: number, contents: string | Buffer) => new Promise<
       return reject(err);
     }
     resolve();
-  });
-});
-
-export const readFile = (fd: number) => new Promise<Buffer>((resolve, reject) => {
-  fs.readFile(fd, (err, data) => {
-    if (err) {
-      return reject(err);
-    }
-    resolve(data);
   });
 });
 

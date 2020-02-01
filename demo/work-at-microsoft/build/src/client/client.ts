@@ -160,4 +160,5 @@ Promise.all([
     style: css,
   }))
   .then(minifyHTML)
-  .then(html => fs.writeFile(CLIENT_DIST_HTML, html));
+  .then(html => fs.writeFile(CLIENT_DIST_HTML, html))
+  .catch(console.error);

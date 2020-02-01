@@ -1,4 +1,4 @@
-import {cmd, readFile, tmpFile, writeFile} from './util';
+import {cmd, tmpFile, writeFile} from './util';
 
 export type CompilerMacros = {
   [name: string]: string | number;
@@ -11,6 +11,7 @@ export const compileToWasm = async (code: string, {
   extraWarnings = true,
   warningsAsErrors = true,
   macros = {},
+  outputFile,
 }: {
   standard?: 'c89' | 'c99' | 'c11' | 'c17';
   optimisationLevel?: 0 | 1 | 2 | 3 | 'fast' | 's' | 'z' | 'g';
@@ -18,11 +19,11 @@ export const compileToWasm = async (code: string, {
   extraWarnings?: boolean;
   warningsAsErrors?: boolean;
   macros?: CompilerMacros;
-} = {}): Promise<Buffer> => {
-  const {path: sourceCodePath, fd: sourceCodeFd} = await tmpFile();
+  outputFile: string;
+}): Promise<void> => {
+  const {path: sourceCodePath, fd: sourceCodeFd} = await tmpFile('c');
   await writeFile(sourceCodeFd, code);
 
-  const {path: outputWasmPath, fd: outputWasmFd} = await tmpFile();
   await cmd(
     'clang',
     `-std=${standard}`,
@@ -31,11 +32,9 @@ export const compileToWasm = async (code: string, {
     extraWarnings ? '-Wextra' : null,
     warningsAsErrors ? '-Werror' : null,
     '--target=wasm32-unknown-unknown-wasm',
-    '-nostdlib -nostdinc -isystemstubs -Wl,--no-entry -Wl,--import-memory',
+    '-nostdlib', '-nostdinc', '-isystemstubs', '-Wl,--no-entry', '-Wl,--import-memory',
     ...Object.entries(macros).map(([name, code]) => `-D${name}=${code}`),
     sourceCodePath,
-    `-o "${outputWasmPath}"`
+    '-o', outputFile,
   );
-
-  return readFile(outputWasmFd);
 };

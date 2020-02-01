@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc && cp -r src/resources/* dist/resources && chmod +x dist/main.js"
+    "build": "npm run clean && tsc && cp -r src/resources/* dist/resources && chmod +x dist/main.js",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",

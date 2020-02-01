@@ -1,15 +1,20 @@
 import * as path from 'path';
 import {BitFieldElementSize} from 'edgesearch';
+import mkdirp from 'mkdirp';
 
-export const CACHE_DIR = path.join(__dirname, 'cache');
-export const DATA_RAW_JSON = path.join(__dirname, 'cache', 'raw.json');
-export const DATA_PARSED_JSON = path.join(__dirname, 'cache', 'parsed.json');
-export const CLIENT_SRC_DIR = path.join(__dirname, '..', 'src');
+const BUILD_DIR = path.join(__dirname, '..');
+export const CACHE_DIR = path.join(BUILD_DIR, 'cache');
+mkdirp.sync(CACHE_DIR);
+export const DATA_RAW_JSON = path.join(BUILD_DIR, 'cache', 'raw.json');
+export const DATA_PARSED_JSON = path.join(BUILD_DIR, 'cache', 'parsed.json');
+export const CLIENT_SRC_DIR = path.join(BUILD_DIR, '..', 'src');
 export const CLIENT_SRC_HTML_TEMPLATE = path.join(CLIENT_SRC_DIR, 'page.hbs');
-export const DIST_DIR = path.join(__dirname, '..', 'dist');
+export const DIST_DIR = path.join(BUILD_DIR, '..', 'dist');
 export const CLIENT_DIST_DIR = path.join(DIST_DIR, 'client');
+mkdirp.sync(CLIENT_DIST_DIR);
 export const CLIENT_DIST_HTML = path.join(CLIENT_DIST_DIR, 'index.html');
 export const WORKER_DIST_DIR = path.join(DIST_DIR, 'worker');
+mkdirp.sync(WORKER_DIST_DIR);
 
 export const DESCRIPTION = 'Find your next career at Microsoft.';
 
