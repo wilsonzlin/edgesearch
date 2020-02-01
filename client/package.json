@@ -1,0 +1,34 @@
+{
+  "name": "edgesearch-client",
+  "description": "Client for accessing a published edgesearch worker",
+  "version": "0.0.1",
+  "main": "dist/main.js",
+  "files": [
+    "dist/**"
+  ],
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && node build-browser.js",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wilsonzlin/edgesearch.git"
+  },
+  "author": {
+    "email": "code@wilsonl.in",
+    "name": "Wilson Lin",
+    "url": "https://wilsonl.in/"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wilsonzlin/edgesearch/issues"
+  },
+  "homepage": "https://github.com/wilsonzlin/edgesearch#readme",
+  "devDependencies": {
+    "@babel/core": "^7.8.4",
+    "@babel/preset-env": "^7.8.4",
+    "terser": "^4.6.3",
+    "typescript": "^3.7.2"
+  }
+}

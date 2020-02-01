@@ -41,25 +41,11 @@
 
   /*
    *
-   *  HTTP
+   * CLIENT
    *
    */
 
-  const http_get = (url, callback) => {
-    const xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = () => {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
-        const status = xhr.status;
-        if (status === 200) {
-          callback(JSON.parse(xhr.responseText));
-        } else {
-          callback();
-        }
-      }
-    };
-    xhr.open('GET', `https://work-at-microsoft.wlin.workers.dev${url}`);
-    xhr.send();
-  };
+  const client = new edgesearch.Client('work-at-microsoft.wlin.workers.dev');
 
   /*
    *
@@ -205,7 +191,7 @@
       // we will know if another search has already been made and therefore
       // these results are stale
       const this_search_timeout = search_timeout = setTimeout(() => {
-        http_get(`/autocomplete?f=${$auto.dataset.field}&t=${encodeURIComponent(term)}`, results => {
+        client.autocomplete($auto.dataset.field, term).then(results => {
           if (search_timeout !== this_search_timeout) {
             // This request is stale
             return;
@@ -346,41 +332,6 @@
     return `${Array(delta + 1).join(p)}${s}`;
   };
 
-  class Query {
-    constructor () {
-      // { mode: { field: Set() } }
-      this.terms = {};
-    }
-
-    add (mode, field, words) {
-      const terms = this.terms;
-      if (!terms[mode]) {
-        terms[mode] = {};
-      }
-      if (!terms[mode][field]) {
-        terms[mode][field] = new Set();
-      }
-      for (const w of words) {
-        terms[mode][field].add(w);
-      }
-    }
-
-    build () {
-      const terms = this.terms;
-      const query_parts = [];
-      // TODO Abstract modes
-      for (const mode of Object.keys(terms).sort()) {
-        for (const field of Object.keys(terms[mode]).sort()) {
-          for (const word of Array.from(terms[mode][field]).sort()) {
-            // Mode and field should be URL safe; word should be too but encode just to be sure
-            query_parts.push(encodeURIComponent(`${mode}_${field}_${word}`));
-          }
-        }
-      }
-      return `?q=${query_parts.join('&')}`;
-    }
-  }
-
   const set_title_and_heading = (title, heading) => {
     // TODO Abstract title suffix
     document.title = `${title ? `${title} | ` : ''}Work @ Microsoft`;
@@ -403,7 +354,7 @@
       }
       $filter_form_submit.disabled = true;
 
-      http_get(`/search${query_string}`, data => {
+      client.search(query).then(data => {
         if (current_search_query !== query_string) {
           // Stale results
           return;
@@ -448,7 +399,7 @@
 
     // Always query for latest set of .search-term elements
     // Only find in form to avoid finding in templates on unsupported browsers
-    const query = new Query();
+    const query = new edgesearch.Query();
     const hash = '#' + $$('.search-term', $filter_form).map($term => {
       const mode = $term.children[0].value;
       const field = $term.dataset.field;
@@ -484,7 +435,7 @@
   const handle_hash = () => {
     reflect_url();
     clear_search_terms();
-    const query = new Query();
+    const query = new edgesearch.Query();
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
       const mode = /^!/.test(part) ? '3' :

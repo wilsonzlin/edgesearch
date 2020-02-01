@@ -3,6 +3,7 @@
   "dependencies": {
     "animejs": "^2.2.0",
     "clipboard": "^2.0.3",
+    "edgesearch-client": "^0.0.1",
     "promise-polyfill": "^8.1.0"
   }
 }
