@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 (() => {
   /*
@@ -57,7 +57,7 @@
         }
       }
     };
-    xhr.open("GET", url);
+    xhr.open('GET', `https://work-at-microsoft.wlin.workers.dev${url}`);
     xhr.send();
   };
 
@@ -67,11 +67,11 @@
    *
    */
 
-  const $template_autocomplete_entry = $("#template-autocomplete-entry");
+  const $template_autocomplete_entry = $('#template-autocomplete-entry');
   const autocomplete_init = $auto => {
-    const $list = $(".autocomplete-list", $auto);
+    const $list = $('.autocomplete-list', $auto);
 
-    const $input = $(".autocomplete-input", $auto);
+    const $input = $('.autocomplete-input', $auto);
     let last_selection_start;
     let last_selection_end;
 
@@ -82,19 +82,19 @@
 
     const focus_entry = idx => {
       if (entry_focus != undefined) {
-        $$entries[entry_focus].classList.remove("autocomplete-entry-focus");
+        $$entries[entry_focus].classList.remove('autocomplete-entry-focus');
       }
       entry_focus = idx;
       if (idx != undefined) {
-        $$entries[idx].classList.add("autocomplete-entry-focus");
+        $$entries[idx].classList.add('autocomplete-entry-focus');
       }
     };
 
     const use_focused_entry = () => {
       const value = $$entries[entry_focus].textContent;
       $input.value = $input.value.slice(0, last_selection_start) +
-                     value +
-                     $input.value.slice(last_selection_end + 1);
+        value +
+        $input.value.slice(last_selection_end + 1);
       const new_cursor = last_selection_start + value.length;
       $input.focus();
       $input.setSelectionRange(new_cursor, new_cursor);
@@ -107,12 +107,12 @@
       $list.appendChild($li);
       const id = $$entries.push($li) - 1;
 
-      $li.addEventListener("click", use_focused_entry);
+      $li.addEventListener('click', use_focused_entry);
 
-      $li.addEventListener("mouseover", () => {
+      $li.addEventListener('mouseover', () => {
         focus_entry(id);
       });
-      $li.addEventListener("mouseout", () => {
+      $li.addEventListener('mouseout', () => {
         focus_entry(undefined);
       });
     };
@@ -126,11 +126,11 @@
     };
 
     const sanitise = () => {
-      $input.value = msc_extract_words_fn($input.value).join(" ");
+      $input.value = msc_extract_words_fn($input.value).join(' ');
     };
     sanitise();
 
-    $input.addEventListener("keydown", e => {
+    $input.addEventListener('keydown', e => {
       const key = e.keyCode;
       if ($$entries.length) {
         switch (key) {
@@ -159,17 +159,17 @@
       }
     });
 
-    $input.addEventListener("keypress", e => {
+    $input.addEventListener('keypress', e => {
       const key = e.key.toLowerCase();
       // Don't try to control spaces, as it makes it difficult to split and insert words at weird places
-      if (key != " " &&
-          !msc_valid_word_regex.test(key)) {
+      if (key != ' ' &&
+        !msc_valid_word_regex.test(key)) {
         e.preventDefault();
       }
     });
     // Don't clean on "change" as that will break autocomplete insertion
-    $input.addEventListener("paste", () => setTimeout(sanitise, 100));
-    $input.addEventListener("input", () => {
+    $input.addEventListener('paste', () => setTimeout(sanitise, 100));
+    $input.addEventListener('input', () => {
       clearTimeout(search_timeout);
       // Necessary to invalidate previous fetch requests (see below)
       search_timeout = undefined;
@@ -178,17 +178,17 @@
       const pos = $input.selectionStart - 1; // val[pos] == new_char
       const val = $input.value;
 
-      if (val[pos] == " ") {
+      if (val[pos] == ' ') {
         return;
       }
 
       let start = pos;
-      while (start > 0 && val[start - 1] != " ") {
+      while (start > 0 && val[start - 1] != ' ') {
         start--;
       }
 
       let end = pos;
-      while (end < val.length - 1 && val[end + 1] != " ") {
+      while (end < val.length - 1 && val[end + 1] != ' ') {
         end++;
       }
 
@@ -237,10 +237,10 @@
    *
    */
 
-  const $pane = $("#pane");
-  const $pane_toggle_button = $("#pane-toggle-button");
-  $pane_toggle_button.addEventListener("click", () => {
-    $pane.classList.toggle("pane-open");
+  const $pane = $('#pane');
+  const $pane_toggle_button = $('#pane-toggle-button');
+  $pane_toggle_button.addEventListener('click', () => {
+    $pane.classList.toggle('pane-open');
   });
 
   /*
@@ -249,10 +249,10 @@
    *
    */
 
-  const $template_search_term = $("#template-search-term");
+  const $template_search_term = $('#template-search-term');
 
   const clear_search_terms = () => {
-    for (const $term of $$(".search-term", $filter_form)) {
+    for (const $term of $$('.search-term', $filter_form)) {
       $term.remove();
     }
   };
@@ -268,24 +268,24 @@
     $target.appendChild($new);
 
     if (mode) {
-      $(".search-term-mode", $new).value = mode;
+      $('.search-term-mode', $new).value = mode;
     }
 
-    const $autocomplete = $(".search-term-words", $new);
+    const $autocomplete = $('.search-term-words', $new);
     $autocomplete.dataset.field = field;
     const {set_value} = autocomplete_init($autocomplete);
     if (words) {
       set_value(words);
     }
 
-    $(".search-term-button", $new).addEventListener("click", () => {
+    $('.search-term-button', $new).addEventListener('click', () => {
       $new.remove();
     });
   };
 
   // Don't use capture event listener as it is buggy and slow
-  for (const $button of $$(".search-category-button")) {
-    $button.addEventListener("click", () => {
+  for (const $button of $$('.search-category-button')) {
+    $button.addEventListener('click', () => {
       const field = $button.dataset.field;
       new_search_term(field);
     });
@@ -297,8 +297,8 @@
    *
    */
 
-  const $$share_links = $$("[data-service]");
-  const $share_URL = $("#share-URL");
+  const $$share_links = $$('[data-service]');
+  const $share_URL = $('#share-URL');
   const reflect_url = () => {
     $share_URL.value = location.href;
     let ue_title = encodeURIComponent(document.title);
@@ -316,27 +316,27 @@
     }
   };
 
-  const $template_job = $("#template-job");
-  const $jobs = $("#jobs");
-  const $filter_form = $("#filter-form");
-  const $filter_form_submit = $("#filter-form-submit");
-  const $jobs_heading = $("#jobs-heading");
+  const $template_job = $('#template-job');
+  const $jobs = $('#jobs');
+  const $filter_form = $('#filter-form');
+  const $filter_form_submit = $('#filter-form-submit');
+  const $jobs_heading = $('#jobs-heading');
   const MONTHS = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
-  const left_pad = (s, n, p = "0") => {
+  const left_pad = (s, n, p = '0') => {
     s = `${s}`;
     const delta = n - s.length;
     if (delta <= 0) {
@@ -377,13 +377,13 @@
           }
         }
       }
-      return `?q=${query_parts.join("&")}`;
+      return `?q=${query_parts.join('&')}`;
     }
   }
 
   const set_title_and_heading = (title, heading) => {
     // TODO Abstract title suffix
-    document.title = `${title ? `${title} | ` : ""}Work @ Microsoft`;
+    document.title = `${title ? `${title} | ` : ''}Work @ Microsoft`;
     $jobs_heading.textContent = heading;
   };
 
@@ -397,8 +397,8 @@
       }
       current_search_query = query_string;
 
-      set_title_and_heading(undefined, "Searching");
-      for (const $job of $$(".job", $jobs)) {
+      set_title_and_heading(undefined, 'Searching');
+      for (const $job of $$('.job', $jobs)) {
         $job.remove();
       }
       $filter_form_submit.disabled = true;
@@ -413,28 +413,28 @@
         $filter_form_submit.disabled = false;
 
         if (!data) {
-          set_title_and_heading("Error", "Something went wrong");
+          set_title_and_heading('Error', 'Something went wrong');
           return;
         }
 
-        const {jobs, overflow} = data;
+        const {results: jobs, overflow} = data;
 
-        const count = `${jobs.length}${overflow ? "+" : ""}`;
+        const count = `${jobs.length}${overflow ? '+' : ''}`;
         const plural = jobs.length != 1;
-        const title = `${count} result${plural ? "s" : ""}`;
-        const heading = `${count} match${plural ? "es" : ""}`;
+        const title = `${count} result${plural ? 's' : ''}`;
+        const heading = `${count} match${plural ? 'es' : ''}`;
 
         set_title_and_heading(title, heading);
 
         for (const job of jobs) {
           const $job = import_template($template_job);
-          $(".job-title-link", $job).textContent = job.title;
-          $(".job-title-link", $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
-          $(".job-location", $job).textContent = job.location;
-          $(".job-description", $job).textContent = job.description;
-          const [year, month, day] = job.date.split("-").map(v => Number.parseInt(v, 10));
-          $(".job-date", $job).textContent = [MONTHS[month - 1], day, year].join(" ");
-          $(".job-date", $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
+          $('.job-title-link', $job).textContent = job.title;
+          $('.job-title-link', $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+          $('.job-location', $job).textContent = job.location;
+          $('.job-description', $job).textContent = job.description;
+          const [year, month, day] = job.date.split('-').map(v => Number.parseInt(v, 10));
+          $('.job-date', $job).textContent = [MONTHS[month - 1], day, year].join(' ');
+          $('.job-date', $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
           $jobs.appendChild($job);
         }
       });
@@ -449,13 +449,13 @@
     // Always query for latest set of .search-term elements
     // Only find in form to avoid finding in templates on unsupported browsers
     const query = new Query();
-    const hash = "#" + $$(".search-term", $filter_form).map($term => {
+    const hash = '#' + $$('.search-term', $filter_form).map($term => {
       const mode = $term.children[0].value;
       const field = $term.dataset.field;
       const prefix = {
-        "1": "",
-        "2": "~",
-        "3": "!",
+        '1': '',
+        '2': '~',
+        '3': '!',
       }[mode];
       const words = msc_extract_words_fn($term.children[1].children[0].value);
       if (!words.length) {
@@ -465,15 +465,15 @@
       query.add(mode, field, words);
 
       // Replace `%20` with nicer looking `+`
-      return `${prefix}${field}:${encodeURIComponent(words.join(" ")).replace(/%20/g, "+")}`;
-    }).filter(w => w).join("|");
+      return `${prefix}${field}:${encodeURIComponent(words.join(' ')).replace(/%20/g, '+')}`;
+    }).filter(w => w).join('|');
 
     history.pushState(null, undefined, hash);
     reflect_url();
     search(query);
   };
 
-  $filter_form.addEventListener("submit", handle_form);
+  $filter_form.addEventListener('submit', handle_form);
 
   /*
    *
@@ -486,18 +486,18 @@
     clear_search_terms();
     const query = new Query();
 
-    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, "%20")).split("|")) {
-      const mode = /^!/.test(part) ? "3" :
-                   /^~/.test(part) ? "2" :
-                   "1";
+    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
+      const mode = /^!/.test(part) ? '3' :
+        /^~/.test(part) ? '2' :
+          '1';
 
-      const [field, words_raw] = part.slice(mode != "1").split(":", 2);
+      const [field, words_raw] = part.slice(mode != '1').split(':', 2);
 
       if (!msc_fields.has(field)) {
         continue;
       }
 
-      const words = msc_extract_words_fn(words_raw || "");
+      const words = msc_extract_words_fn(words_raw || '');
       if (!words.length) {
         continue;
       }
@@ -509,7 +509,7 @@
     search(query);
   };
 
-  window.addEventListener("popstate", handle_hash);
+  window.addEventListener('popstate', handle_hash);
   handle_hash();
 
   /*
@@ -518,7 +518,7 @@
    *
    */
 
-  new ClipboardJS("#share-copy-button");
+  new ClipboardJS('#share-copy-button');
 
   /*
    *
@@ -526,22 +526,22 @@
    *
    */
 
-  const $header_logo = $("#header-logo");
+  const $header_logo = $('#header-logo');
   const $$header_logo_quads = [
-    [$("#ms-logo-nw"), "#f24f1c"],
-    [$("#ms-logo-ne"), "#80bb00"],
-    [$("#ms-logo-se"), "#ffba00"],
-    [$("#ms-logo-sw"), "#00a6f0"],
+    [$('#ms-logo-nw'), '#f24f1c'],
+    [$('#ms-logo-ne'), '#80bb00'],
+    [$('#ms-logo-se'), '#ffba00'],
+    [$('#ms-logo-sw'), '#00a6f0'],
   ];
-  const $header_text = $("#header-text");
-  const $header_brands = $("#header-brands");
-  const $$header_brand_icons = $$("li", $header_brands);
+  const $header_text = $('#header-text');
+  const $header_brands = $('#header-brands');
+  const $$header_brand_icons = $$('li', $header_brands);
 
   const animate = (target, opts) =>
     anime({
       targets: target,
       duration: 1000,
-      easing: "easeOutCubic",
+      easing: 'easeOutCubic',
       ...opts,
     }).finished;
 
@@ -558,15 +558,15 @@
       delay: INIT_DELAY + 750,
     }),
     ...$$header_logo_quads.map(([$quad, to], no) => animate($quad, {
-      backgroundColor: ["#fff", to],
+      backgroundColor: ['#fff', to],
       delay: INIT_DELAY + 950 + (no * 100),
     })),
   ]).then(() => animate($header_text, {
-    width: "100%",
+    width: '100%',
   })).then(() => {
-    $header_brands.classList.remove("header-brands-init");
+    $header_brands.classList.remove('header-brands-init');
   }).then(() => Promise.all($$header_brand_icons.map(($icon, no) => animate($icon, {
-    translateY: ["-100%", 0],
+    translateY: ['-100%', 0],
     opacity: 1,
     delay: no * 100,
   }))));

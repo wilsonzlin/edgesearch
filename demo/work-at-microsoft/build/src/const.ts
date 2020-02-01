@@ -42,9 +42,7 @@ export const WORD_MAP: { [original: string]: string[] } = {
   'sw': ['software'],
 };
 
-// NOTE: This regex is used to filter keypresses, so it should accept single-character strings
-export const VALID_WORD_SUBREGEX = '[a-z0-9]{1,25}';
-export const VALID_WORD_REGEX = new RegExp(`^${VALID_WORD_SUBREGEX}$`);
+export const VALID_WORD_REGEX = /^[a-z0-9]{1,25}$/;
 
 export const EXTRACT_WORDS_FN = (sentence: string) => sentence
   .replace(/[\-~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}（）、’]/g, ' ')

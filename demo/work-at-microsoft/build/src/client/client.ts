@@ -151,9 +151,11 @@ const copyDir = promisify(ncp);
     .then(([js, css, html, jobsCount]) => Handlebars.compile(html)({
       analytics: GOOGLE_ANALYTICS && analyticsJs(GOOGLE_ANALYTICS),
       description: DESCRIPTION,
-      wordsExtractor: EXTRACT_WORDS_FN.toString()
-        .replace('VALID_WORD_REGEX', VALID_WORD_REGEX.toString())
-        .replace('WORD_MAP', JSON.stringify(WORD_MAP)),
+      wordsExtractor: `(() => {
+        const WORD_MAP = ${JSON.stringify(WORD_MAP)};
+        const VALID_WORD_REGEX = ${VALID_WORD_REGEX};
+        return ${EXTRACT_WORDS_FN.toString().replace(/exports\./g, '')}
+      })()`,
       validWordRegExp: VALID_WORD_REGEX.toString(),
       jobsCount,
       fields: FIELDS,

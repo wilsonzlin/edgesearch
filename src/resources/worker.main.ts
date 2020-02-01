@@ -10,10 +10,23 @@ declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 // Map from a field to a sorted array of every word in every value of that field across all entries.
 const AUTOCOMPLETE_LISTS = new Map(FIELDS.map(field => [field, Object.keys(BIT_FIELD_IDS[field]).sort()]));
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, HEAD, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+const responsePreflight = () => {
+  return new Response(null, {
+    headers: CORS_HEADERS,
+  });
+};
+
 const responseError = (error: string, status: number = 400) =>
   new Response(JSON.stringify({error}), {
     status, headers: {
       'Content-Type': 'application/json',
+      ...CORS_HEADERS,
     },
   });
 
@@ -21,6 +34,7 @@ const responseSuccess = (data: object, status = 200) =>
   new Response(JSON.stringify(data), {
     status, headers: {
       'Content-Type': 'application/json',
+      ...CORS_HEADERS,
     },
   });
 
@@ -43,7 +57,7 @@ const findWordPos = (words: string[], word: string, left: number = 0, right: num
       : findWordPos(words, word, midPos, right);
 };
 
-const autocompleteQsRegex = new RegExp(`^\\?f=([^&]+)&t=(.*)$`);
+const autocompleteQsRegex = /^\\?f=([^&]+)&t=(.*)$/;
 
 const handleAutocomplete = (url: URL) => {
   const matches = autocompleteQsRegex.exec(url.search);
@@ -75,7 +89,7 @@ const handleAutocomplete = (url: URL) => {
 };
 
 // Synchronise mode IDs with mode_t enum in runner.main.c.
-const searchQsPartRegex = new RegExp(`^([012])_([^_]+)_([^&]+)(?:&|$)`);
+const searchQsPartRegex = /^([012])_([^_]+)_([^&]+)(?:&|$)/;
 
 const parseQuery = (qs: string): number[] | undefined => {
   if (!qs.startsWith('?q=')) {
@@ -141,7 +155,7 @@ const parseQuery = (qs: string): number[] | undefined => {
   return !wordsCount ? [] : modeWords.reduce((comb, m) => comb.concat(m, -1), Array<number>());
 };
 
-const wasmMemory = new WebAssembly.Memory({initial: 48});
+const wasmMemory = new WebAssembly.Memory({initial: 96});
 const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {env: {memory: wasmMemory}});
 
 const queryRunner = wasmInstance.exports as {
@@ -191,6 +205,10 @@ const handleSearch = (url: URL) => {
 };
 
 const requestHandler = (request: Request) => {
+  if (request.method == 'OPTIONS') {
+    return responsePreflight();
+  }
+
   const url = new URL(request.url);
 
   switch (url.pathname) {

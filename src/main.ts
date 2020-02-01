@@ -2,6 +2,7 @@ import {compileToWasm} from './compileToWasm';
 import {BitFieldElementSize, buildData, Entry, Field} from './buildData';
 import {promises as fs} from 'fs';
 import * as path from 'path';
+import {minifyWorker} from './minifyWorker';
 
 export {BitFieldElementSize} from './buildData';
 
@@ -54,6 +55,8 @@ export const build = async <E extends Entry, Searchable extends Field<E>> ({
     }),
 
     fs.readFile(WORKER_MAIN, 'utf8')
+      // `exports` is not defined in Workers environment.
+      .then(js => js.replace('Object.defineProperty(exports, "__esModule", { value: true });', ''))
       .then(js => js.replace('require("./worker.config")', JSON.stringify({
         // Keep in sync with variables declared in resources/worker.config.ts.
         MAX_AUTOCOMPLETE_RESULTS: maximumAutocompleteSuggestions,
@@ -63,6 +66,7 @@ export const build = async <E extends Entry, Searchable extends Field<E>> ({
         BIT_FIELD_IDS: data.bitFieldIds,
         FIELDS: searchableFields,
       })))
+      .then(minifyWorker)
       .then(js => fs.writeFile(path.join(outputDir, 'worker.js'), js)),
 
     fs.copyFile(CLOUDFLARE_METADATA, path.join(outputDir, 'metadata.json')),
