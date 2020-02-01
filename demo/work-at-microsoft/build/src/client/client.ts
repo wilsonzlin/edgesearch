@@ -3,9 +3,12 @@ import Path from 'path';
 import CleanCSS from 'clean-css';
 import HTMLMinifier from 'html-minifier';
 import Handlebars from 'handlebars';
-import Babel from '@babel/core';
+import * as Babel from '@babel/core';
 import Terser from 'terser';
+import ncp from 'ncp';
+import {promisify} from 'util';
 import {
+  CLIENT_DIST_DIR,
   CLIENT_DIST_HTML,
   CLIENT_SRC_DIR,
   CLIENT_SRC_HTML_TEMPLATE,
@@ -24,8 +27,8 @@ if (DEBUG) {
   console.log(`Debug mode`);
 }
 
-const generate_analytics = (tracking_id: string) => `
-  <script async src="https://www.googletagmanager.com/gtag/js?id=${tracking_id}"></script>
+const analyticsJs = (trackingId: string) => `
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${trackingId}"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
 
@@ -35,7 +38,7 @@ const generate_analytics = (tracking_id: string) => `
 
     gtag("js", new Date());
 
-    gtag("config", "${tracking_id}");
+    gtag("config", "${trackingId}");
   </script>
 `;
 
@@ -134,31 +137,30 @@ const minifyCSS = (css: string) => DEBUG ? css : new CleanCSS({
   returnPromise: true,
 }).minify(css).then(({styles}) => styles);
 
-Promise.all([
-  concatSrcFiles('js')
-    .then(transpileJS)
-    .then(minifyJS),
+const copyDir = promisify(ncp);
 
-  concatSrcFiles('css')
-    .then(minifyCSS),
+(async () => {
+  await copyDir(Path.join(CLIENT_SRC_DIR, 'assets'), Path.join(CLIENT_DIST_DIR, 'assets'));
 
-  fs.readFile(CLIENT_SRC_HTML_TEMPLATE, 'utf8'),
-
-  fs.readFile(DATA_PARSED_JSON, 'utf8')
-    .then(d => JSON.parse(d).length),
-])
-  .then(([js, css, html, jobsCount]) => Handlebars.compile(html)({
-    analytics: GOOGLE_ANALYTICS && generate_analytics(GOOGLE_ANALYTICS),
-    description: DESCRIPTION,
-    wordsExtractor: EXTRACT_WORDS_FN.toString()
-      .replace('VALID_WORD_REGEX', VALID_WORD_REGEX.toString())
-      .replace('WORD_MAP', JSON.stringify(WORD_MAP)),
-    validWordRegExp: VALID_WORD_REGEX.toString(),
-    jobsCount,
-    fields: FIELDS,
-    script: js,
-    style: css,
-  }))
-  .then(minifyHTML)
-  .then(html => fs.writeFile(CLIENT_DIST_HTML, html))
+  await Promise.all([
+    concatSrcFiles('js').then(transpileJS).then(minifyJS),
+    concatSrcFiles('css').then(minifyCSS),
+    fs.readFile(CLIENT_SRC_HTML_TEMPLATE, 'utf8'),
+    fs.readFile(DATA_PARSED_JSON, 'utf8').then(d => JSON.parse(d).length),
+  ])
+    .then(([js, css, html, jobsCount]) => Handlebars.compile(html)({
+      analytics: GOOGLE_ANALYTICS && analyticsJs(GOOGLE_ANALYTICS),
+      description: DESCRIPTION,
+      wordsExtractor: EXTRACT_WORDS_FN.toString()
+        .replace('VALID_WORD_REGEX', VALID_WORD_REGEX.toString())
+        .replace('WORD_MAP', JSON.stringify(WORD_MAP)),
+      validWordRegExp: VALID_WORD_REGEX.toString(),
+      jobsCount,
+      fields: FIELDS,
+      script: js,
+      style: css,
+    }))
+    .then(minifyHTML)
+    .then(html => fs.writeFile(CLIENT_DIST_HTML, html));
+})()
   .catch(console.error);

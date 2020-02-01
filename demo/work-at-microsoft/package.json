@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf dist build/dist",
-    "build-build": "cd build && npm i && npx tsc",
+    "build-build": "npm run clean && cd build && npm i && npx tsc",
     "build-client": "node build/dist/client/client.js",
     "build-data": "node build/dist/data/data.js",
     "build-worker": "node build/dist/worker/worker.js"
