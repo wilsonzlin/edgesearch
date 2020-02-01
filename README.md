@@ -12,13 +12,15 @@ Build a full text search API using Cloudflare Workers, WebAssembly, and bit fiel
 
 Check out the [demo](./demo) folder for live demos with code.
 
+### Building the worker
+
 ```typescript
 import * as edgesearch from 'edgesearch';
 
 (async () => {
     await edgesearch.build({
         entries: [{
-            artist: 'The Weeknd',
+            artists: 'The Weeknd',
             title: 'Blinding Lights',
             album: 'Blinding Lights',
             genre: 'Synthwave, electropop',
@@ -31,9 +33,25 @@ import * as edgesearch from 'edgesearch';
         maximumQueryWords: 25,
         searchableFields: ['title', 'genre', 'artists'],
         outputDir: './worker',
-        wordsExtractor: s => new Set(s.split(/[\s-;,.]+/)),
+        wordsExtractor: s => new Set(s.toLowerCase().split(/[\s-;,.]+/)),
     });
 })();
+```
+
+### Calling the API
+
+|ID|Mode|
+|---|---|
+|1|Require|
+|2|Contain|
+|3|Exclude|
+
+```typescript
+fetch('https://worker-name.me.workers.dev/search?q=1_artists_weeknd&2_genre_synthwave&2_genre_electropop')
+    .then(res => res.json())
+    .then(({results, overflow}: {results: Song[], overflow: boolean}) => {
+        // Handle search results.
+    });
 ```
 
 ## How it works
