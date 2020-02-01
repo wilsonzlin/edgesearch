@@ -1,23 +1,22 @@
-# [work-at-microsoft.wilsonl.in](https://work-at-microsoft.wilsonl.in/jobs)
+# [wilsonl.in/msft](https://work-at-microsoft.wilsonl.in/jobs)
 
-An at-edge web service + app for finding careers at Microsoft.
+An at-edge web service + app for finding careers at Microsoft, built as a demo for [edgesearch](https://github.com/wilsonzlin/edgesearch).
+
 Faster and more precise than the official website, and comes with a nice UI.
-The result of a weekend project trying to find a better way to search.
+
+![Screenshot of UI](./screenshots/this.png)
 
 ## Features
 
-- Uses bit fields to search for keywords very quickly, efficiently, and accurately
-- All data is stored in a few MBs of memory as code&mdash;no database or storage required
-- Runs on Cloudflare Workers and WebAssembly for extremely fast, scalable performance
-- Clean, responsive UI using vanilla JS and Microsoft Fabric design
+- Uses bit fields to search for keywords very quickly, efficiently, and accurately.
+- All data is stored in a few MBs of memory as code&mdash;no database or storage required.
+- Runs on Cloudflare Workers and WebAssembly for extremely fast, scalable performance.
+- Clean, responsive UI using vanilla JS and Microsoft Fabric design.
 
 ## Improvements
 
 This app allows the combining of simple filters to form advanced, precise queries.
 Combined with the performance optimisations, it delivers far more filtered results in usually under a second.
-
-As an example, during a test run, searching for "machine learning researcher engineer" returned over 3000 results, while taking around 2 seconds.
-Searching for `title requires machine learning + title contains researcher or engineer` gave 8 results in less than 50 milliseconds.
 
 For a UI comparison, see the [screenshots folder](screenshots).
 
@@ -25,7 +24,7 @@ For a UI comparison, see the [screenshots folder](screenshots).
 
 ### Data
 
-All jobs available on careers.microsoft.com are scraped and transformed into an array of simpler JSON objects.
+All jobs available on careers.microsoft.com are fetched and processed into an array of JSON objects.
 Each object represents a job, with fields describing some aspect of the job:
 
 ```json
@@ -88,13 +87,13 @@ The job listings data is embedded within the JS code, and the bit fields are `ui
 
 ## Code
 
-### Back-end
+### Backend
 
-The worker code can be found in the [`worker`](worker/) directory. The JS worker is called `worker.js` and the WASM code is in `worker.c`.
+The worker code is built using [edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details.
 
-### Front-end
+### Frontend
 
-All the app files are located in [`client`](client/):
+All the app files are located in [src](src):
 
 - `page.hbs`: main HTML file, written as a Handlebars template to remove repetition and allow conditional content
 - `script.js`: custom JS that contains logic for autocomplete, animations, searching, and general UX
@@ -106,10 +105,10 @@ All files except for `assets/*` are minified and bundled together into one HTML 
 
 ### Data
 
-Data retrieval is done by [`data/data.ts`](build/data/retrieve.js), while processing is done by [`data/process.js`](build/data/process.js).
+Data fetching and processing is done by [data.ts](build/src/data/data.ts).
 
 ### Build
 
-Both the worker and client app need to be built. [`client.ts`](build-client.js) and [`build-worker.js`](build-worker.js) take care of building.
+Both the worker and client app need to be built. [client.ts](build/src/client/client.ts) and [worker.js](build/src/worker/worker.ts) take care of building.
 
 Building the worker requires at least clang 7 and lld 7. 
