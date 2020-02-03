@@ -1,12 +1,47 @@
 import * as fs from 'fs';
 import * as tmp from 'tmp';
 import {execFile} from 'child_process';
+import Long from 'long';
 
 export const arrayOf = <T> (len: number, map: (i: number) => T): T[] => Array(len).fill(void 0).map((_, i) => map(i));
 
-export const uniq = <T> (vals: T[]): T[] => [...new Set(vals)];
+export const uniq = <T> (vals: Iterable<T>): T[] => [...new Set(vals)];
 
-export const mapSet = <T, R> (set: Set<T>, map: (v: T) => R): R[] => [...set].map(map);
+export const mapSet = <T, R> (set: Set<T>, fn: (v: T) => R): R[] => [...set].map(fn);
+
+export const mapMapValues = <K, T, R> (map: Map<K, T>, fn: (v: T, k: K) => R): Map<K, R> => new Map([...map.entries()].map(([key, value]) => [key, fn(value, key)]));
+
+export const mapMap = <K, T, R> (map: Map<K, T>, fn: (v: T, k: K) => R): R[] => [...map.entries()].map(([key, value]) => fn(value, key));
+
+export const extendSet = <T> (target: Set<T>, extension: Set<T>): Set<T> => {
+  for (const v of extension) {
+    target.add(v);
+  }
+  return target;
+};
+
+export const extendArray = <T> (target: T[], extension: ReadonlyArray<T>): T[] => {
+  for (const v of extension) {
+    target.push(v);
+  }
+  return target;
+};
+
+export const transpose = <T> (matrix: ReadonlyArray<ReadonlyArray<T>>): T[][] => {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const transposed = arrayOf(cols, () => Array(rows));
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      transposed[c][r] = matrix[r][c];
+    }
+  }
+
+  return transposed;
+};
+
+export const uint64CArrayInitialiser = (vals: Long[]): string => `{${vals.map(e => `${e.toString()}llu`).join(',')}}`;
 
 export const tmpFile = (ext: string) => new Promise<{ path: string, fd: number }>((resolve, reject) => {
   tmp.file({

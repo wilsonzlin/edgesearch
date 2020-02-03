@@ -9,7 +9,7 @@ export declare var MAX_QUERY_WORDS: number;
 export declare var MAX_QUERY_RESULTS: number;
 // All entries data.
 export declare var ENTRIES: { [field: string]: string }[];
-// IDs for a bit field representing a specific word-in-field.
-export declare var BIT_FIELD_IDS: { [field: string]: { [word: string]: number } };
+// Map of field => word => bit set index.
+export declare var BIT_FIELD_IDS: Map<string, Map<string, number>>;
 // Names of the searchable fields of an entry.
 export declare var FIELDS: string[];

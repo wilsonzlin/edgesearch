@@ -148,7 +148,7 @@ const parseQuery = (qs: string): number[] | undefined => {
       return;
     }
 
-    // The zeroth bit field is a fully-zero bit field, used for non-existent words.
+    // The zeroth bit set is a fully-zero bit set, used for non-existent words.
     modeWords[mode].push(BIT_FIELD_IDS[field]?.[word] ?? 0);
   }
 

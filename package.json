@@ -1,6 +1,6 @@
 {
   "name": "edgesearch",
-  "description": "Fast serverless full-text search at the edge using Cloudflare Workers, WebAssembly, and bit fields",
+  "description": "Fast serverless full-text search at the edge using Cloudflare Workers and WebAssembly",
   "version": "0.0.1",
   "main": "dist/main.js",
   "files": [
@@ -28,6 +28,7 @@
   "dependencies": {
     "long": "^4.0.0",
     "minimist": "^1.2.0",
+    "murmurhash-native": "^3.4.1",
     "terser": "^4.4.0",
     "tmp": "^0.1.0",
     "typescript": "^3.7.2"

@@ -1,5 +1,4 @@
 import * as path from 'path';
-import {BitFieldElementSize} from 'edgesearch';
 import mkdirp from 'mkdirp';
 
 const BUILD_DIR = path.join(__dirname, '..');
@@ -19,7 +18,6 @@ mkdirp.sync(WORKER_DIST_DIR);
 export const DESCRIPTION = 'Find your next career at Microsoft.';
 
 export const FIELDS = ['title', 'location', 'description'];
-export const FILTER_BITFIELD_BITS_PER_ELEM = BitFieldElementSize.uint64_t;
 
 export const SEARCH_RESULTS_MAX = 50;
 export const SEARCH_WORDS_MAX = 50;

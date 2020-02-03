@@ -438,9 +438,11 @@
     const query = new edgesearch.Query();
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
-      const mode = /^!/.test(part) ? '3' :
-        /^~/.test(part) ? '2' :
-          '1';
+      const mode = /^!/.test(part)
+        ? '3'
+        : /^~/.test(part)
+          ? '2'
+          : '1';
 
       const [field, words_raw] = part.slice(mode != '1').split(':', 2);
 

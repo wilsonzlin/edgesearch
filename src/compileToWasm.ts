@@ -1,3 +1,4 @@
+import {promises as fs} from 'fs';
 import {cmd, tmpFile, writeFile} from './util';
 
 export type CompilerMacros = {
@@ -11,7 +12,6 @@ export const compileToWasm = async (code: string, {
   extraWarnings = true,
   warningsAsErrors = true,
   macros = {},
-  outputFile,
 }: {
   standard?: 'c89' | 'c99' | 'c11' | 'c17';
   optimisationLevel?: 0 | 1 | 2 | 3 | 'fast' | 's' | 'z' | 'g';
@@ -19,10 +19,11 @@ export const compileToWasm = async (code: string, {
   extraWarnings?: boolean;
   warningsAsErrors?: boolean;
   macros?: CompilerMacros;
-  outputFile: string;
-}): Promise<void> => {
+}): Promise<Buffer> => {
   const {path: sourceCodePath, fd: sourceCodeFd} = await tmpFile('c');
   await writeFile(sourceCodeFd, code);
+
+  const {path: outputWasmPath} = await tmpFile('wasm');
 
   await cmd(
     'clang',
@@ -35,6 +36,8 @@ export const compileToWasm = async (code: string, {
     '-nostdlib', '-nostdinc', '-isystemstubs', '-Wl,--no-entry', '-Wl,--import-memory',
     ...Object.entries(macros).map(([name, code]) => `-D${name}=${code}`),
     sourceCodePath,
-    '-o', outputFile,
+    '-o', outputWasmPath,
   );
+
+  return fs.readFile(outputWasmPath);
 };

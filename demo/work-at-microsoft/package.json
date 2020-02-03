@@ -1,6 +1,6 @@
 {
   "name": "work-at-microsoft",
-  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bit fields",
+  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bit sets",
   "private": true,
   "scripts": {
     "clean": "rm -rf dist build/dist",
