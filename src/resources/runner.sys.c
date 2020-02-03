@@ -44,8 +44,7 @@ typedef uint8_t bool;
 #define NULL ((void*) 0)
 
 // string.h. These implementations are poorly-optimized. Oh well.
-void* memcpy(void* restrict dst, const void* restrict src, size_t n)
-{
+void* memcpy(void* restrict dst, const void* restrict src, size_t n) {
 	byte* bdst = (byte*) dst;
 	byte* bsrc = (byte*) src;
 	while (n-- > 0) {
@@ -54,8 +53,7 @@ void* memcpy(void* restrict dst, const void* restrict src, size_t n)
 	return dst;
 }
 
-void* memset(void* restrict ptr, int c, size_t n)
-{
+void* memset(void* restrict ptr, int c, size_t n) {
 	byte* cptr = (byte*) ptr;
 	while (n-- > 0) {
 		*cptr++ = c;
@@ -63,22 +61,22 @@ void* memset(void* restrict ptr, int c, size_t n)
 	return ptr;
 }
 
-// Try extra-hard to make sure the compiler uses its built-in intrinsics rather
-// than our crappy implementations.
+// Try extra-hard to make sure the compiler uses its built-in intrinsics rather than our crappy implementations.
 #define memcpy __builtin_memcpy
 #define memset __builtin_memset
+
+// Start of heap -- symbol provided by compiler.
+extern byte __heap_base;
+
+// Current heap position.
+byte* heap = NULL;
+// Last value returned by malloc(), for trivial optimizations.
+void* last_malloc =	NULL;
 
 // Really trivial malloc() implementation. We just allocate bytes sequentially
 // from the start of the heap, and reset the whole heap to empty at the start of
 // each request.
-extern byte __heap_base; // Start of heap -- symbol provided by compiler.
-
-byte* heap = NULL; // Current heap position.
-void* last_malloc =
-	NULL; // Last value returned by malloc(), for trivial optimizations.
-
-void* malloc(size_t n)
-{
+void* malloc(size_t n) {
 	last_malloc = heap;
 	heap += n;
 	return last_malloc;

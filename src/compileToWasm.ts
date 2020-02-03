@@ -1,5 +1,5 @@
 import {promises as fs} from 'fs';
-import {cmd, tmpFile, writeFile} from './util';
+import {cmd, tmpFile} from './util';
 
 export type CompilerMacros = {
   [name: string]: string | number;
@@ -20,11 +20,10 @@ export const compileToWasm = async (code: string, {
   warningsAsErrors?: boolean;
   macros?: CompilerMacros;
 }): Promise<Buffer> => {
-  const {path: sourceCodePath, fd: sourceCodeFd} = await tmpFile('c');
-  await writeFile(sourceCodeFd, code);
+  const {path: sourceCodePath} = await tmpFile('c');
+  await fs.writeFile(sourceCodePath, code);
 
   const {path: outputWasmPath} = await tmpFile('wasm');
-
   await cmd(
     'clang',
     `-std=${standard}`,

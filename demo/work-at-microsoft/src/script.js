@@ -413,7 +413,9 @@
         return null;
       }
 
-      query.add(mode, field, words);
+      for (const w of words) {
+        query.add(mode, [field, w].join('_'));
+      }
 
       // Replace `%20` with nicer looking `+`
       return `${prefix}${field}:${encodeURIComponent(words.join(' ')).replace(/%20/g, '+')}`;
@@ -455,7 +457,9 @@
         continue;
       }
 
-      query.add(mode, field, words);
+      for (const w of words) {
+        query.add(mode, [field, w].join('_'));
+      }
       new_search_term(field, mode, words);
     }
 

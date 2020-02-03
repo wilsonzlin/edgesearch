@@ -29,7 +29,7 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es2019"
+    "target": "esnext"
   }
 }
 

@@ -48,7 +48,7 @@ import * as edgesearch from 'edgesearch';
 ```typescript
 fetch('https://worker-name.me.workers.dev/search?q=1_artists_weeknd&2_genre_synthwave&2_genre_electropop')
     .then(res => res.json())
-    .then(({results, overflow}: {results: Song[], overflow: boolean}) => {
+    .then(({results, more}: {results: Song[], more: boolean}) => {
         // Handle search results.
     });
 ```

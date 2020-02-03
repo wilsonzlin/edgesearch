@@ -1,6 +1,6 @@
 import terser from 'terser';
 
-export const minifyWorker = (js: string): string => {
+export const minifyJs = (js: string): string => {
   const {error, warnings, code} = terser.minify(js, {
     mangle: true,
     compress: {

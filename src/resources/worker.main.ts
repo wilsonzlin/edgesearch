@@ -1,14 +1,26 @@
-import {BIT_FIELD_IDS, ENTRIES, FIELDS, MAX_AUTOCOMPLETE_RESULTS, MAX_QUERY_RESULTS, MAX_QUERY_WORDS} from './worker.config';
+import {DOCUMENT_ENCODING, MAX_QUERY_BYTES, WORKER_NAME} from './worker.config';
 
 // Needed for addEventListener at bottom.
 // See https://github.com/Microsoft/TypeScript/issues/14877.
 declare var self: ServiceWorkerGlobalScope;
 
+type WorkersKVNamespace = {
+  get (key: string, encoding: 'text' | 'json'): Promise<any>;
+}
+
 // Set by Cloudflare to the WebAssembly module that was upload alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
-// Map from a field to a sorted array of every word in every value of that field across all entries.
-const AUTOCOMPLETE_LISTS = new Map(FIELDS.map(field => [field, Object.keys(BIT_FIELD_IDS[field]).sort()]));
+const wasmMemory = new WebAssembly.Memory({initial: 96});
+const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {env: {memory: wasmMemory}});
+
+const queryRunner = wasmInstance.exports as {
+  // Keep synchronised with function declarations in runner.main.c with WASM_EXPORT.
+  init (): number;
+  search (): number;
+};
+const queryRunnerMemory = new DataView(wasmMemory.buffer);
+const queryRunnerMemoryUint8 = new Uint8Array(wasmMemory.buffer);
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -38,74 +50,20 @@ const responseSuccess = (data: object, status = 200) =>
     },
   });
 
-// Find where a word would be inserted into an ordered list.
-const findWordPos = (words: string[], word: string, left: number = 0, right: number = words.length - 1): number => {
-  if (left >= right) {
-    return left;
-  }
-  if (left + 1 == right) {
-    return word <= words[left] ? left : right;
-  }
-  const midPos = left + Math.floor((right - left) / 2);
-  const midWord = words[midPos];
-  return word === midWord
-    ? midPos
-    : word < midWord
-      // Could still be midPos, i.e. midPos -1 <= x < midPos.
-      ? findWordPos(words, word, left, midPos)
-      // Could still be midPos, i.e. midPos < x <= midPos + 1.
-      : findWordPos(words, word, midPos, right);
-};
-
-const autocompleteQsRegex = /^\?f=([^&]+)&t=(.*)$/;
-
-const handleAutocomplete = (url: URL) => {
-  const matches = autocompleteQsRegex.exec(url.search);
-  if (!matches) {
-    return responseError('Bad query');
-  }
-
-  const [_, field, term] = matches;
-
-  const results = [];
-  const words = AUTOCOMPLETE_LISTS.get(field);
-  if (!words) {
-    return responseError('Invalid field');
-  }
-
-  for (
-    let pos = findWordPos(words, term), count = 0;
-    pos < words.length && count < MAX_AUTOCOMPLETE_RESULTS;
-    pos++, count++
-  ) {
-    const word = words[pos];
-    if (!word.startsWith(term)) {
-      break;
-    }
-    results.push(word);
-  }
-
-  return responseSuccess(results);
-};
-
 // Synchronise mode IDs with mode_t enum in runner.main.c.
-const searchQsPartRegex = /^([012])_([^_]+)_([^&]+)(?:&|$)/;
+const searchQsPartRegex = /^([012])_([^&]+)(?:&|$)/;
 
-const parseQuery = (qs: string): number[] | undefined => {
+const textEncoder = new TextEncoder();
+
+const parseQuery = (qs: string): Uint8Array | undefined => {
   if (!qs.startsWith('?q=')) {
     return;
   }
   qs = qs.slice(3);
 
-  // Synchronise mode IDs with mode_t enum in runner.main.c.
-  let lastMode = -1;
-  let lastModeField = '';
-  let lastModeFieldWord = '';
-
-  let wordsCount = 0;
-
-  const modeWords = Array(3).fill(0).map(() => Array<number>());
-
+  const modeTerms = Array(3).fill(void 0).map(() => Array<Uint8Array>());
+  let termsCount = 0;
+  let bytesCount = 0;
   while (qs) {
     const matches = searchQsPartRegex.exec(qs);
     if (!matches) {
@@ -114,97 +72,60 @@ const parseQuery = (qs: string): number[] | undefined => {
 
     qs = qs.slice(matches[0].length);
     const mode = Number.parseInt(matches[1], 10);
-    const field = matches[2];
-    const word = matches[3];
+    const term = decodeURIComponent(matches[2]);
 
-    // Query string must be sorted for caching
-    if (lastMode > mode) {
-      return;
-    }
-    if (lastMode != mode) {
-      lastMode = mode;
-      // Changing this will cause lastModeFieldWord to be invalidated
-      lastModeField = '';
-    }
-
-    if (lastModeField > field) {
-      return;
-    }
-    if (lastModeField != field) {
-      lastModeField = field;
-      lastModeFieldWord = '';
-    }
-
-    // Query string must be sorted for caching.
-    // Words must be unique per mode-field.
-    if (lastModeFieldWord >= word) {
-      return;
-    }
-    if (lastModeFieldWord != word) {
-      lastModeFieldWord = word;
-    }
-
-    if (++wordsCount > MAX_QUERY_WORDS) {
-      return;
-    }
-
-    // The zeroth bit set is a fully-zero bit set, used for non-existent words.
-    modeWords[mode].push(BIT_FIELD_IDS[field]?.[word] ?? 0);
+    const termBytes = textEncoder.encode(term);
+    modeTerms[mode].push(termBytes);
+    termsCount++;
+    bytesCount += termBytes.byteLength;
   }
 
-  return !wordsCount ? [] : modeWords.reduce((comb, m) => comb.concat(m, -1), Array<number>());
+  if (!termsCount || bytesCount > MAX_QUERY_BYTES) {
+    return;
+  }
+
+  const query = new Uint8Array(bytesCount);
+  let nextByte = 0;
+  for (const terms of modeTerms) {
+    for (const term of terms) {
+      query.set(term, nextByte);
+      nextByte += term.byteLength;
+      query[nextByte++] = 0;
+    }
+    query[nextByte++] = 0;
+  }
+
+  return query;
 };
 
-const wasmMemory = new WebAssembly.Memory({initial: 96});
-const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {env: {memory: wasmMemory}});
-
-const queryRunner = wasmInstance.exports as {
-  // Keep synchronised with function declarations in runner.main.c with WASM_EXPORT.
-  init (): number;
-  search (): number;
-};
-const queryRunnerMemory = new DataView(wasmMemory.buffer);
-
-const handleSearch = (url: URL) => {
+const handleSearch = async (url: URL) => {
+  // NOTE: Just because there are no valid words does not mean that there are no valid results.
+  // For example, excluding an invalid word actually results in all entries matching.
   const query = parseQuery(url.search);
   if (!query) {
     return responseError('Invalid query');
   }
 
-  let results;
-  let overflow;
+  const inputPtr = queryRunner.init();
+  queryRunnerMemoryUint8.set(query, inputPtr);
 
-  // NOTE: Just because there are no valid words does not mean that there are no valid results.
-  // For example, excluding an invalid word actually results in all entries matching.
-  if (!query.length) {
-    results = ENTRIES.slice(0, MAX_QUERY_RESULTS);
-    overflow = ENTRIES.length > MAX_QUERY_RESULTS;
-  } else {
-    const inputPtr = queryRunner.init();
-    for (const [no, int16] of query.entries()) {
-      queryRunnerMemory.setInt16(inputPtr + (no * 2), int16, true);
-    }
+  const outputPtr = queryRunner.search();
+  // Synchronise with `results_t` in runner.main.c.
+  const resultsCount = queryRunnerMemory.getUint8(outputPtr);
+  const more = !!queryRunnerMemory.getUint8(outputPtr + 1);
 
-    const outputPtr = queryRunner.search();
-
-    results = [];
-    for (let resultNo = 0; ; resultNo++) {
-      const entryIdx = queryRunnerMemory.getInt32(outputPtr + (resultNo * 4), true);
-      if (entryIdx == -1) {
-        break;
-      }
-      results.push(ENTRIES[entryIdx]);
-    }
-    // Worker returns MAX_RESULTS + 1 entry IDs so as to detect overflow.
-    if ((overflow = results.length == MAX_QUERY_RESULTS + 1)) {
-      results.pop();
-    }
+  const documents = [];
+  for (let resultNo = 0; resultNo < resultsCount; resultNo++) {
+    // Synchronise with `doc_id_t` in runner.main.c.
+    // WASM is little endian.
+    const docId = queryRunnerMemory.getBigInt64(outputPtr + 2 + (resultNo * 8), true).toString();
+    documents.push((self[`EDGESEARCH_${WORKER_NAME}_DOCS`] as WorkersKVNamespace).get(docId, DOCUMENT_ENCODING));
   }
 
-  return responseSuccess({results, overflow});
+  return responseSuccess({results: await Promise.all(documents), more});
 };
 
-const requestHandler = (request: Request) => {
+const requestHandler = async (request: Request) => {
   if (request.method == 'OPTIONS') {
     return responsePreflight();
   }
@@ -214,8 +135,6 @@ const requestHandler = (request: Request) => {
   switch (url.pathname) {
   case '/search':
     return handleSearch(url);
-  case '/autocomplete':
-    return handleAutocomplete(url);
   default:
     return new Response(null, {
       status: 404,

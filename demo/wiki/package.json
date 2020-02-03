@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build-data": "ts-node build/data/data.ts"
+  },
+  "dependencies": {
+    "ts-node": "^8.6.2"
+  }
+}

@@ -1,13 +1,12 @@
 {
   "name": "work-at-microsoft",
-  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bit sets",
+  "description": "An alternative Microsoft Careers search using Cloudflare Workers, WebAssembly, and bloom filters",
   "private": true,
   "scripts": {
-    "clean": "rm -rf dist build/dist",
-    "build-build": "npm run clean && cd build && npm i && npx tsc",
-    "build-client": "node build/dist/client/client.js",
-    "build-data": "node build/dist/data/data.js",
-    "build-worker": "node build/dist/worker/worker.js"
+    "clean": "rm -rf dist",
+    "build-client": "ts-node build/client/client.ts",
+    "build-data": "ts-node build/data/data.ts",
+    "build-worker": "ts-node build/worker/worker.ts"
   },
   "repository": {
     "type": "git",
@@ -21,6 +20,9 @@
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/wilsonzlin/edgesearch/issues"
+  },
+  "dependencies": {
+    "ts-node": "^8.6.2"
   },
   "homepage": "https://github.com/wilsonzlin/edgesearch#readme"
 }

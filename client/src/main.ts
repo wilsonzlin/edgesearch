@@ -8,36 +8,22 @@ export enum Mode {
 const sorted = <T> (iter: Iterable<T>): T[] => Array.from(iter).sort();
 
 export class Query {
-  // mode => field => words.
-  private readonly terms: Map<Mode, Map<string, Set<string>>> = new Map();
+  private readonly modeTerms: ReadonlyArray<Set<string>> = Array(3).fill(0).map(() => new Set());
 
-  public add (mode: Mode, field: string, words: ReadonlyArray<string>): this {
-    const terms = this.terms;
-    if (!terms[mode]) {
-      terms[mode] = {};
-    }
-    if (!terms[mode][field]) {
-      terms[mode][field] = new Set();
-    }
-    for (const w of words) {
-      terms[mode][field].add(w);
+  public add (mode: Mode, terms: ReadonlyArray<string>): this {
+    for (const w of terms) {
+      this.modeTerms[mode].add(w);
     }
     return this;
   }
 
   public build (): string {
-    const terms = this.terms;
-    const queryParts = [];
-    // TODO Abstract modes
-    for (const mode of sorted(terms.keys())) {
-      for (const field of sorted(terms.get(mode)!.keys())) {
-        for (const word of sorted(terms.get(mode)!.get(field)!)) {
-          // Mode and field should be URL safe; word should be too but encode just to be sure.
-          queryParts.push(encodeURIComponent(`${mode}_${field}_${word}`));
-        }
-      }
-    }
-    return `?q=${queryParts.join('&')}`;
+    return `?q=${this.modeTerms
+      .map((terms, i) =>
+        sorted(terms)
+          .map(t => `${i + 1}_${encodeURIComponent(t)}`)
+          .join('&'))
+      .join('&')}`;
   }
 }
 
@@ -75,8 +61,6 @@ export type SearchResponse<E extends Entry> = {
   overflow: boolean;
 };
 
-export type AutocompleteResponse = string[];
-
 export class Client<E extends Entry> {
   constructor (
     private readonly host: string,
@@ -87,9 +71,5 @@ export class Client<E extends Entry> {
 
   search (query: Query): Promise<SearchResponse<E>> {
     return this.agent<SearchResponse<E>>(`${this.protocol}://${this.host}/search${query.build()}`);
-  }
-
-  autocomplete (field: string, term: string): Promise<AutocompleteResponse> {
-    return this.agent<string[]>(`${this.protocol}://${this.host}/autocomplete?f=${encodeURIComponent(field)}&t=${encodeURIComponent(term)}`);
   }
 }
