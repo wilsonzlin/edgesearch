@@ -38,13 +38,13 @@ typedef unsigned long size_t;
 typedef unsigned char byte;
 
 typedef uint8_t bool;
-#define true 1;
-#define false 0;
+#define true 1
+#define false 0
 
 #define NULL ((void*) 0)
 
 // string.h. These implementations are poorly-optimized. Oh well.
-void* memcpy(void* restrict dst, const void* restrict src, size_t n) {
+void* memcpy(void* restrict dst, void const* restrict src, size_t n) {
 	byte* bdst = (byte*) dst;
 	byte* bsrc = (byte*) src;
 	while (n-- > 0) {
@@ -53,17 +53,14 @@ void* memcpy(void* restrict dst, const void* restrict src, size_t n) {
 	return dst;
 }
 
-void* memset(void* restrict ptr, int c, size_t n) {
-	byte* cptr = (byte*) ptr;
-	while (n-- > 0) {
-		*cptr++ = c;
-	}
-	return ptr;
+size_t strlen(char const* bytes) {
+  size_t len = 0;
+  while (bytes[len]) len++;
+  return len;
 }
 
 // Try extra-hard to make sure the compiler uses its built-in intrinsics rather than our crappy implementations.
 #define memcpy __builtin_memcpy
-#define memset __builtin_memset
 
 // Start of heap -- symbol provided by compiler.
 extern byte __heap_base;

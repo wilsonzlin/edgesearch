@@ -1,12 +1,12 @@
-inline uint64_t rotl64 (uint64_t x, int8_t r) {
+inline uint64_t rotl64(uint64_t x, int8_t r) {
   return (x << r) | (x >> (64 - r));
 }
 
-inline uint64_t fmix64 (uint64_t k) {
+inline uint64_t fmix64(uint64_t k) {
   k ^= k >> 33;
-  k *= BIG_CONSTANT(0xff51afd7ed558ccd);
+  k *= 0xff51afd7ed558ccdllu;
   k ^= k >> 33;
-  k *= BIG_CONSTANT(0xc4ceb9fe1a85ec53);
+  k *= 0xc4ceb9fe1a85ec53llu;
   k ^= k >> 33;
 
   return k;
@@ -15,7 +15,7 @@ inline uint64_t fmix64 (uint64_t k) {
 /*
  * Derived from the official C++ implementation at https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp.
  */
-void murmur3_x64_128(byte const* data, size_t const len, uint32_t const seed, uint64_t* out_a, uint64_t* out_b) {
+void murmur3_x64_128(byte const* data, size_t len, uint32_t seed, uint64_t* out_a, uint64_t* out_b) {
   size_t const nblocks = len / 16;
 
   uint64_t h1 = seed;

@@ -1,10 +1,7 @@
 import * as tmp from 'tmp';
 import {execFile} from 'child_process';
-import Long from 'long';
 
 export const arrayOf = <T> (len: number, map: (i: number) => T): T[] => Array(len).fill(void 0).map((_, i) => map(i));
-
-export const uint64CArrayInitialiser = (vals: Long[]): string => `{${vals.map(e => `${e.toString()}llu`).join(',')}}`;
 
 export const tmpFile = (ext: string) => new Promise<{ path: string, fd: number }>((resolve, reject) => {
   tmp.file({

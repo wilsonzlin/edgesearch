@@ -5,7 +5,7 @@ export type CompilerMacros = {
   [name: string]: string | number;
 }
 
-export const compileToWasm = async (code: string, {
+export const compileToWasm = async (sourceCodePath: string, {
   standard = 'c11',
   optimisationLevel = 2,
   allWarnings = true,
@@ -20,9 +20,6 @@ export const compileToWasm = async (code: string, {
   warningsAsErrors?: boolean;
   macros?: CompilerMacros;
 }): Promise<Buffer> => {
-  const {path: sourceCodePath} = await tmpFile('c');
-  await fs.writeFile(sourceCodePath, code);
-
   const {path: outputWasmPath} = await tmpFile('wasm');
   await cmd(
     'clang',

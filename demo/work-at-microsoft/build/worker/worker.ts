@@ -7,6 +7,7 @@ import {join} from 'path';
   const worker = await edgesearch.build({
     documents: JSON.parse(await fs.readFile(DATA_PARSED_JSON, 'utf8')).map((job: any) => ({
       content: JSON.stringify(job),
+      // Get the words from this job across all searchable fields.
       terms: new Set(FIELDS.flatMap(field => EXTRACT_WORDS_FN(job[field]).map(fw => [field, fw].join('_')))),
     })),
     documentEncoding: 'json',

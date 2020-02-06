@@ -22,7 +22,7 @@ typedef struct {
 typedef struct {
   uint8_t count;
   bool more;
-	doc_id_t entries[MAX_RESULTS];
+	doc_id_t documents[MAX_RESULTS];
 } results_t;
 
 // Exported functions callable from JavaScript.

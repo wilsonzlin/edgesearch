@@ -1,2 +1,3 @@
-/build/data/titles.txt
+/build/data/titles*.txt
 /dist/
+node_modules/

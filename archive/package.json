@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/wilsonzlin/edgesearch#readme",
   "dependencies": {
-    "long": "^4.0.0",
+    "bytes": "^3.1.0",
     "minimist": "^1.2.0",
     "murmurhash-native": "^3.4.1",
     "request": "^2.88.0",
@@ -36,7 +36,7 @@
     "typescript": "^3.7.2"
   },
   "devDependencies": {
-    "@types/long": "^4.0.1",
+    "@types/bytes": "^3.1.0",
     "@types/node": "^12.12.12",
     "@types/request-promise-native": "^1.0.17",
     "@types/terser": "^3.12.0",

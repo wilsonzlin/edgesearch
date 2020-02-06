@@ -1,8 +1,8 @@
 // Synchronise mode IDs with mode_t enum in runner.main.c.
 export enum Mode {
-  REQUIRE = '1',
-  CONTAIN = '2',
-  EXCLUDE = '3',
+  REQUIRE = '0',
+  CONTAIN = '1',
+  EXCLUDE = '2',
 }
 
 const sorted = <T> (iter: Iterable<T>): T[] => Array.from(iter).sort();
