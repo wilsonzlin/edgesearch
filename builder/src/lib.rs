@@ -219,14 +219,16 @@ pub fn build(BuildConfig {
     );
     println!("- The bloom filter matrix will have an uncompressed size of {size}, with {bits} bits per document (i.e. rows), {bpe} bits per element, and {hashes} hashes.",
         size = bytes(uncompressed_matrix_size),
-        bits = number(bits as usize),
+        bits = number(bits),
         bpe = round2(bits_per_element),
         hashes = hashes,
     );
 
-    println!("- Use of the bloom filter reduces postings list size by {} in keys and {} in values, bring them to {} and {} respectively.",
+    println!("- Use of the bloom filter reduces postings list size by {} ({}) in keys and {} ({}) in values, bring them to {} and {} respectively.",
         bytes(popular_reduced_postings_list_combined_keys_bytes),
+        frac_perc(popular_reduced_postings_list_combined_keys_bytes, postings_list_combined_keys_bytes),
         bytes(popular_reduced_postings_list_combined_values_bytes),
+        frac_perc(popular_reduced_postings_list_combined_values_bytes, postings_list_combined_values_bytes),
         bytes(postings_list_combined_keys_bytes - popular_reduced_postings_list_combined_keys_bytes),
         bytes(postings_list_combined_values_bytes - popular_reduced_postings_list_combined_values_bytes),
     );
@@ -240,7 +242,7 @@ pub fn build(BuildConfig {
     // This is a matrix. Each bit is represented by a bit set with `document_count` bits.
     // For example, assume "hello" is in document with index 5 and hashes to bits {3, 7, 10}.
     // Then the bit sets for bits {3, 7, 10} have their 5th bit set to 1.
-    let mut matrix = Vec::<Bitmap>::with_capacity(bits as usize);
+    let mut matrix = Vec::<Bitmap>::with_capacity(bits);
     for _ in 0..bits {
         matrix.push(Bitmap::create());
     };
@@ -258,6 +260,7 @@ pub fn build(BuildConfig {
                 };
             } else {
                 // Add to the postings list.
+                // TODO
             };
         };
     };
