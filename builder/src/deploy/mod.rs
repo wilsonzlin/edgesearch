@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
 use std::path::PathBuf;
 
-use reqwest::blocking::{Client, multipart};
+use reqwest::blocking::Client;
 
 use crate::data::documents::DocumentsReader;
 use crate::data::postings_list::PostingsListReader;
 use crate::deploy::kv::{KV_MAX_BATCH_SIZE, upload_kv_batch};
+use crate::deploy::worker::publish_worker;
 
 mod kv;
-
-const METADATA: &'static str = r#"{"body_part":"script","bindings":[{"name":"QUERY_RUNNER_WASM","type":"wasm_module","part":"wasm"}]}"#;
+mod worker;
 
 pub struct DeployConfig {
     account_id: String,
@@ -30,28 +29,12 @@ pub fn deploy(DeployConfig {
 }: DeployConfig) -> () {
     let client = Client::new();
     let kv_namespace = format!("EDGESEARCH_{}", name);
-
     let process_batch = |batch: &mut HashMap<String, String>, base64: bool| -> () {
         upload_kv_batch(&client, batch, &account_id, &api_token, &kv_namespace, base64);
         batch.clear();
     };
 
-    let mut worker_js = Vec::new();
-    File::open(output_dir.join("worker.js")).expect("open worker.js").read_to_end(&mut worker_js).expect("read worker.js");
-    let mut runner_wasm = Vec::new();
-    File::open(output_dir.join("runner.wasm")).expect("open runner.wasm").read_to_end(&mut runner_wasm).expect("read runner.wasm");
-
-    let worker_form = multipart::Form::new()
-        .text("metadata", METADATA)
-        .part("script", multipart::Part::bytes(worker_js))
-        .part("wasm", multipart::Part::bytes(runner_wasm));
-
-    println!("Uploading worker...");
-    client.put(format!("https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts/{name}", account_id = account_id, name = name).as_str())
-        .bearer_auth(&api_token)
-        .multipart(worker_form)
-        .send()
-        .expect("uploading worker");
+    publish_worker(&client, &output_dir, &name, &account_id, &api_token);
 
     let mut documents_batch = HashMap::<String, String>::new();
     for (document_id, document) in DocumentsReader::new(documents) {
