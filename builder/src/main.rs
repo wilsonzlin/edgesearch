@@ -2,7 +2,7 @@ use std::fs::File;
 
 use structopt::StructOpt;
 
-use edgesearch::{build, BuildConfig, DocumentEncoding};
+use edgesearch::build::{build, BuildConfig, DocumentEncoding};
 
 #[derive(StructOpt)]
 struct Cli {
