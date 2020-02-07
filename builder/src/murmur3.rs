@@ -1,17 +1,6 @@
 use bytes::{Buf, Bytes};
 
 #[inline(always)]
-fn fmix32(mut h: u32) -> u32 {
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-
-    return h;
-}
-
-#[inline(always)]
 fn fmix64(mut k: u64) -> u64 {
     k ^= k >> 33;
     k *= 0xff51afd7ed558ccdu64;
@@ -20,54 +9,6 @@ fn fmix64(mut k: u64) -> u64 {
     k ^= k >> 33;
 
     return k;
-}
-
-pub fn mmh3_x86_32(key: Vec<u8>, seed: u32) -> u32 {
-    let mut data = Bytes::from(key);
-
-    let len = data.len();
-    let nblocks = len / 4;
-
-    let mut h1 = seed;
-
-    let c1 = 0xcc9e2d51u32;
-    let c2 = 0x1b873593u32;
-
-    for _ in 0..nblocks {
-        let mut k1 = data.get_u32_le();
-
-        k1 *= c1;
-        k1 = k1.rotate_left(15);
-        k1 *= c2;
-
-        h1 ^= k1;
-        h1 = h1.rotate_left(13);
-        h1 = h1 * 5 + 0xe6546b64;
-    };
-
-    let tail = &data[..];
-    assert!(tail.len() <= 3);
-
-    let mut k1 = 0u32;
-
-    if tail.len() >= 3 {
-        k1 ^= (tail[2] as u32) << 16;
-    };
-    if tail.len() >= 2 {
-        k1 ^= (tail[1] as u32) << 8;
-    };
-    if tail.len() >= 1 {
-        k1 ^= tail[0] as u32;
-        k1 *= c1;
-        k1 = k1.rotate_left(15);
-        k1 *= c2;
-        h1 ^= k1;
-    };
-
-    h1 ^= len as u32;
-    h1 = fmix32(h1);
-
-    return h1;
 }
 
 pub fn mmh3_x64_128(key: Vec<u8>, seed: u32) -> [u64; 2] {

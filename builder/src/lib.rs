@@ -38,7 +38,7 @@ impl FromStr for DocumentEncoding {
 }
 
 macro_rules! interval_log {
-    ($interval:ident, $no:ident, $len:ident, $fmt:literal) => {
+    ($interval:expr, $no:expr, $len:expr, $fmt:literal) => {
         if $no % $interval == 0 {
             println!($fmt, percent($no as f64 / $len as f64));
         };
@@ -47,6 +47,125 @@ macro_rules! interval_log {
 
 fn status_log_interval(len: usize, times: usize) -> usize {
     1 << (((len as f64) / (times as f64)).log2().ceil() as usize)
+}
+
+struct TermsReader {
+    reader: BufReader<File>,
+    current_document_id: usize,
+    bytes_read: usize,
+    eof: bool,
+    log_interval: usize,
+    total_bytes: usize,
+}
+
+impl TermsReader {
+    fn new(input: File) -> TermsReader {
+        let file_bytes: usize = input.metadata().unwrap().len().try_into().expect("file is too large");
+        TermsReader {
+            reader: BufReader::new(input),
+            current_document_id: 0,
+            bytes_read: 0,
+            eof: false,
+            log_interval: status_log_interval(file_bytes, 20),
+            total_bytes: file_bytes,
+        }
+    }
+}
+
+impl Iterator for TermsReader {
+    type Item = (usize, Vec<u8>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.eof { return None; };
+
+        loop {
+            let mut term = Term::new();
+
+            let term_bytes = self.reader.read_until(b'\0', &mut term).expect("reading term");
+            self.bytes_read += term_bytes;
+            interval_log!(self.log_interval, self.bytes_read, self.total_bytes, "Reading document terms ({})...");
+            match term_bytes {
+                // End of file.
+                0 => {
+                    self.eof = true;
+                    return None;
+                }
+                // End of document.
+                1 => {
+                    self.current_document_id += 1;
+                }
+                _ => {
+                    // Remove null terminator.
+                    term.pop().filter(|c| *c == b'\0').expect("removal of null terminator");
+                    return Some((self.current_document_id, term));
+                }
+            };
+        }
+    }
+}
+
+struct WrittenBitmapsStats {
+    set_bit_count: usize,
+    total_bitmap_bytes: usize,
+}
+
+fn write_bitmaps<'b, T: Iterator<Item=(Vec<u8>, &'b Bitmap)>>(mut output: File, bitmaps: T, bitmap_count: usize) -> WrittenBitmapsStats {
+    let mut total_bitmap_bytes = 0;
+    let mut set_bit_count = 0;
+    let mut min_bitmap_bytes = std::usize::MAX;
+    let mut max_bitmap_bytes = 0;
+
+    let write_log_interval = status_log_interval(bitmap_count, 5);
+    for (bitmap_no, (bitmap_key, bitmap)) in bitmaps.enumerate() {
+        output.write_all(&bitmap_key).expect("writing bitmap key");
+        set_bit_count += bitmap.cardinality() as usize;
+        interval_log!(write_log_interval, bitmap_no, bitmap_count, "Writing bitmaps ({})...");
+        let bitmap_size = bitmap.get_serialized_size_in_bytes();
+        min_bitmap_bytes = min(bitmap_size, min_bitmap_bytes);
+        max_bitmap_bytes = max(bitmap_size, max_bitmap_bytes);
+        total_bitmap_bytes += bitmap_size;
+        output.write_u32::<LittleEndian>(
+            bitmap_size.try_into().expect("bitmap is too large")
+        ).expect("failed to write bitmap size");
+        output.write_all(&bitmap.serialize()).expect("failed to write bitmap");
+    };
+    println!("{rows} bitmaps have an average size of {avg}, varying between {min} and {max}",
+        rows = number(bitmap_count),
+        avg = bytes(average_int(total_bitmap_bytes, bitmap_count)),
+        min = bytes(min_bitmap_bytes),
+        max = bytes(max_bitmap_bytes),
+    );
+    WrittenBitmapsStats {
+        set_bit_count,
+        total_bitmap_bytes,
+    }
+}
+
+fn write_bloom_filter_matrix(output_dir: &PathBuf, matrix: &Vec<Bitmap>, bits: usize, documents: usize) -> () {
+    let output = File::create(output_dir.join("matrix.bin")).expect("opening output file for matrix");
+    let total_bit_count = bits * documents;
+    let uncompressed_size: usize = ((total_bit_count as f64) / 8.0).ceil() as usize;
+    let WrittenBitmapsStats { set_bit_count, total_bitmap_bytes } = write_bitmaps(output, matrix.iter().map(|bitmap| (Vec::with_capacity(0), bitmap)), bits);
+    println!("Final matrix size: {} ({} of uncompressed), with {} of {} bits set ({})",
+        bytes(total_bitmap_bytes),
+        frac_perc(total_bitmap_bytes, uncompressed_size),
+        number(set_bit_count),
+        number(total_bit_count),
+        frac_perc(set_bit_count, total_bit_count),
+    );
+}
+
+fn write_postings_list(output_dir: &PathBuf, postings_list: &Vec<Bitmap>, terms: &Vec<Term>) -> () {
+    let output = File::create(output_dir.join("postings.list")).expect("opening output file for postings list");
+    let WrittenBitmapsStats { set_bit_count, total_bitmap_bytes } = write_bitmaps(output, postings_list.iter().enumerate().map(|(term_id, bitmap)| {
+        let mut key = Vec::new();
+        key.write_u32::<LittleEndian>(key.len().try_into().expect("term is too long")).expect("write term length to vector");
+        key.extend(&terms[term_id]);
+        (key, bitmap)
+    }), postings_list.len());
+    println!("Final postings list size: {}",
+        bytes(total_bitmap_bytes),
+    );
 }
 
 pub struct BuildConfig {
@@ -75,17 +194,17 @@ pub fn build(BuildConfig {
     // If popular is one, postings list is not used.
     assert!(popular >= 0.0 && popular <= 1.0);
 
-    let document_terms_file_size: usize = document_terms_source.metadata().unwrap().len() as usize;
     let mut postings_list_combined_values_bytes: usize = 0;
     let mut postings_list_combined_keys_bytes: usize = 0;
-    let mut document_terms_reader = BufReader::new(document_terms_source);
 
     // term_id => term.
     let mut terms = Vec::<Term>::new();
     // term => term_id.
     let mut term_ids = HashMap::<Term, TermId>::new();
     // document_id => term_id[].
-    let mut document_terms = Vec::<Vec<TermId>>::new();
+    let mut terms_by_document = Vec::<Vec<TermId>>::new();
+    // term_id => bitmap.
+    let mut postings_list = Vec::<Bitmap>::new();
     // document_terms.map(|d| d.len()).sum().
     let mut instance_count = 0usize;
     // term_id => document_terms.filter(|d| d.contains(term_id)).count().
@@ -97,52 +216,36 @@ pub fn build(BuildConfig {
     // - Each term must end with '\0', even if last for document or entire index.
     // - Each term must not be empty.
     // - Each term must not contain '\0'.
-    let mut total_bytes_read = 0usize;
-    let read_log_interval = status_log_interval(document_terms_file_size, 200);
-    'outer: loop {
-        interval_log!(read_log_interval, total_bytes_read, document_terms_file_size, "Reading document terms ({})...");
-        document_terms.push(Vec::<TermId>::new());
-        let document = document_terms.last_mut().unwrap();
-
-        loop {
-            let mut term = Term::new();
-
-            let bytes_read = document_terms_reader.read_until(b'\0', &mut term).expect("reading term");
-            total_bytes_read += bytes_read;
-            match bytes_read {
-                // End of file.
-                0 => break 'outer,
-                // End of document.
-                1 => break,
-                _ => {}
-            };
-
-            // Remove null terminator.
-            term.pop().filter(|c| *c == b'\0').expect("removal of null terminator");
-            let term_len = term.len();
-            postings_list_combined_values_bytes += DOCUMENT_ID_BYTES;
-
-            let term_id = match term_ids.get(&term) {
-                Some(term_id) => *term_id,
-                None => {
-                    let term_id = terms.len() as TermId;
-                    term_ids.insert(term.to_vec(), term_id);
-                    terms.push(term);
-                    postings_list_combined_keys_bytes += term_len;
-                    term_id
-                }
-            };
-
-            document.push(term_id);
-            term_frequency.insert(term_id, term_frequency.get(&term_id).unwrap_or(&0) + 1);
-            instance_count += 1;
+    for (document_id, term) in TermsReader::new(document_terms_source) {
+        // Either document_id is new, which should equal terms_by_document.len(),
+        // or it's still the current document.
+        match terms_by_document.len() - document_id {
+            0 => terms_by_document.push(Vec::<TermId>::new()),
+            1 => {}
+            _ => unreachable!(),
         };
-        assert!(!document_terms.is_empty());
-    };
-    // Due to the layout of the file and the way we read it, the previous outer loop runs once at EOF, creating a non-existent empty document.
-    document_terms.pop().filter(|d| d.is_empty()).expect("removal of dummy document");
+        let document_terms = terms_by_document.last_mut().unwrap();
+        let term_len = term.len();
+        postings_list_combined_values_bytes += DOCUMENT_ID_BYTES;
+        let term_id = match term_ids.get(&term) {
+            Some(term_id) => *term_id,
+            None => {
+                assert_eq!(terms.len(), postings_list.len());
+                let term_id = terms.len() as TermId;
+                term_ids.insert(term.to_vec(), term_id);
+                terms.push(term);
+                postings_list.push(Bitmap::create());
+                postings_list_combined_keys_bytes += term_len;
+                term_id
+            }
+        };
 
-    let document_count = document_terms.len();
+        document_terms.push(term_id);
+        term_frequency.insert(term_id, term_frequency.get(&term_id).unwrap_or(&0) + 1);
+        instance_count += 1;
+    };
+
+    let document_count = terms_by_document.len();
     let term_count = term_frequency.len();
     assert!(term_count >= 1000);
 
@@ -171,7 +274,7 @@ pub fn build(BuildConfig {
     let mut popular_fully_reachable: usize = 0;
     let mut popular_partially_reachable: usize = 0;
     let mut popular_unreachable: usize = 0;
-    for doc in document_terms.iter() {
+    for doc in terms_by_document.iter() {
         let mut some = false;
         let mut every = true;
         for term_id in doc {
@@ -193,14 +296,13 @@ pub fn build(BuildConfig {
     let bits_per_element = -(error.ln() / 2.0f64.ln().powi(2));
     let bits: usize = (bits_per_element * popular_term_count as f64).ceil() as usize;
     let hashes: usize = (2.0f64.ln() * bits_per_element).ceil() as usize;
-    let uncompressed_matrix_size: usize = (((bits * document_count) as f64) / 8.0).ceil() as usize;
 
     println!();
     println!("Information about worker \"{}\":", name);
     println!("- There are {docs} documents, each having between {min} and {max} instances with an average of {avg}.",
         docs = number(document_count),
-        min = document_terms.iter().map(|t| t.len()).min().unwrap(),
-        max = document_terms.iter().map(|t| t.len()).max().unwrap(),
+        min = terms_by_document.iter().map(|t| t.len()).min().unwrap(),
+        max = terms_by_document.iter().map(|t| t.len()).max().unwrap(),
         avg = number(average_int(instance_count, document_count)),
     );
     println!("- {popular_term_count} of {term_count} terms ({popular_terms_pc}) represent {popular_instance_count} of {instance_count} ({popular_instance_count_pc}) instances, reaching {popular_fully_reachable} ({popular_fully_reachable_pc}) documents fully and {popular_partially_reachable} ({popular_partially_reachable_pc}) partially, and not reaching {popular_unreachable} ({popular_unreachable_pc}) at all.",
@@ -217,8 +319,7 @@ pub fn build(BuildConfig {
         popular_unreachable = number(popular_unreachable),
         popular_unreachable_pc = frac_perc(popular_unreachable, document_count),
     );
-    println!("- The bloom filter matrix will have an uncompressed size of {size}, with {bits} bits per document (i.e. rows), {bpe} bits per element, and {hashes} hashes.",
-        size = bytes(uncompressed_matrix_size),
+    println!("- The bloom filter matrix will have {bits} bits per document (i.e. rows), {bpe} bits per element, and {hashes} hashes.",
         bits = number(bits),
         bpe = round2(bits_per_element),
         hashes = hashes,
@@ -248,7 +349,7 @@ pub fn build(BuildConfig {
     };
 
     let hash_log_interval = status_log_interval(document_count, 10);
-    for (document_id, doc_terms) in document_terms.iter().enumerate() {
+    for (document_id, doc_terms) in terms_by_document.iter().enumerate() {
         interval_log!(hash_log_interval, document_id, document_count, "Hashing documents ({})...");
         for term_id in doc_terms {
             if popular_terms.contains(term_id) {
@@ -260,40 +361,26 @@ pub fn build(BuildConfig {
                 };
             } else {
                 // Add to the postings list.
-                // TODO
+                postings_list[*term_id].add(document_id.try_into().expect("too many documents"));
             };
         };
     };
-    println!("Optimising matrix...");
-    let mut matrix_output = File::create(output_dir.join("matrix.bin")).expect("opening output file for matrix");
-    let mut matrix_size = 0;
-    let mut set_bit_count = 0;
-    let mut min_row_size = std::usize::MAX;
-    let mut max_row_size = 0;
-    let total_bit_count = bits * document_count;
-    let write_log_interval = status_log_interval(bits, 5);
-    for (row_no, bitmap) in matrix.iter_mut().enumerate() {
-        set_bit_count += bitmap.cardinality() as usize;
-        interval_log!(write_log_interval, row_no, bits, "Writing rows ({})...");
-        bitmap.run_optimize();
-        let bitmap_size = bitmap.get_serialized_size_in_bytes();
-        min_row_size = min(bitmap_size, min_row_size);
-        max_row_size = max(bitmap_size, max_row_size);
-        matrix_size += bitmap_size;
-        matrix_output.write_u32::<LittleEndian>(bitmap_size.try_into().expect("matrix row is too large")).expect("failed to write matrix row size");
-        matrix_output.write_all(&bitmap.serialize()).expect("failed to write matrix row");
+
+    println!();
+    if popular_partially_reachable + popular_fully_reachable == 0 {
+        println!("Matrix is not utilised");
+    } else {
+        println!("Optimising matrix...");
+        for bitmap in matrix.iter_mut() {
+            bitmap.run_optimize();
+        };
+        write_bloom_filter_matrix(&output_dir, &matrix, bits, document_count);
     };
-    println!("Final matrix size: {} ({} of uncompressed), with {} of {} bits set ({})",
-        bytes(matrix_size),
-        frac_perc(matrix_size, uncompressed_matrix_size),
-        number(set_bit_count),
-        number(total_bit_count),
-        frac_perc(set_bit_count, total_bit_count),
-    );
-    println!("{rows} rows have an average size of {avg}, varying between {min} and {max}",
-        rows = number(bits),
-        avg = bytes(average_int(matrix_size, bits)),
-        min = bytes(min_row_size),
-        max = bytes(max_row_size),
-    );
+
+    println!();
+    println!("Optimising postings list...");
+    for bitmap in postings_list.iter_mut() {
+        bitmap.run_optimize();
+    };
+    write_postings_list(&output_dir, &postings_list, &terms);
 }
