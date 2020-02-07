@@ -1,23 +1,18 @@
-use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use byteorder::{LittleEndian, WriteBytesExt};
 use croaring::Bitmap;
 
 use crate::{DOCUMENT_ID_BYTES, Term, TermId};
-use crate::build::termsreader::TermsReader;
-use crate::build::write::{write_bloom_filter_matrix, write_postings_list};
 use crate::util::format::{average_int, bytes, frac_perc, number, percent, round2};
 use crate::util::log::status_log_interval;
 use crate::util::murmur3::mmh3_x64_128;
-
-mod termsreader;
-mod write;
+use crate::data::matrix::write_bloom_filter_matrix;
+use crate::data::document_terms::DocumentTermsReader;
+use crate::data::postings_list::write_postings_list;
 
 pub enum DocumentEncoding {
     Json,
@@ -84,7 +79,7 @@ pub fn build(BuildConfig {
     // - Each term must end with '\0', even if last for document or entire index.
     // - Each term must not be empty.
     // - Each term must not contain '\0'.
-    for (document_id, term) in TermsReader::new(document_terms_source) {
+    for (document_id, term) in DocumentTermsReader::new(document_terms_source) {
         // Either document_id is new, which should equal terms_by_document.len(),
         // or it's still the current document.
         match terms_by_document.len() - document_id {
@@ -235,6 +230,7 @@ pub fn build(BuildConfig {
     };
 
     println!();
+    // TODO Better empty calculation.
     if popular_partially_reachable + popular_fully_reachable == 0 {
         println!("Matrix is not utilised");
     } else {
@@ -247,6 +243,7 @@ pub fn build(BuildConfig {
 
     println!();
     println!("Optimising postings list...");
+    // TODO Ignore if empty.
     for bitmap in postings_list.iter_mut() {
         bitmap.run_optimize();
     };
