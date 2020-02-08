@@ -1,5 +1,15 @@
+use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
+
+const RUNNER_C_BITSET: &'static str = include_str!("../../resources/bitset.c");
+const RUNNER_C_BLOOM: &'static str = include_str!("../../resources/bloom.c");
+const RUNNER_C_MAIN: &'static str = include_str!("../../resources/main.c");
+const RUNNER_C_MURMUR: &'static str = include_str!("../../resources/murmur.c");
+const RUNNER_C_ROARING: &'static str = include_str!("../../resources/roaring.c");
+const RUNNER_C_SORT: &'static str = include_str!("../../resources/sort.c");
+const RUNNER_C_SYS: &'static str = include_str!("../../resources/sys.c");
 
 pub enum WasmStandard {
     C89,
@@ -68,7 +78,7 @@ pub fn compile_to_wasm(WasmCompileArgs {
         cmd.arg(format!("-D{}={}", name, code));
     };
     cmd.arg(input);
-    cmd.arg("-0").arg(output);
+    cmd.arg("-o").arg(output);
 
     let result = cmd.status().expect("compile WASM");
     if !result.success() {
@@ -77,8 +87,17 @@ pub fn compile_to_wasm(WasmCompileArgs {
 }
 
 pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize, max_query_bytes: usize) -> () {
-    let source_file = output_dir.join("runner.c");
-    let output_file = output_dir.join("runner.wasm");
+    let source_path = output_dir.join("runner.c");
+    let output_path = output_dir.join("runner.wasm");
+
+    let mut source_file = File::create(&source_path).expect("open runner.c for writing");
+    source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_MAIN.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_MURMUR.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_SORT.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_BITSET.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_BLOOM.as_bytes()).expect("write runner.c");
 
     compile_to_wasm(WasmCompileArgs {
         standard: WasmStandard::C11,
@@ -90,7 +109,7 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
             ("MAX_RESULTS", format!("{}", max_results).as_str()),
             ("MAX_QUERY_BYTES", format!("{}", max_query_bytes).as_str()),
         ],
-        input: &source_file,
-        output: &output_file,
+        input: &source_path,
+        output: &output_path,
     });
 }

@@ -6,6 +6,8 @@ use std::path::PathBuf;
 use croaring::Bitmap;
 
 use crate::{DOCUMENT_ID_BYTES, Term, TermId};
+use crate::build::js::generate_worker_js;
+use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 pub use crate::data::documents::DocumentEncoding;
 use crate::data::matrix::write_bloom_filter_matrix;
@@ -236,4 +238,9 @@ pub fn build(BuildConfig {
         };
         write_postings_list(&output_dir, &postings_list, &terms);
     };
+
+    println!("Creating worker.js...");
+    generate_worker_js(&output_dir, &name, document_encoding, maximum_query_bytes);
+    println!("Creating runner.wasm...");
+    generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes);
 }
