@@ -94,17 +94,17 @@ results_t* search(void) {
   mode_t mode = REQUIRE;
 
   byte const* next_word = query->words;
-	while (mode < 3) {
-	  next_word = bloom_query_mode(mode, next_word);
+  while (mode < 3) {
+    next_word = bloom_query_mode(mode, next_word);
     mode++;
   }
 
-	results_t* results = malloc(sizeof(results_t));
+  results_t* results = malloc(sizeof(results_t));
   // Get up to MAX_RESULTS + 1 so that overflow is detectable.
   // For example, if MAX_RESULTS is 200, then returning 201 results means that the actual amount of results could be 201, 202, 250, or 1 million, but is definitely > 200.
   size_t results_count = bitset_collect_results(bloom_result, results->documents, MAX_RESULTS + 1);
   results->count = (uint8_t) results_count;
   results->more = results_count == MAX_RESULTS + 1;
 
-	return results;
+  return results;
 }

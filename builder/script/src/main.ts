@@ -1,4 +1,4 @@
-import {DOCUMENT_ENCODING, MAX_QUERY_BYTES, WORKER_NAME} from './worker.config';
+import {DOCUMENT_ENCODING, MAX_QUERY_BYTES, WORKER_NAME} from './config';
 
 // Needed for addEventListener at bottom.
 // See https://github.com/Microsoft/TypeScript/issues/14877.
@@ -119,7 +119,7 @@ const handleSearch = async (url: URL) => {
     // Synchronise with `doc_id_t` in runner.main.c.
     // WASM is little endian.
     const docId = queryRunnerMemory.getBigInt64(outputPtr + 2 + (resultNo * 8), true).toString();
-    documents.push((self[`EDGESEARCH_${WORKER_NAME}_DOCS`] as WorkersKVNamespace).get(docId, DOCUMENT_ENCODING));
+    documents.push((self[`EDGESEARCH_${WORKER_NAME}`] as WorkersKVNamespace).get(`doc_${docId}`, DOCUMENT_ENCODING));
   }
 
   return responseSuccess({results: await Promise.all(documents), more});
@@ -133,12 +133,12 @@ const requestHandler = async (request: Request) => {
   const url = new URL(request.url);
 
   switch (url.pathname) {
-  case '/search':
-    return handleSearch(url);
-  default:
-    return new Response(null, {
-      status: 404,
-    });
+    case '/search':
+      return handleSearch(url);
+    default:
+      return new Response(null, {
+        status: 404,
+      });
   }
 };
 

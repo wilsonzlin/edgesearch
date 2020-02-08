@@ -4,6 +4,7 @@ use std::str::FromStr;
 
 use crate::data::read_null_terminated;
 
+#[derive(Copy, Clone)]
 pub enum DocumentEncoding {
     Json,
     Text,
@@ -17,6 +18,15 @@ impl FromStr for DocumentEncoding {
             "json" => Ok(DocumentEncoding::Json),
             "text" => Ok(DocumentEncoding::Text),
             _ => Err("Invalid document encoding".to_string()),
+        }
+    }
+}
+
+impl ToString for DocumentEncoding {
+    fn to_string(&self) -> String {
+        match self {
+            DocumentEncoding::Json => "json".to_string(),
+            DocumentEncoding::Text => "text".to_string(),
         }
     }
 }

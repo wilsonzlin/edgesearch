@@ -10,7 +10,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::documents::DocumentsReader;
 use crate::data::postings_list::PostingsListReader;
-use crate::DocumentId;
 
 #[derive(Serialize, Deserialize)]
 struct QueryRequest {

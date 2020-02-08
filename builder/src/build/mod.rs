@@ -14,6 +14,9 @@ use crate::util::format::{average_int, bytes, frac_perc, number, percent, round2
 use crate::util::log::status_log_interval;
 use crate::util::murmur3::mmh3_x64_128;
 
+mod js;
+mod wasm;
+
 pub struct BuildConfig {
     pub document_encoding: DocumentEncoding,
     pub document_terms_source: File,
