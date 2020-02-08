@@ -6,6 +6,8 @@ export const CACHE_DIR = path.join(BUILD_DIR, 'cache');
 mkdirp.sync(CACHE_DIR);
 export const DATA_RAW_JSON = path.join(BUILD_DIR, 'cache', 'raw.json');
 export const DATA_PARSED_JSON = path.join(BUILD_DIR, 'cache', 'parsed.json');
+export const DATA_CONTENTS = path.join(BUILD_DIR, 'data', 'contents.txt');
+export const DATA_TERMS = path.join(BUILD_DIR, 'data', 'terms.txt');
 export const CLIENT_SRC_DIR = path.join(BUILD_DIR, '..', 'src');
 export const CLIENT_SRC_HTML_TEMPLATE = path.join(CLIENT_SRC_DIR, 'page.hbs');
 export const DIST_DIR = path.join(BUILD_DIR, '..', 'dist');
@@ -42,10 +44,8 @@ export const WORD_MAP: { [original: string]: string[] } = {
 export const VALID_WORD_REGEX = /^[a-z0-9]{1,25}$/;
 
 export const EXTRACT_WORDS_FN = (sentence: string) => sentence
-  .replace(/[\-~!@#$%^&*?_|[\]\\,./;'`"<>:()+{}（）、’]/g, ' ')
-  .trim()
-  .toLowerCase()
-  .split(/\s+/)
-  // This .filter will take care of single empty string on splitting of ""
-  .filter(w => VALID_WORD_REGEX.test(w))
-  .flatMap(w => WORD_MAP[w] || w);
+  .split(/[^a-zA-Z0-9]/)
+  .filter(t => t)
+  .map(t => t.toLowerCase())
+  .map(t => WORD_MAP[t] || t)
+  .flat();

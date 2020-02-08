@@ -2,34 +2,17 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 use std::fs::File;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 use croaring::Bitmap;
 
 use crate::{DOCUMENT_ID_BYTES, Term, TermId};
+use crate::data::document_terms::DocumentTermsReader;
+pub use crate::data::documents::DocumentEncoding;
+use crate::data::matrix::write_bloom_filter_matrix;
+use crate::data::postings_list::write_postings_list;
 use crate::util::format::{average_int, bytes, frac_perc, number, percent, round2};
 use crate::util::log::status_log_interval;
 use crate::util::murmur3::mmh3_x64_128;
-use crate::data::matrix::write_bloom_filter_matrix;
-use crate::data::document_terms::DocumentTermsReader;
-use crate::data::postings_list::write_postings_list;
-
-pub enum DocumentEncoding {
-    Json,
-    Text,
-}
-
-impl FromStr for DocumentEncoding {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "json" => Ok(DocumentEncoding::Json),
-            "text" => Ok(DocumentEncoding::Text),
-            _ => Err("Invalid document encoding".to_string()),
-        }
-    }
-}
 
 pub struct BuildConfig {
     pub document_encoding: DocumentEncoding,
@@ -74,20 +57,16 @@ pub fn build(BuildConfig {
     let mut term_frequency = HashMap::<TermId, usize>::new();
 
     // - Each document must end with '\0', even if last.
-    // - Each document must have at least one term.
     // - Each term must be unique within its document.
     // - Each term must end with '\0', even if last for document or entire index.
     // - Each term must not be empty.
     // - Each term must not contain '\0'.
     for (document_id, term) in DocumentTermsReader::new(document_terms_source) {
-        // Either document_id is new, which should equal terms_by_document.len(),
-        // or it's still the current document.
-        match terms_by_document.len() - document_id {
-            0 => terms_by_document.push(Vec::<TermId>::new()),
-            1 => {}
-            _ => unreachable!(),
+        // Some documents have no terms, so iteration could skip a few document IDs.
+        while terms_by_document.len() <= document_id {
+            terms_by_document.push(Vec::<TermId>::new());
         };
-        let document_terms = terms_by_document.last_mut().unwrap();
+        let document_terms = &mut terms_by_document[document_id];
         let term_len = term.len();
         postings_list_combined_values_bytes += DOCUMENT_ID_BYTES;
         let term_id = match term_ids.get(&term) {
@@ -95,7 +74,7 @@ pub fn build(BuildConfig {
             None => {
                 assert_eq!(terms.len(), postings_list.len());
                 let term_id = terms.len() as TermId;
-                term_ids.insert(term.to_vec(), term_id);
+                term_ids.insert(term.clone(), term_id);
                 terms.push(term);
                 postings_list.push(Bitmap::create());
                 postings_list_combined_keys_bytes += term_len;
@@ -212,29 +191,32 @@ pub fn build(BuildConfig {
     };
 
     let hash_log_interval = status_log_interval(document_count, 10);
+    let mut matrix_instances: usize = 0;
+    let mut postings_list_instances: usize = 0;
     for (document_id, doc_terms) in terms_by_document.iter().enumerate() {
         interval_log!(hash_log_interval, document_id, document_count, "Hashing documents ({})...");
         for term_id in doc_terms {
             if popular_terms.contains(term_id) {
                 // This is a popular term, so add it to the bloom filter matrix instead of the postings list.
-                let [a, b] = mmh3_x64_128(terms[*term_id].to_vec(), 0);
+                let [a, b] = mmh3_x64_128(terms[*term_id].clone(), 0);
                 for i in 0..hashes {
                     let bit: usize = ((a * (b + (i as u64))) % (bits as u64)) as usize;
                     matrix[bit].add(document_id as u32);
                 };
+                matrix_instances += 1;
             } else {
                 // Add to the postings list.
                 postings_list[*term_id].add(document_id.try_into().expect("too many documents"));
+                postings_list_instances += 1;
             };
         };
     };
 
     println!();
-    // TODO Better empty calculation.
-    if popular_partially_reachable + popular_fully_reachable == 0 {
+    if matrix_instances == 0 {
         println!("Matrix is not utilised");
     } else {
-        println!("Optimising matrix...");
+        println!("Optimising matrix with {} instances...", number(matrix_instances));
         for bitmap in matrix.iter_mut() {
             bitmap.run_optimize();
         };
@@ -242,10 +224,13 @@ pub fn build(BuildConfig {
     };
 
     println!();
-    println!("Optimising postings list...");
-    // TODO Ignore if empty.
-    for bitmap in postings_list.iter_mut() {
-        bitmap.run_optimize();
+    if postings_list_instances == 0 {
+        println!("Postings list is not utilised");
+    } else {
+        println!("Optimising postings list with {} instances...", number(postings_list_instances));
+        for bitmap in postings_list.iter_mut() {
+            bitmap.run_optimize();
+        };
+        write_postings_list(&output_dir, &postings_list, &terms);
     };
-    write_postings_list(&output_dir, &postings_list, &terms);
 }

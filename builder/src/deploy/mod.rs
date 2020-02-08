@@ -13,11 +13,11 @@ mod kv;
 mod worker;
 
 pub struct DeployConfig {
-    account_id: String,
-    api_token: String,
-    documents: File,
-    name: String,
-    output_dir: PathBuf,
+    pub account_id: String,
+    pub api_token: String,
+    pub documents: File,
+    pub name: String,
+    pub output_dir: PathBuf,
 }
 
 pub fn deploy(DeployConfig {
@@ -62,4 +62,6 @@ pub fn deploy(DeployConfig {
         };
     };
     process_batch(&mut postings_list_entries_batch, true);
+
+    // TODO Matrix
 }

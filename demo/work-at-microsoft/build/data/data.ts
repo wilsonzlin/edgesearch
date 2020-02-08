@@ -3,7 +3,7 @@ import request from 'request-promise-native';
 import {promises as fs} from 'fs';
 import path from 'path';
 import {Queue} from './queue';
-import {CACHE_DIR, DATA_PARSED_JSON, DATA_RAW_JSON} from '../const';
+import {CACHE_DIR, DATA_CONTENTS, DATA_RAW_JSON, DATA_TERMS, EXTRACT_WORDS_FN, FIELDS} from '../const';
 import * as moment from 'moment';
 import {AllHtmlEntities} from 'html-entities';
 
@@ -92,6 +92,15 @@ const parse = (rawData: any[]) =>
   await fs.writeFile(DATA_RAW_JSON, JSON.stringify(raw));
   console.log('Successfully retrieved data');
   const parsed = await parse(raw);
-  await fs.writeFile(DATA_PARSED_JSON, JSON.stringify(parsed));
+  const contents = parsed.map(j => JSON.stringify(j)).join('\0') + '\0';
+  const terms = parsed.map(job =>
+    FIELDS
+      // For each field, get words from that field's value and map to the form `{field}_{term}\0`.
+      .map(f => [...new Set(EXTRACT_WORDS_FN(job[f]).map(t => `${f}_${t}\0`))])
+      .flat(Infinity)
+      .join('')
+  ).join('\0') + '\0';
+  await fs.writeFile(DATA_CONTENTS, contents);
+  await fs.writeFile(DATA_TERMS, terms);
 })()
   .catch(e => console.error(e));

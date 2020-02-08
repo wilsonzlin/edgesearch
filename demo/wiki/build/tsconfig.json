@@ -1,7 +1,4 @@
 {
-  "include": [
-    "src/**/*.ts"
-  ],
   "compilerOptions": {
     "allowJs": false,
     "alwaysStrict": true,
@@ -22,7 +19,6 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noUnusedParameters": true,
-    "outDir": "dist",
     "skipLibCheck": true,
     "strict": true,
     "strictFunctionTypes": true,

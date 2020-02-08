@@ -1,14 +1,19 @@
 {
   "private": true,
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build-data": "ts-node data/data.ts"
+  },
   "dependencies": {
     "clean-css": "^4.2.1",
     "handlebars": "^4.0.11",
     "hyperbuild": "^0.0.43",
-    "terser": "^4.6.3"
+    "terser": "^4.6.3",
+    "ts-node": "^8.6.2",
+    "typescript": "^3.7.5"
   },
   "devDependencies": {
     "@types/clean-css": "^4.2.1",
-    "@types/node": "^13.7.0",
-    "typescript": "^3.7.5"
+    "@types/node": "^13.7.0"
   }
 }

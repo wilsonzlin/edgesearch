@@ -15,7 +15,7 @@ const FILE_NAME: &'static str = "postings.list";
 pub fn write_postings_list(output_dir: &PathBuf, postings_list: &Vec<Bitmap>, terms: &Vec<Term>) -> () {
     let output = File::create(output_dir.join(FILE_NAME)).expect("opening output file for postings list");
     let WrittenBitmapsStats { total_bitmap_bytes, .. } = write_bitmaps(output, postings_list.iter().enumerate().map(|(term_id, bitmap)| {
-        let mut key = terms[term_id].to_vec();
+        let mut key = terms[term_id].clone();
         key.push(b'\0');
         (key, bitmap)
     }), postings_list.len());
