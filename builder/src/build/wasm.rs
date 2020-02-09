@@ -7,6 +7,7 @@ const RUNNER_C_BITSET: &'static str = include_str!("../../resources/bitset.c");
 const RUNNER_C_BLOOM: &'static str = include_str!("../../resources/bloom.c");
 const RUNNER_C_MAIN: &'static str = include_str!("../../resources/main.c");
 const RUNNER_C_MURMUR: &'static str = include_str!("../../resources/murmur.c");
+const RUNNER_C_POSTINGSLIST: &'static str = include_str!("../../resources/postingslist.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../resources/roaring.c");
 const RUNNER_C_SORT: &'static str = include_str!("../../resources/sort.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../resources/sys.c");
@@ -26,12 +27,18 @@ pub enum WasmOptimisationLevel {
     G,
 }
 
-pub struct WasmCompileArgs<'m, 'i, 'o> {
+#[derive(Copy, Clone)]
+pub enum Warning {
+    UnusedFunction,
+}
+
+pub struct WasmCompileArgs<'iw, 'm, 'i, 'o> {
     standard: WasmStandard,
     optimisation_level: WasmOptimisationLevel,
     all_warnings: bool,
     extra_warnings: bool,
     warnings_as_errors: bool,
+    ignore_warnings: &'iw [Warning],
     macros: &'m [(&'m str, &'m str)],
     input: &'i PathBuf,
     output: &'o PathBuf,
@@ -43,6 +50,7 @@ pub fn compile_to_wasm(WasmCompileArgs {
     all_warnings,
     extra_warnings,
     warnings_as_errors,
+    ignore_warnings,
     macros,
     input,
     output,
@@ -68,12 +76,18 @@ pub fn compile_to_wasm(WasmCompileArgs {
     if all_warnings { cmd.arg("-Wall"); };
     if extra_warnings { cmd.arg("-Wextra"); };
     if warnings_as_errors { cmd.arg("-Werror"); };
+    for warning in ignore_warnings {
+        cmd.arg(format!("-Wno-{}", match warning {
+            Warning::UnusedFunction => "unused-function",
+        }));
+    };
     cmd.arg("--target=wasm32-unknown-unknown-wasm")
         .arg("-nostdlib")
         .arg("-nostdinc")
         .arg("-isystemstubs")
         .arg("-Wl,--no-entry")
-        .arg("-Wl,--import-memory");
+        .arg("-Wl,--import-memory")
+    ;
     for (name, code) in macros.iter() {
         cmd.arg(format!("-D{}={}", name, code));
     };
@@ -86,18 +100,15 @@ pub fn compile_to_wasm(WasmCompileArgs {
     };
 }
 
-pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize, max_query_bytes: usize) -> () {
+pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize, max_query_bytes: usize, max_query_terms: usize) -> () {
     let source_path = output_dir.join("runner.c");
     let output_path = output_dir.join("runner.wasm");
 
     let mut source_file = File::create(&source_path).expect("open runner.c for writing");
     source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_MAIN.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_MURMUR.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_SORT.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_BITSET.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_BLOOM.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_POSTINGSLIST.as_bytes()).expect("write runner.c");
 
     compile_to_wasm(WasmCompileArgs {
         standard: WasmStandard::C11,
@@ -105,9 +116,11 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
         all_warnings: true,
         extra_warnings: true,
         warnings_as_errors: false,
+        ignore_warnings: &vec![Warning::UnusedFunction],
         macros: &[
             ("MAX_RESULTS", format!("{}", max_results).as_str()),
             ("MAX_QUERY_BYTES", format!("{}", max_query_bytes).as_str()),
+            ("MAX_QUERY_TERMS", format!("{}", max_query_terms).as_str()),
         ],
         input: &source_path,
         output: &output_path,

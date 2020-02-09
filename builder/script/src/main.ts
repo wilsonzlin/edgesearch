@@ -1,23 +1,29 @@
-import {DOCUMENT_ENCODING, MAX_QUERY_BYTES, WORKER_NAME} from './config';
+import {DEFAULT_RESULTS, DOCUMENT_ENCODING, MAX_QUERY_BYTES, MAX_QUERY_TERMS} from './config';
 
 // Needed for addEventListener at bottom.
 // See https://github.com/Microsoft/TypeScript/issues/14877.
 declare var self: ServiceWorkerGlobalScope;
 
 type WorkersKVNamespace = {
-  get (key: string, encoding: 'text' | 'json'): Promise<any>;
+  get(key: string, encoding: 'text' | 'json' | 'arrayBuffer' | 'stream'): Promise<any>;
 }
 
+// Set by Cloudflare.
+declare var KV: WorkersKVNamespace;
 // Set by Cloudflare to the WebAssembly module that was upload alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
-const wasmMemory = new WebAssembly.Memory({initial: 96});
+const wasmMemory = new WebAssembly.Memory({initial: 1024});
 const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {env: {memory: wasmMemory}});
 
 const queryRunner = wasmInstance.exports as {
-  // Keep synchronised with function declarations in runner.main.c with WASM_EXPORT.
-  init (): number;
-  search (): number;
+  // Keep synchronised with function declarations builder/resources/*.c with WASM_EXPORT.
+  init(): void;
+  bloom_search_init(): number;
+  bloom_search(input: number): number;
+  postingslist_alloc_serialised(size: number): number;
+  postingslist_query_init(): number;
+  postingslist_query(input: number): number;
 };
 const queryRunnerMemory = new DataView(wasmMemory.buffer);
 const queryRunnerMemoryUint8 = new Uint8Array(wasmMemory.buffer);
@@ -42,60 +48,140 @@ const responseError = (error: string, status: number = 400) =>
     },
   });
 
-const responseSuccess = (data: object, status = 200) =>
-  new Response(JSON.stringify(data), {
+const responseSuccessRawJson = (json: string, status = 200) =>
+  new Response(json, {
     status, headers: {
       'Content-Type': 'application/json',
       ...CORS_HEADERS,
     },
   });
 
-// Synchronise mode IDs with mode_t enum in runner.main.c.
+const responseSuccess = (data: object, status = 200) =>
+  responseSuccessRawJson(JSON.stringify(data), status);
+
+type ParsedQuery = [
+  // Require.
+  string[],
+  // Contain.
+  string[],
+  // Exclude.
+  string[],
+];
+
+// Synchronise mode IDs with mode_t enum in builder/resources/main.c.
 const searchQsPartRegex = /^([012])_([^&]+)(?:&|$)/;
 
 const textEncoder = new TextEncoder();
 
-const parseQuery = (qs: string): Uint8Array | undefined => {
+const parseQuery = (qs: string): ParsedQuery | undefined => {
   if (!qs.startsWith('?q=')) {
     return;
   }
   qs = qs.slice(3);
 
-  const modeTerms = Array(3).fill(void 0).map(() => Array<Uint8Array>());
-  let termsCount = 0;
-  let bytesCount = 0;
+  const modeTerms: ParsedQuery = [
+    Array<string>(),
+    Array<string>(),
+    Array<string>(),
+  ];
   while (qs) {
     const matches = searchQsPartRegex.exec(qs);
     if (!matches) {
       return;
     }
-
-    qs = qs.slice(matches[0].length);
     const mode = Number.parseInt(matches[1], 10);
     const term = decodeURIComponent(matches[2]);
-
-    const termBytes = textEncoder.encode(term);
-    modeTerms[mode].push(termBytes);
-    termsCount++;
-    bytesCount += termBytes.byteLength;
+    modeTerms[mode].push(term);
+    qs = qs.slice(matches[0].length);
   }
 
-  if (!termsCount || bytesCount > MAX_QUERY_BYTES) {
-    return;
-  }
+  return modeTerms;
+};
 
-  const query = new Uint8Array(bytesCount);
-  let nextByte = 0;
-  for (const terms of modeTerms) {
+type QueryResult = {
+  more: boolean;
+  count: number;
+  documents: number[];
+};
+
+const readResult = (resultPtr: number): QueryResult => {
+  // Synchronise with `results_t` in builder/resources/main.c.
+  const count = queryRunnerMemory.getUint8(resultPtr);
+  const more = !!queryRunnerMemory.getUint8(resultPtr + 1);
+  const documents: number[] = [];
+  for (let resultNo = 0; resultNo < count; resultNo++) {
+    // Synchronise with `doc_id_t` in builder/resources/main.c.
+    // WASM is little endian.
+    // Starts from next WORD_SIZE (uint32_t) due to alignment.
+    const docId = queryRunnerMemory.getUint32(resultPtr + 4 + (resultNo * 4), true);
+    documents.push(docId);
+  }
+  return {more, count, documents};
+};
+
+const buildBloomQuery = (query: ParsedQuery): Uint8Array | undefined => {
+  const queryData: number[] = [];
+  for (const terms of query) {
     for (const term of terms) {
-      query.set(term, nextByte);
-      nextByte += term.byteLength;
-      query[nextByte++] = 0;
+      const termBytes = textEncoder.encode(term);
+      Array.prototype.push.apply(queryData, [...termBytes]);
+      queryData.push(0);
     }
-    query[nextByte++] = 0;
+    queryData.push(0);
   }
 
-  return query;
+  return queryData.length > MAX_QUERY_BYTES ? undefined : new Uint8Array(queryData);
+};
+
+const executeBloomQuery = (queryData: Uint8Array): QueryResult => {
+  const inputPtr = queryRunner.bloom_search_init();
+  queryRunnerMemoryUint8.set(queryData, inputPtr);
+  const outputPtr = queryRunner.bloom_search(inputPtr);
+  return readResult(outputPtr);
+};
+
+const buildPostingsListQuery = async (query: ParsedQuery): Promise<Uint8Array | undefined> => {
+  const termCount = query.reduce((count, modeTerms) => count + modeTerms.length, 0);
+  if (termCount > MAX_QUERY_TERMS) {
+    return undefined;
+  }
+
+  const termBitmaps = await Promise.all(
+    query.map(modeTerms => Promise.all(
+      modeTerms.map(term =>
+        KV
+          .get(`postingslist_${term}`, "arrayBuffer")
+          .then((sbm: ArrayBuffer) => {
+            const ptr = queryRunner.postingslist_alloc_serialised(sbm.byteLength);
+            queryRunnerMemoryUint8.set(new Uint8Array(sbm), ptr);
+            return [sbm.byteLength, ptr];
+          })
+      ),
+    )),
+  );
+  // Synchronise with postingslist_query_t.
+  const input = new DataView(new ArrayBuffer((termCount * 2 + 3) * 4));
+  let nextByte = 0;
+  for (const modeTermBitmaps of termBitmaps) {
+    for (const [bitmapBytes, bitmapPtr] of modeTermBitmaps) {
+      // WASM is LE.
+      input.setUint32(nextByte, bitmapBytes, true);
+      nextByte += 4;
+      input.setUint32(nextByte, bitmapPtr, true);
+      nextByte += 4;
+    }
+    input.setUint32(nextByte, 0, true);
+    nextByte += 4;
+  }
+
+  return new Uint8Array(input.buffer);
+};
+
+const executePostingsListQuery = (queryData: Uint8Array): QueryResult | undefined => {
+  const inputPtr = queryRunner.postingslist_query_init();
+  queryRunnerMemoryUint8.set(queryData, inputPtr);
+  const outputPtr = queryRunner.postingslist_query(inputPtr);
+  return outputPtr == 0 ? undefined : readResult(outputPtr);
 };
 
 const handleSearch = async (url: URL) => {
@@ -105,24 +191,24 @@ const handleSearch = async (url: URL) => {
   if (!query) {
     return responseError('Invalid query');
   }
-
-  const inputPtr = queryRunner.init();
-  queryRunnerMemoryUint8.set(query, inputPtr);
-
-  const outputPtr = queryRunner.search();
-  // Synchronise with `results_t` in runner.main.c.
-  const resultsCount = queryRunnerMemory.getUint8(outputPtr);
-  const more = !!queryRunnerMemory.getUint8(outputPtr + 1);
-
-  const documents = [];
-  for (let resultNo = 0; resultNo < resultsCount; resultNo++) {
-    // Synchronise with `doc_id_t` in runner.main.c.
-    // WASM is little endian.
-    const docId = queryRunnerMemory.getBigInt64(outputPtr + 2 + (resultNo * 8), true).toString();
-    documents.push((self[`EDGESEARCH_${WORKER_NAME}`] as WorkersKVNamespace).get(`doc_${docId}`, DOCUMENT_ENCODING));
+  if (query.every(modeTerms => !modeTerms.length)) {
+    return responseSuccessRawJson(`{"results":${DEFAULT_RESULTS},"more":true}`);
   }
 
-  return responseSuccess({results: await Promise.all(documents), more});
+  queryRunner.init();
+
+  // TODO Bloom filter matrix
+
+  const postingsListQueryData = await buildPostingsListQuery(query);
+  if (!postingsListQueryData) {
+    return responseError('Invalid query');
+  }
+  const result = await executePostingsListQuery(postingsListQueryData);
+  if (!result) {
+    return responseError('Invalid query');
+  }
+
+  return responseSuccess({results: await Promise.all(result.documents.map(docId => KV.get(`doc_${docId}`, DOCUMENT_ENCODING))), more: result.more});
 };
 
 const requestHandler = async (request: Request) => {

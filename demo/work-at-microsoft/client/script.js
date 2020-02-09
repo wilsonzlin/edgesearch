@@ -191,6 +191,7 @@
       // we will know if another search has already been made and therefore
       // these results are stale
       const this_search_timeout = search_timeout = setTimeout(() => {
+        /* TODO
         client.autocomplete($auto.dataset.field, term).then(results => {
           if (search_timeout !== this_search_timeout) {
             // This request is stale
@@ -206,6 +207,7 @@
             append_entry(res);
           }
         });
+       */
       }, 0 /* Debounce rate */);
     });
 
@@ -404,18 +406,16 @@
       const mode = $term.children[0].value;
       const field = $term.dataset.field;
       const prefix = {
-        '1': '',
-        '2': '~',
-        '3': '!',
+        '0': '',
+        '1': '~',
+        '2': '!',
       }[mode];
       const words = msc_extract_words_fn($term.children[1].children[0].value);
       if (!words.length) {
         return null;
       }
 
-      for (const w of words) {
-        query.add(mode, [field, w].join('_'));
-      }
+      query.add(mode, ...words.map(w => [field, w].join('_')));
 
       // Replace `%20` with nicer looking `+`
       return `${prefix}${field}:${encodeURIComponent(words.join(' ')).replace(/%20/g, '+')}`;
@@ -440,13 +440,12 @@
     const query = new edgesearch.Query();
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
-      const mode = /^!/.test(part)
-        ? '3'
-        : /^~/.test(part)
-          ? '2'
-          : '1';
+      const mode = {
+        '!': '2',
+        '~': '1',
+      }[part[0]] || '0';
 
-      const [field, words_raw] = part.slice(mode != '1').split(':', 2);
+      const [field, words_raw] = part.slice(mode != '0').split(':', 2);
 
       if (!msc_fields.has(field)) {
         continue;
@@ -457,9 +456,7 @@
         continue;
       }
 
-      for (const w of words) {
-        query.add(mode, [field, w].join('_'));
-      }
+      query.add(mode, ...words.map(w => [field, w].join('_')));
       new_search_term(field, mode, words);
     }
 

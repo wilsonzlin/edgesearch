@@ -1,30 +1,4 @@
-/*
- * The following libc replacement code is partially copied from
- * https://github.com/cloudflare/cloudflare-workers-wasm-demo.git
- * using the following license:
- *
- * Copyright (c) 2018 Cloudflare, Inc. and contributors
- * Licensed under the MIT License:
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
-
+// NOTE: WASM is a 32-bit little-endian system.
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
 typedef short int16_t;
@@ -33,24 +7,116 @@ typedef int int32_t;
 typedef unsigned int uint32_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
-
 typedef unsigned long size_t;
-typedef unsigned char byte;
+
+typedef uint8_t byte;
+
+typedef int32_t intptr_t;
+typedef uint32_t uintptr_t;
+#define NULL ((void*) 0)
 
 typedef uint8_t bool;
 #define true 1
 #define false 0
 
-#define NULL ((void*) 0)
+#define INT32_MAX 0x7FFFFFFF
+#define UINT16_MAX 65535
+#define UINT32_MAX 4294967295u
+#define UINT64_MAX 18446744073709551615ull
+#define SIZE_MAX 4294967295ul
+#define UINT8_C(c) c
+#define INT32_C(c) c
+#define INT64_C(c) c ## ll
+#define UINT64_C(c) c ## ull
 
-// string.h. These implementations are poorly-optimized. Oh well.
-void* memcpy(void* restrict dst, void const* restrict src, size_t n) {
-	byte* bdst = (byte*) dst;
-	byte* bsrc = (byte*) src;
-	while (n-- > 0) {
-		*bdst++ = *bsrc++;
-	}
-	return dst;
+#define WASM_EXPORT __attribute__((visibility("default")))
+
+#define assert(ignore)((void) 0)
+
+extern byte __heap_base;
+// Must be initialised by init() before use.
+byte* heap = NULL;
+byte* last_alloc = NULL;
+void* malloc(size_t n) {
+  // TODO Alignment?
+  // Store length of memory block just before pointer for use when reallocating.
+  *((size_t*) heap) = n;
+  heap += sizeof(size_t);
+  last_alloc = heap;
+  heap += n;
+  return last_alloc;
+}
+
+// TODO
+int posix_memalign(void **memptr, size_t alignment, size_t size) {
+  (void) alignment;
+  *memptr = malloc(size);
+  return 0;
+}
+
+// TODO
+void free(void* ptr) {
+  if (ptr == last_alloc) {
+    heap = last_alloc;
+    // TODO
+    last_alloc = NULL;
+  }
+}
+
+void* memcpy(void* restrict dest, void const* restrict src, size_t n) {
+  byte* bdest = (byte*) dest;
+  byte* bsrc = (byte*) src;
+  while (n-- > 0) *bdest++ = *bsrc++;
+  return dest;
+}
+
+void* memmove(void* dest, void const* src, size_t n) {
+  if (src < dest) {
+    memcpy(dest, src, n);
+  } else if (src > dest) {
+    byte* bdest = (byte*) (dest + n);
+    byte* bsrc = (byte*) (src + n);
+    while (n-- > 0) *bdest-- = *bsrc--;
+  }
+  return dest;
+}
+
+void* memset(void* s, int c, size_t n) {
+  byte* bs = (byte*) s;
+  while (n--) *bs++ = (byte) c;
+  return s;
+}
+
+void* realloc(void* ptr, size_t size) {
+  // Get original size.
+  size_t orig_size = ((size_t*) ptr)[-1];
+  byte* bptr = (byte*) ptr;
+  if (bptr == last_alloc) {
+    heap += size - (heap - last_alloc);
+    return ptr;
+  } else {
+    void* newptr = malloc(size);
+    memcpy(newptr, ptr, orig_size);
+    return newptr;
+  }
+}
+
+void* calloc(size_t nmemb, size_t size) {
+  size_t bytes = size * nmemb;
+  void* newptr = malloc(bytes);
+  memset(newptr, 0, bytes);
+  return newptr;
+}
+
+int memcmp(void const* s1, void const* s2, size_t n) {
+  byte* bs1 = (byte*) s1;
+  byte* bs2 = (byte*) s2;
+  while (n-- > 0) {
+    byte cmp = (*bs1 > *bs2) - (*bs1 < *bs2);
+    if (cmp) return cmp;
+    bs1++; bs2++;
+  }
+  return 0;
 }
 
 size_t strlen(char const* bytes) {
@@ -59,24 +125,21 @@ size_t strlen(char const* bytes) {
   return len;
 }
 
-// Try extra-hard to make sure the compiler uses its built-in intrinsics rather than our crappy implementations.
-#define memcpy __builtin_memcpy
+// TODO
+typedef uint8_t FILE;
+#define stderr NULL
+#define PRIu32 "u"
+#define PRId32 "d"
 
-// Start of heap -- symbol provided by compiler.
-extern byte __heap_base;
-
-// Current heap position.
-byte* heap = NULL;
-// Last value returned by malloc(), for trivial optimizations.
-void* last_malloc =	NULL;
-
-// Really trivial malloc() implementation. We just allocate bytes sequentially
-// from the start of the heap, and reset the whole heap to empty at the start of
-// each request.
-void* malloc(size_t n) {
-	last_malloc = heap;
-	heap += n;
-	return last_malloc;
+int printf(char const* format, ...) {
+  // TODO
+  (void) format;
+  return 0;
 }
 
-#define WASM_EXPORT __attribute__((visibility("default")))
+int fprintf(FILE* stream, char const* format, ...) {
+  // TODO
+  (void) stream;
+  (void) format;
+  return 0;
+}

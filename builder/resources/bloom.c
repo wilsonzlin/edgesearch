@@ -32,7 +32,6 @@ inline void bloom_and(uint64_t const* bitset_indices, size_t bitset_indices_coun
   }
 }
 
-
 // {@param words} is multiple null-terminated char[], terminated by '\0'.
 // For example: {'h', 'e', 'l', 'l', 'o', '\0', 'w', 'o', 'r', 'l', 'd', '\0', '\0'}.
 byte const* bloom_query_mode(mode_t mode, byte const* words) {
@@ -90,10 +89,26 @@ byte const* bloom_query_mode(mode_t mode, byte const* words) {
   return &next_word[1];
 }
 
-results_t* search(void) {
+typedef struct {
+  // `words` is a serialised form of char[][].
+  // There's a subarray for each mode.
+  // Each mode contains null-terminated words, and is terminated by '\0'.
+  // For example: {
+  //   'h', 'e', 'l', 'l', 'o', '\0', 'w', 'o', 'r', 'l', 'd', '\0', '\0',
+  //   't', 'h', 'e', '\0', 'q', 'u', 'i', 'c', 'k', '\0', 'f', 'o' 'x', '\0', '\0',
+  //   'a', 's', 't', 'r', 'o', 'n', 'a', 'u', 't', '\0', '\0',
+  // }.
+  byte words[MAX_QUERY_BYTES];
+} bloom_query_t;
+
+WASM_EXPORT bloom_query_t* bloom_search_init(void) {
+  return malloc(sizeof(query_t));
+}
+
+WASM_EXPORT results_t* bloom_search(bloom_query_t* bloom_query) {
   mode_t mode = REQUIRE;
 
-  byte const* next_word = query->words;
+  byte const* next_word = bloom_query->words;
   while (mode < 3) {
     next_word = bloom_query_mode(mode, next_word);
     mode++;

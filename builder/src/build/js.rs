@@ -12,19 +12,21 @@ const WORKER_JS_TEMPLATE: &'static str = include_str!("../../script/dist/main.js
 #[derive(Serialize, Deserialize)]
 // Keep in sync with variables declared in builder/script/src/config.ts.
 struct WorkerConfigObject {
+    DEFAULT_RESULTS: String,
     DOCUMENT_ENCODING: String,
     MAX_QUERY_BYTES: usize,
-    WORKER_NAME: String,
+    MAX_QUERY_TERMS: usize,
 }
 
-pub fn generate_worker_js(output_dir: &PathBuf, worker_name: &String, document_encoding: DocumentEncoding, max_query_bytes: usize) -> () {
+pub fn generate_worker_js(output_dir: &PathBuf, document_encoding: DocumentEncoding, default_results: &str, max_query_bytes: usize, max_query_terms: usize) -> () {
     let js = WORKER_JS_TEMPLATE
         // `exports` is not defined in Workers environment.
         .replace(r#"Object.defineProperty(exports, "__esModule", { value: true });"#, "")
         .replace(r#"require("./config")"#, &serde_json::to_string(&WorkerConfigObject {
+            DEFAULT_RESULTS: default_results.to_string(),
             DOCUMENT_ENCODING: document_encoding.to_string(),
             MAX_QUERY_BYTES: max_query_bytes,
-            WORKER_NAME: worker_name.clone(),
+            MAX_QUERY_TERMS: max_query_terms,
         }).expect("create worker.js configuration object"));
 
     File::create(output_dir.join("worker.js")).expect("create worker.js file").write_all(js.as_bytes()).expect("write worker.js");

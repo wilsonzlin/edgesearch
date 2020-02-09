@@ -1,4 +1,4 @@
-// Synchronise mode IDs with mode_t enum in runner.main.c.
+// Synchronise mode IDs with mode_t enum in builder/resources/main.c.
 export enum Mode {
   REQUIRE = '0',
   CONTAIN = '1',
@@ -10,7 +10,7 @@ const sorted = <T> (iter: Iterable<T>): T[] => Array.from(iter).sort();
 export class Query {
   private readonly modeTerms: ReadonlyArray<Set<string>> = Array(3).fill(0).map(() => new Set());
 
-  public add (mode: Mode, terms: ReadonlyArray<string>): this {
+  public add (mode: Mode, ...terms: ReadonlyArray<string>): this {
     for (const w of terms) {
       this.modeTerms[mode].add(w);
     }
@@ -19,9 +19,10 @@ export class Query {
 
   public build (): string {
     return `?q=${this.modeTerms
+      .filter(terms => terms.size)
       .map((terms, i) =>
         sorted(terms)
-          .map(t => `${i + 1}_${encodeURIComponent(t)}`)
+          .map(t => `${i}_${encodeURIComponent(t)}`)
           .join('&'))
       .join('&')}`;
   }

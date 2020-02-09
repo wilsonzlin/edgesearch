@@ -19,23 +19,27 @@ use crate::util::murmur3::mmh3_x64_128;
 mod js;
 mod wasm;
 
-pub struct BuildConfig {
+pub struct BuildConfig<'dr, 'n> {
+    pub default_results: &'dr str,
     pub document_encoding: DocumentEncoding,
     pub document_terms_source: File,
     pub error: f64,
     pub maximum_query_bytes: usize,
     pub maximum_query_results: usize,
-    pub name: String,
+    pub maximum_query_terms: usize,
+    pub name: &'n str,
     pub output_dir: PathBuf,
     pub popular: f64,
 }
 
 pub fn build(BuildConfig {
+    default_results,
     document_encoding,
     document_terms_source,
     error,
     maximum_query_bytes,
     maximum_query_results,
+    maximum_query_terms,
     name,
     output_dir,
     popular,
@@ -240,7 +244,7 @@ pub fn build(BuildConfig {
     };
 
     println!("Creating worker.js...");
-    generate_worker_js(&output_dir, &name, document_encoding, maximum_query_bytes);
+    generate_worker_js(&output_dir, document_encoding, &default_results, maximum_query_bytes, maximum_query_terms);
     println!("Creating runner.wasm...");
-    generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes);
+    generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes, maximum_query_terms);
 }

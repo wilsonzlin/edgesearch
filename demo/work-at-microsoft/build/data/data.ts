@@ -3,7 +3,17 @@ import request from 'request-promise-native';
 import {promises as fs} from 'fs';
 import path from 'path';
 import {Queue} from './queue';
-import {CACHE_DIR, DATA_CONTENTS, DATA_RAW_JSON, DATA_TERMS, EXTRACT_WORDS_FN, FIELDS} from '../const';
+import {
+  CACHE_DIR,
+  DATA_CONTENTS,
+  DATA_DEFAULT,
+  DATA_PARSED_JSON,
+  DATA_RAW_JSON,
+  DATA_TERMS,
+  EXTRACT_WORDS_FN,
+  FIELDS,
+  SEARCH_RESULTS_MAX,
+} from '../const';
 import * as moment from 'moment';
 import {AllHtmlEntities} from 'html-entities';
 
@@ -91,7 +101,11 @@ const parse = (rawData: any[]) =>
   const raw = await loadRaw();
   await fs.writeFile(DATA_RAW_JSON, JSON.stringify(raw));
   console.log('Successfully retrieved data');
+
   const parsed = await parse(raw);
+  await fs.writeFile(DATA_PARSED_JSON, JSON.stringify(parsed));
+  await fs.writeFile(DATA_DEFAULT, JSON.stringify(parsed.slice(0, SEARCH_RESULTS_MAX)));
+
   const contents = parsed.map(j => JSON.stringify(j)).join('\0') + '\0';
   const terms = parsed.map(job =>
     FIELDS

@@ -1,20 +1,21 @@
 import * as readline from 'readline';
 import * as fs from 'fs';
 import {createWriteStream} from 'fs';
-import {WORDS_EXTRACTOR} from '../const';
-import {join} from 'path';
+import {DATA_CONTENTS, DATA_DEFAULT, DATA_SOURCE, DATA_TERMS, WORDS_EXTRACTOR} from '../const';
 
-const outTerms = createWriteStream(join(__dirname, 'terms.txt'), {
+const outTerms = createWriteStream(DATA_TERMS, {
   encoding: 'utf8',
 });
 
-const outContents = createWriteStream(join(__dirname, 'contents.txt'), {
+const outContents = createWriteStream(DATA_CONTENTS, {
   encoding: 'utf8',
 });
 
 const input = readline.createInterface({
-  input: fs.createReadStream(join(__dirname, 'titles.txt')),
+  input: fs.createReadStream(DATA_SOURCE),
 });
+
+fs.writeFileSync(DATA_DEFAULT, '[]', 'utf8');
 
 let lineNo = 0;
 input.on('line', l => {
