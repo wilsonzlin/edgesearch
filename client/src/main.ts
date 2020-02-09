@@ -53,16 +53,12 @@ const httpGet = <T> (url: string): Promise<T> => new Promise<T>((resolve, reject
   xhr.send();
 });
 
-export type Entry = {
-  [field: string]: string;
-};
-
-export type SearchResponse<E extends Entry> = {
+export type SearchResponse<E> = {
   results: E[];
   overflow: boolean;
 };
 
-export class Client<E extends Entry> {
+export class Client<E> {
   constructor (
     private readonly host: string,
     private readonly protocol: string = 'https',

@@ -1,3 +1,6 @@
+use std::thread::sleep;
+use std::time::Duration;
+
 use reqwest::blocking::{Client, multipart, Response};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -22,17 +25,27 @@ pub fn make_json_request<B, R>(
     path: String,
     body: &B,
 ) -> R where B: Serialize, for<'de> R: Deserialize<'de> {
-    let res = client
-        .request(method, format!("https://api.cloudflare.com/client/v4/accounts/{account_id}{path}",
-            account_id = auth.account_id,
-            path = path,
-        ).as_str())
-        .header("X-Auth-Email", &auth.account_email)
-        .header("X-Auth-Key", &auth.global_api_key)
-        .json(body)
-        .send()
-        .expect("API call");
-    handle_response(res)
+    let mut retry_delay: u64 = 1;
+    loop {
+        let res = client
+            .request(method.clone(), format!("https://api.cloudflare.com/client/v4/accounts/{account_id}{path}",
+                account_id = auth.account_id,
+                path = path,
+            ).as_str())
+            .header("X-Auth-Email", &auth.account_email)
+            .header("X-Auth-Key", &auth.global_api_key)
+            .json(body)
+            .send();
+        match res {
+            Ok(res) => return handle_response(res),
+            Err(err) => {
+                println!("Request failed with error {}", err);
+                println!("Retrying...");
+                sleep(Duration::new(retry_delay, 0));
+                retry_delay *= 2;
+            }
+        };
+    };
 }
 
 pub fn make_form_request<R>(

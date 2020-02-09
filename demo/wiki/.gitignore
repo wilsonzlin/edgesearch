@@ -1,3 +1,4 @@
 /build/data/*.txt
 /dist/
 node_modules/
+/client/yarn.lock

@@ -1,0 +1,15 @@
+.header {
+  align-items: center;
+  background-color: #eaecf0;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.queryInput {
+  background: white;
+  border-radius: 2px;
+  border: 1px solid white;
+  padding: 0.5rem;
+  width: 20rem;
+}
