@@ -150,12 +150,12 @@ const buildPostingsListQuery = async (query: ParsedQuery): Promise<Uint8Array | 
     query.map(modeTerms => Promise.all(
       modeTerms.map(term =>
         KV
-          .get(`postingslist_${term}`, "arrayBuffer")
+          .get(`postingslist_${term}`, 'arrayBuffer')
           .then((sbm: ArrayBuffer) => {
             const ptr = queryRunner.postingslist_alloc_serialised(sbm.byteLength);
             queryRunnerMemoryUint8.set(new Uint8Array(sbm), ptr);
             return [sbm.byteLength, ptr];
-          })
+          }),
       ),
     )),
   );

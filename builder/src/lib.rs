@@ -8,6 +8,7 @@ pub mod test;
 
 // Roaring Bitmaps only support 32-bit integers.
 type DocumentId = u32;
+
 const DOCUMENT_ID_BYTES: usize = 4;
 
 type Term = Vec<u8>;
