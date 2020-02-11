@@ -370,7 +370,7 @@
           return;
         }
 
-        const {results: jobs, overflow} = data;
+        const {results: jobs, more: overflow} = data;
 
         const count = `${jobs.length}${overflow ? '+' : ''}`;
         const plural = jobs.length != 1;

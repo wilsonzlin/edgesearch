@@ -14,4 +14,6 @@ typedef struct {
 
 WASM_EXPORT void init(void) {
   heap = &__heap_base;
+  uintptr_t align_pad = ((uintptr_t) heap % sizeof(word_t));
+  if (align_pad) heap += sizeof(word_t) - tail;
 }

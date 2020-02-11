@@ -13,7 +13,7 @@ declare var KV: WorkersKVNamespace;
 // Set by Cloudflare to the WebAssembly module that was upload alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
-const wasmMemory = new WebAssembly.Memory({initial: 1024});
+const wasmMemory = new WebAssembly.Memory({initial: 2048});
 const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {env: {memory: wasmMemory}});
 
 const queryRunner = wasmInstance.exports as {
