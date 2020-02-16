@@ -32,7 +32,7 @@ edgesearch deploy \
   --account-id CF_ACCOUNT_ID \
   --account-email me@email.com \ 
   --global-api-key CF_GLOBAL_API_KEY \
-  --name my-worker \
+  --name my-edgesearch \
   --output-dir dist/worker/ \
   --namespace CF_KV_NAMESPACE_ID \
   --upload-data
@@ -88,11 +88,9 @@ Bits set in the resulting bit set are mapped to the entry at their corresponding
 
 ### Cloudflare
 
-The entire app runs off a single JavaScript script + accompanying WASM code. It does not need any database or storage, and uses Cloudflare Workers. This allows some cool features:
+The entire app runs off a single JavaScript script + accompanying WASM code. It does not need any database or server, and uses Cloudflare Workers. This allows for some cool features:
 
 - Faster than a VM or container with less cold starts, as code is run on a V8 Isolate.
-- Naturally distributed to the edge for very low latency, despite being dynamic code.
-- Takes advantage of Cloudflare for SSL, caching, and protection.
+- Naturally distributed to the edge for very low latency.
+- Takes advantage of Cloudflare for SSL, caching, and distribution.
 - No need to worry about scaling, networking, or servers.
-
-The entries data is embedded within the JS code, and the bit sets are `uint64_t` array literals in the C code.
