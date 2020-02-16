@@ -1,0 +1,20 @@
+.article {
+  border: 1px solid #a2a9b1;
+  display: flex;
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.image {
+  background: #f8f9fa;
+  border: 1px solid #c8ccd1;
+  margin-right: 1rem;
+  padding: 1rem;
+  width: 10rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: normal;
+  margin-bottom: 0.5rem;
+}

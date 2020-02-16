@@ -8,7 +8,7 @@ export enum Mode {
 const sorted = <T> (iter: Iterable<T>): T[] => Array.from(iter).sort();
 
 export class Query {
-  private readonly modeTerms: ReadonlyArray<Set<string>> = Array(3).fill(0).map(() => new Set());
+  private readonly modeTerms: ReadonlyArray<Set<string>> = Array(3).fill(void 0).map(() => new Set());
 
   public add (mode: Mode, ...terms: ReadonlyArray<string>): this {
     for (const w of terms) {
@@ -19,11 +19,9 @@ export class Query {
 
   public build (): string {
     return `?q=${this.modeTerms
-      .filter(terms => terms.size)
-      .map((terms, i) =>
-        sorted(terms)
-          .map(t => `${i}_${encodeURIComponent(t)}`)
-          .join('&'))
+      .map((terms, mode) => sorted(terms).map(t => `${mode}_${encodeURIComponent(t)}`).join('&'))
+      // Filter after mapping as otherwise mode IDs are incorrect.
+      .filter(p => p)
       .join('&')}`;
   }
 }
@@ -55,7 +53,7 @@ const httpGet = <T> (url: string): Promise<T> => new Promise<T>((resolve, reject
 
 export type SearchResponse<E> = {
   results: E[];
-  overflow: boolean;
+  more: boolean;
 };
 
 export class Client<E> {

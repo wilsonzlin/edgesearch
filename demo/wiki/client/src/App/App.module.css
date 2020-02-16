@@ -13,3 +13,16 @@
   padding: 0.5rem;
   width: 20rem;
 }
+
+.main {
+  padding: 1rem;
+}
+
+.status {
+  margin-bottom: 1rem;
+}
+
+.basicArticlesList {
+  display: flex;
+  flex-wrap: wrap;
+}

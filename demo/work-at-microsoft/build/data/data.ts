@@ -106,14 +106,14 @@ const parse = (rawData: any[]) =>
   await fs.writeFile(DATA_PARSED_JSON, JSON.stringify(parsed));
   await fs.writeFile(DATA_DEFAULT, JSON.stringify(parsed.slice(0, SEARCH_RESULTS_MAX)));
 
-  const contents = parsed.map(j => JSON.stringify(j)).join('\0') + '\0';
+  const contents = parsed.map(j => JSON.stringify(j) + '\0').join('');
   const terms = parsed.map(job =>
     FIELDS
       // For each field, get words from that field's value and map to the form `{field}_{term}\0`.
       .map(f => [...new Set(EXTRACT_WORDS_FN(job[f]).map(t => `${f}_${t}\0`))])
       .flat(Infinity)
-      .join('')
-  ).join('\0') + '\0';
+      .join('') + '\0',
+  ).join('');
   await fs.writeFile(DATA_CONTENTS, contents);
   await fs.writeFile(DATA_TERMS, terms);
 })()

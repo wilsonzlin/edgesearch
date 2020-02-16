@@ -12,8 +12,8 @@ typedef struct {
   doc_id_t documents[MAX_RESULTS];
 } results_t;
 
-WASM_EXPORT void init(void) {
+WASM_EXPORT void reset(void) {
   heap = &__heap_base;
   uintptr_t align_pad = ((uintptr_t) heap % sizeof(word_t));
-  if (align_pad) heap += sizeof(word_t) - tail;
+  if (align_pad) heap += sizeof(word_t) - align_pad;
 }

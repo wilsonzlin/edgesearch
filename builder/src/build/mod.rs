@@ -5,53 +5,47 @@ use std::path::PathBuf;
 
 use croaring::Bitmap;
 
-use crate::{DOCUMENT_ID_BYTES, Term, TermId};
+use crate::{Term, TermId};
 use crate::build::js::generate_worker_js;
+use crate::build::packed::bst::PackedEntriesWithBSTLookup;
+use crate::build::packed::direct::PackedEntriesWithDirectLookup;
+use crate::build::packed::{PackedU32Key, PackedStrKey};
 use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 pub use crate::data::documents::DocumentEncoding;
-use crate::data::matrix::write_bloom_filter_matrix;
-use crate::data::postings_list::write_postings_list;
-use crate::util::format::{average_int, bytes, frac_perc, number, percent, round2};
+use crate::data::documents::DocumentsReader;
+use crate::data::packed::write_packed;
+use crate::util::format::{frac_perc, number, percent};
 use crate::util::log::status_log_interval;
-use crate::util::murmur3::mmh3_x64_128;
 
 mod js;
+mod packed;
 mod wasm;
 
-pub struct BuildConfig<'dr, 'n> {
-    pub default_results: &'dr str,
+// 10 MiB.
+const KV_VALUE_MAX_SIZE: usize = 10 * 1024 * 1024;
+// 1 MiB.
+const POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_MAX_SIZE: usize = 1 * 1024 * 1024;
+
+pub struct BuildConfig {
     pub document_encoding: DocumentEncoding,
     pub document_terms_source: File,
-    pub error: f64,
+    pub documents_source: File,
     pub maximum_query_bytes: usize,
     pub maximum_query_results: usize,
     pub maximum_query_terms: usize,
-    pub name: &'n str,
     pub output_dir: PathBuf,
-    pub popular: f64,
 }
 
 pub fn build(BuildConfig {
-    default_results,
     document_encoding,
     document_terms_source,
-    error,
+    documents_source,
     maximum_query_bytes,
     maximum_query_results,
     maximum_query_terms,
-    name,
     output_dir,
-    popular,
 }: BuildConfig) -> () {
-    assert!(error > 0.0 && error < 1.0);
-    // If popular is zero, bloom filter matrix is not used.
-    // If popular is one, postings list is not used.
-    assert!(popular >= 0.0 && popular <= 1.0);
-
-    let mut postings_list_combined_values_bytes: usize = 0;
-    let mut postings_list_combined_keys_bytes: usize = 0;
-
     // term_id => term.
     let mut terms = Vec::<Term>::new();
     // term => term_id.
@@ -60,8 +54,6 @@ pub fn build(BuildConfig {
     let mut terms_by_document = Vec::<Vec<TermId>>::new();
     // term_id => bitmap.
     let mut postings_list = Vec::<Bitmap>::new();
-    // document_terms.map(|d| d.len()).sum().
-    let mut instance_count = 0usize;
     // term_id => document_terms.filter(|d| d.contains(term_id)).count().
     let mut term_frequency = HashMap::<TermId, usize>::new();
 
@@ -76,8 +68,6 @@ pub fn build(BuildConfig {
             terms_by_document.push(Vec::<TermId>::new());
         };
         let document_terms = &mut terms_by_document[document_id];
-        let term_len = term.len();
-        postings_list_combined_values_bytes += DOCUMENT_ID_BYTES;
         let term_id = match term_ids.get(&term) {
             Some(term_id) => *term_id,
             None => {
@@ -86,165 +76,72 @@ pub fn build(BuildConfig {
                 term_ids.insert(term.clone(), term_id);
                 terms.push(term);
                 postings_list.push(Bitmap::create());
-                postings_list_combined_keys_bytes += term_len;
                 term_id
             }
         };
 
         document_terms.push(term_id);
         term_frequency.insert(term_id, term_frequency.get(&term_id).unwrap_or(&0) + 1);
-        instance_count += 1;
     };
 
     let document_count = terms_by_document.len();
     let term_count = term_frequency.len();
     assert!(term_count >= 1000);
 
-    let mut highest_term_freqs = term_frequency
-        .iter()
-        .map(|(term, count)| (*term, *count))
-        .collect::<Vec<(TermId, usize)>>();
-    highest_term_freqs.sort_by(|a, b| b.1.cmp(&a.1));
+    let hash_log_interval = status_log_interval(document_count, 10);
+    for (document_id, doc_terms) in terms_by_document.iter().enumerate() {
+        interval_log!(hash_log_interval, document_id, document_count, "Processing documents ({})...");
+        for term_id in doc_terms {
+            // Add to the relevant postings list entry bitmap.
+            postings_list[*term_id].add(document_id.try_into().expect("too many documents"));
+        };
+    };
 
-    let popular_cutoff = (popular * instance_count as f64).ceil() as usize;
-    let mut popular_instance_count = 0;
-    let mut popular_reduced_postings_list_combined_keys_bytes: usize = 0;
-    let mut popular_reduced_postings_list_combined_values_bytes: usize = 0;
+    let mut highest_frequency_terms = (0..terms.len()).collect::<Vec<TermId>>();
+    // Sort by term if frequency is identical for deterministic orderings.
+    highest_frequency_terms.sort_by(|a, b| term_frequency[b].cmp(&term_frequency[a]).then(terms[*b].cmp(&terms[*a])));
+
+    println!("Creating packed postings list entries for popular terms...");
     let mut popular_terms = HashSet::<TermId>::new();
-    for (term_id, count) in highest_term_freqs.iter() {
-        if popular_instance_count + *count > popular_cutoff {
+    let mut packed_popular_postings_list = PackedEntriesWithDirectLookup::new(KV_VALUE_MAX_SIZE, POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_MAX_SIZE);
+    for term_id in highest_frequency_terms.iter() {
+        let postings_list_entry = &mut postings_list[*term_id];
+        postings_list_entry.run_optimize();
+        let serialised = postings_list_entry.serialize();
+        if !packed_popular_postings_list.insert(&PackedStrKey::new(&terms[*term_id]), &serialised) {
             break;
         };
         popular_terms.insert(*term_id);
-        popular_instance_count += *count;
-        popular_reduced_postings_list_combined_keys_bytes += terms[*term_id].len();
-        popular_reduced_postings_list_combined_values_bytes += DOCUMENT_ID_BYTES * *count;
     };
+    println!("There are {} ({} of all terms) popular terms spread over {} packages", number(popular_terms.len()), frac_perc(popular_terms.len(), terms.len()), number(packed_popular_postings_list.get_packages().len()));
+    write_packed(&output_dir, "popular_terms", &packed_popular_postings_list.get_packages());
 
-    let popular_term_count = popular_terms.len();
-    let mut popular_fully_reachable: usize = 0;
-    let mut popular_partially_reachable: usize = 0;
-    let mut popular_unreachable: usize = 0;
-    for doc in terms_by_document.iter() {
-        let mut some = false;
-        let mut every = true;
-        for term_id in doc {
-            if popular_terms.contains(term_id) {
-                some = true;
-            } else {
-                every = false;
-            };
-        };
-        if every {
-            popular_fully_reachable += 1;
-        } else if some {
-            popular_partially_reachable += 1;
-        } else {
-            popular_unreachable += 1;
-        };
+    println!("Creating packed postings list entries for normal terms...");
+    let mut packed_normal_postings_list_builder = PackedEntriesWithBSTLookup::<PackedStrKey>::new(KV_VALUE_MAX_SIZE);
+    let mut terms_sorted = (0..terms.len()).collect::<Vec<TermId>>();
+    terms_sorted.sort_by(|a, b| terms[*a].cmp(&terms[*b]));
+    for term_id in terms_sorted.iter() {
+        if popular_terms.contains(term_id) { continue; };
+        let postings_list_entry = &mut postings_list[*term_id];
+        postings_list_entry.run_optimize();
+        let serialised = postings_list_entry.serialize();
+        packed_normal_postings_list_builder.insert(PackedStrKey::new(&terms[*term_id]), serialised);
     };
+    let (packed_normal_postings_list_raw_lookup, packed_normal_postings_list_serialised_entries) = packed_normal_postings_list_builder.serialise();
+    println!("There are {} packages representing normal terms", number(packed_normal_postings_list_builder.package_count()));
+    write_packed(&output_dir, "normal_terms", &packed_normal_postings_list_serialised_entries);
 
-    let bits_per_element = -(error.ln() / 2.0f64.ln().powi(2));
-    let bits: usize = (bits_per_element * popular_term_count as f64).ceil() as usize;
-    let hashes: usize = (2.0f64.ln() * bits_per_element).ceil() as usize;
-
-    println!();
-    println!("Information about worker \"{}\":", name);
-    println!("- There are {docs} documents, each having between {min} and {max} instances with an average of {avg}.",
-        docs = number(document_count),
-        min = terms_by_document.iter().map(|t| t.len()).min().unwrap(),
-        max = terms_by_document.iter().map(|t| t.len()).max().unwrap(),
-        avg = number(average_int(instance_count, document_count)),
-    );
-    println!("- {popular_term_count} of {term_count} terms ({popular_terms_pc}) represent {popular_instance_count} of {instance_count} ({popular_instance_count_pc}) instances, reaching {popular_fully_reachable} ({popular_fully_reachable_pc}) documents fully and {popular_partially_reachable} ({popular_partially_reachable_pc}) partially, and not reaching {popular_unreachable} ({popular_unreachable_pc}) at all.",
-        popular_term_count = number(popular_term_count),
-        term_count = number(term_count),
-        popular_terms_pc = frac_perc(popular_term_count, term_count),
-        popular_instance_count = number(popular_instance_count),
-        instance_count = number(instance_count),
-        popular_instance_count_pc = frac_perc(popular_instance_count, instance_count),
-        popular_fully_reachable = number(popular_fully_reachable),
-        popular_fully_reachable_pc = frac_perc(popular_fully_reachable, document_count),
-        popular_partially_reachable = number(popular_partially_reachable),
-        popular_partially_reachable_pc = frac_perc(popular_partially_reachable, document_count),
-        popular_unreachable = number(popular_unreachable),
-        popular_unreachable_pc = frac_perc(popular_unreachable, document_count),
-    );
-    println!("- The bloom filter matrix will have {bits} bits per document (i.e. rows), {bpe} bits per element, and {hashes} hashes.",
-        bits = number(bits),
-        bpe = round2(bits_per_element),
-        hashes = hashes,
-    );
-
-    println!("- Use of the bloom filter reduces postings list size by {} ({}) in keys and {} ({}) in values, bring them to {} and {} respectively.",
-        bytes(popular_reduced_postings_list_combined_keys_bytes),
-        frac_perc(popular_reduced_postings_list_combined_keys_bytes, postings_list_combined_keys_bytes),
-        bytes(popular_reduced_postings_list_combined_values_bytes),
-        frac_perc(popular_reduced_postings_list_combined_values_bytes, postings_list_combined_values_bytes),
-        bytes(postings_list_combined_keys_bytes - popular_reduced_postings_list_combined_keys_bytes),
-        bytes(postings_list_combined_values_bytes - popular_reduced_postings_list_combined_values_bytes),
-    );
-
-    println!("- Top 20 terms: ");
-    for (no, (term_id, count)) in highest_term_freqs[..20].iter().enumerate() {
-        println!("  {:>2}. {:<25} ({} instances)", no + 1, std::str::from_utf8(&terms[*term_id]).unwrap(), number(*count));
+    println!("Packing documents...");
+    let mut packed_documents_builder = PackedEntriesWithBSTLookup::<PackedU32Key>::new(KV_VALUE_MAX_SIZE);
+    for (document_id, document) in DocumentsReader::new(documents_source) {
+        packed_documents_builder.insert(PackedU32Key::new(document_id.try_into().expect("too many documents")), document.as_bytes().to_vec());
     };
-    println!();
-
-    // This is a matrix. Each bit is represented by a bit set with `document_count` bits.
-    // For example, assume "hello" is in document with index 5 and hashes to bits {3, 7, 10}.
-    // Then the bit sets for bits {3, 7, 10} have their 5th bit set to 1.
-    let mut matrix = Vec::<Bitmap>::with_capacity(bits);
-    for _ in 0..bits {
-        matrix.push(Bitmap::create());
-    };
-
-    let hash_log_interval = status_log_interval(document_count, 10);
-    let mut matrix_instances: usize = 0;
-    let mut postings_list_instances: usize = 0;
-    for (document_id, doc_terms) in terms_by_document.iter().enumerate() {
-        interval_log!(hash_log_interval, document_id, document_count, "Hashing documents ({})...");
-        for term_id in doc_terms {
-            if popular_terms.contains(term_id) {
-                // This is a popular term, so add it to the bloom filter matrix instead of the postings list.
-                let [a, b] = mmh3_x64_128(terms[*term_id].clone(), 0);
-                for i in 0..hashes {
-                    let bit: usize = ((a * (b + (i as u64))) % (bits as u64)) as usize;
-                    matrix[bit].add(document_id as u32);
-                };
-                matrix_instances += 1;
-            } else {
-                // Add to the postings list.
-                postings_list[*term_id].add(document_id.try_into().expect("too many documents"));
-                postings_list_instances += 1;
-            };
-        };
-    };
-
-    println!();
-    if matrix_instances == 0 {
-        println!("Matrix is not utilised");
-    } else {
-        println!("Optimising matrix with {} instances...", number(matrix_instances));
-        for bitmap in matrix.iter_mut() {
-            bitmap.run_optimize();
-        };
-        write_bloom_filter_matrix(&output_dir, &matrix, bits, document_count);
-    };
-
-    println!();
-    if postings_list_instances == 0 {
-        println!("Postings list is not utilised");
-    } else {
-        println!("Optimising postings list with {} instances...", number(postings_list_instances));
-        for bitmap in postings_list.iter_mut() {
-            bitmap.run_optimize();
-        };
-        write_postings_list(&output_dir, &postings_list, &terms);
-    };
+    let (packed_documents_raw_lookup, packed_documents_serialised_entries) = packed_documents_builder.serialise();
+    println!("There are {} packages representing documents", number(packed_documents_builder.package_count()));
+    write_packed(&output_dir, "documents", &packed_documents_serialised_entries);
 
     println!("Creating worker.js...");
-    generate_worker_js(&output_dir, document_encoding, &default_results, maximum_query_bytes, maximum_query_terms);
+    generate_worker_js(&output_dir, document_encoding, maximum_query_bytes, maximum_query_terms, packed_popular_postings_list.get_raw_lookup(), &packed_normal_postings_list_raw_lookup, &packed_documents_raw_lookup);
     println!("Creating runner.wasm...");
     generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes, maximum_query_terms);
 }

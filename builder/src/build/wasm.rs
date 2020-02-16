@@ -3,15 +3,12 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-const RUNNER_C_BITSET: &'static str = include_str!("../../resources/bitset.c");
-const RUNNER_C_BLOOM: &'static str = include_str!("../../resources/bloom.c");
 const RUNNER_C_MAIN: &'static str = include_str!("../../resources/main.c");
-const RUNNER_C_MURMUR: &'static str = include_str!("../../resources/murmur.c");
 const RUNNER_C_POSTINGSLIST: &'static str = include_str!("../../resources/postingslist.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../resources/roaring.c");
-const RUNNER_C_SORT: &'static str = include_str!("../../resources/sort.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../resources/sys.c");
 
+#[allow(dead_code)]
 pub enum WasmStandard {
     C89,
     C99,
@@ -19,6 +16,7 @@ pub enum WasmStandard {
     C17,
 }
 
+#[allow(dead_code)]
 pub enum WasmOptimisationLevel {
     Level(u8),
     Fast,
@@ -85,6 +83,10 @@ pub fn compile_to_wasm(WasmCompileArgs {
         .arg("-nostdlib")
         .arg("-nostdinc")
         .arg("-isystemstubs")
+        // Prevent optimising from/to functions that don't exist e.g. printf => puts/putchar.
+        .arg("-fno-builtin")
+        // Needed for import function declarations.
+        .arg("-Wl,--allow-undefined")
         .arg("-Wl,--no-entry")
         .arg("-Wl,--import-memory")
     ;

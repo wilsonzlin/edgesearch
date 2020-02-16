@@ -30,13 +30,13 @@ impl DocumentTermsReader {
 }
 
 impl Iterator for DocumentTermsReader {
-    type Item = (usize, Vec<u8>);
+    type Item = (usize, Term);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.eof { return None; };
 
         loop {
-            let mut term = Term::new();
+            let mut term = Vec::new();
 
             let term_bytes = self.reader.read_until(b'\0', &mut term).expect("reading term");
             self.bytes_read += term_bytes;
@@ -54,7 +54,7 @@ impl Iterator for DocumentTermsReader {
                 _ => {
                     // Remove null terminator.
                     term.pop().filter(|c| *c == b'\0').expect("removal of null terminator");
-                    return Some((self.next_document_id, term));
+                    return Some((self.next_document_id, String::from_utf8(term).expect("read term as UTF-8")));
                 }
             };
         }

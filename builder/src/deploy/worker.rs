@@ -6,7 +6,7 @@ use reqwest::blocking::{Client, multipart};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use crate::deploy::cfreq::{CFAuth, CFRequestError, make_form_request};
+use crate::deploy::cfreq::{Body, CFAuth, CFRequestError, make_request};
 
 const METADATA: &'static str = r#"{
     "body_part": "script",
@@ -58,12 +58,12 @@ pub fn publish_worker(
         .part("wasm", multipart::Part::bytes(runner_wasm));
 
     println!("Uploading worker...");
-    let _: UploadWorkerResponse = make_form_request(
+    let _: UploadWorkerResponse = make_request(
         client,
         Method::PUT,
         auth,
         format!("/workers/scripts/{}", name),
-        worker_form,
+        Body::Multipart(worker_form),
     );
     println!("Worker uploaded");
 }

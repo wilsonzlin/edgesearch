@@ -1,119 +1,70 @@
-use std::collections::HashMap;
-use std::fs::File;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use actix_web::{App, HttpResponse, HttpServer, web};
 use actix_web::middleware::Logger;
-use croaring::Bitmap;
-use serde::{Deserialize, Serialize};
+use actix_web::web::Bytes;
 
-use crate::data::documents::DocumentsReader;
-use crate::data::postings_list::PostingsListReader;
-
-#[derive(Serialize, Deserialize)]
-struct QueryRequest {
-    require: Vec<String>,
-    contain: Vec<String>,
-    exclude: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct QueryResponse {
-    documents: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct ErrorResponse {
-    message: String,
-}
-
-struct BitmapResult {
-    result: Option<Bitmap>,
-}
-
-impl BitmapResult {
-    fn new() -> BitmapResult {
-        BitmapResult {
-            result: None,
-        }
-    }
-
-    fn and(&mut self, other: &Bitmap) -> () {
-        match self.result.as_mut() {
-            None => self.result = Some(other.clone()),
-            Some(result) => result.and_inplace(other),
-        };
-    }
-
-    fn or(&mut self, other: &Bitmap) -> () {
-        match self.result.as_mut() {
-            None => self.result = Some(other.clone()),
-            Some(result) => result.or_inplace(other),
-        };
-    }
-
-    fn values(&self, limit: usize) -> Vec<u32> {
-        match &self.result {
-            None => Vec::new(),
-            Some(bitmap) => bitmap.iter().take(limit).collect(),
-        }
-    }
-}
+use crate::data::packed::PackedReader;
+use actix_web::body::Body;
 
 struct TestServer {
-    documents: Vec<String>,
-    postings_list: HashMap<String, Bitmap>,
-    max_results: usize,
+    default_results: Bytes,
+    packed_documents: Vec<Bytes>,
+    packed_popular_terms: Vec<Bytes>,
+    packed_normal_terms: Vec<Bytes>,
 }
 
-async fn handle_query(config: web::Data<Arc<TestServer>>, query: web::Json<QueryRequest>) -> HttpResponse {
-    let mut result = BitmapResult::new();
+async fn handle_get_default_results(config: web::Data<Arc<TestServer>>) -> HttpResponse {
+    HttpResponse::Ok().body(Body::Bytes(config.default_results.slice(..)))
+}
 
-    for req_term in query.require.iter() {
-        match config.postings_list.get(req_term) {
-            None => continue,
-            Some(bitmap) => result.and(bitmap),
-        };
-    };
+async fn handle_get_documents_package(config: web::Data<Arc<TestServer>>, path: web::Path<(usize, )>) -> HttpResponse {
+    match config.packed_documents.get(path.0) {
+        None => HttpResponse::NotFound().finish(),
+        Some(package) => HttpResponse::Ok().body(Body::Bytes(package.slice(..))),
+    }
+}
 
-    if !query.contain.is_empty() {
-        result.and(&Bitmap::fast_or(
-            &query.contain
-                .iter()
-                .map(|term| config.postings_list.get(term))
-                .filter(|b| b.is_some())
-                .map(|b| b.unwrap())
-                .collect::<Vec<&Bitmap>>()
-        ));
-    };
+async fn handle_get_popular_terms_package(config: web::Data<Arc<TestServer>>, path: web::Path<(usize, )>) -> HttpResponse {
+    match config.packed_popular_terms.get(path.0) {
+        None => HttpResponse::NotFound().finish(),
+        Some(package) => HttpResponse::Ok().body(Body::Bytes(package.slice(..))),
+    }
+}
 
-    // TODO Not
-
-    HttpResponse::Ok().json(QueryResponse {
-        documents: result
-            .values(config.max_results)
-            .iter()
-            .map(|&document_id| config.documents.get(document_id as usize).unwrap().clone())
-            .collect(),
-    })
+async fn handle_get_normal_terms_package(config: web::Data<Arc<TestServer>>, path: web::Path<(usize, )>) -> HttpResponse {
+    match config.packed_normal_terms.get(path.0) {
+        None => HttpResponse::NotFound().finish(),
+        Some(package) => HttpResponse::Ok().body(Body::Bytes(package.slice(..))),
+    }
 }
 
 #[actix_rt::main]
-pub async fn start_server(documents: File, output_dir: PathBuf, port: usize, max_results: usize) -> () {
+pub async fn start_server(output_dir: PathBuf, port: usize, default_results: String) -> () {
     std::env::set_var("RUST_LOG", "actix_web=debug");
     env_logger::init();
 
-    println!("Reading documents...");
-    let documents = DocumentsReader::new(documents).map(|(_, doc)| doc).collect();
+    println!("Reading packed documents packages...");
+    let packed_documents = PackedReader::new(&output_dir, "documents")
+        .map(|package_data| Bytes::copy_from_slice(&package_data))
+        .collect::<Vec<Bytes>>();
 
-    println!("Reading postings list...");
-    let postings_list = PostingsListReader::new(&output_dir).map(|(term, serialised)| (term, Bitmap::deserialize(&serialised))).collect();
+    println!("Reading packed postings list entries for popular terms packages...");
+    let packed_popular_terms = PackedReader::new(&output_dir, "popular_terms")
+        .map(|package_data| Bytes::copy_from_slice(&package_data))
+        .collect::<Vec<Bytes>>();
+
+    println!("Reading packed postings list entries for normal terms packages...");
+    let packed_normal_terms = PackedReader::new(&output_dir, "normal_terms")
+        .map(|package_data| Bytes::copy_from_slice(&package_data))
+        .collect::<Vec<Bytes>>();
 
     let config = Arc::new(TestServer {
-        documents,
-        postings_list,
-        max_results,
+        default_results: Bytes::copy_from_slice(default_results.as_bytes()),
+        packed_documents,
+        packed_popular_terms,
+        packed_normal_terms,
     });
 
     println!("Starting server...");
@@ -121,7 +72,10 @@ pub async fn start_server(documents: File, output_dir: PathBuf, port: usize, max
         App::new()
             .wrap(Logger::default())
             .data(config.clone())
-            .route("/search", web::post().to(handle_query))
+            .route("/package/default", web::get().to(handle_get_default_results))
+            .route("/package/doc/{doc_id}", web::get().to(handle_get_documents_package))
+            .route("/package/popular_terms/{doc_id}", web::get().to(handle_get_popular_terms_package))
+            .route("/package/normal_terms/{doc_id}", web::get().to(handle_get_normal_terms_package))
     })
         .bind(format!("127.0.0.1:{}", port).as_str()).expect("binding to port")
         .run().await.expect("run server");

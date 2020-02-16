@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 use reqwest::blocking::Client;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use crate::deploy::cfreq::{CFAuth, CFRequestError, make_json_request};
+use crate::deploy::cfreq::{Body, CFAuth, CFRequestError, make_request};
 
 #[derive(Serialize, Deserialize)]
 struct CreateNamespaceRequest {
@@ -32,22 +30,20 @@ pub fn create_namespace(
     kv_namespace: &String,
 ) -> String {
     println!("No KV namespace ID was provided, creating one now...");
-    let data: CreateNamespaceResponse = make_json_request(
+    let data: CreateNamespaceResponse = make_request(
         client,
         Method::POST,
         auth,
         "/storage/kv/namespaces".to_string(),
-        &CreateNamespaceRequest {
+        Body::json(&CreateNamespaceRequest {
             title: kv_namespace.clone(),
-        },
+        }),
     );
     let ns_id = data.result.id;
     println!("KV namespace created: {}", ns_id);
     println!("Pass this as an argument to future deploy commands");
     return ns_id;
 }
-
-pub const KV_MAX_BATCH_SIZE: usize = 10000;
 
 #[derive(Serialize, Deserialize)]
 struct KVEntry {
@@ -57,32 +53,24 @@ struct KVEntry {
 }
 
 #[derive(Serialize, Deserialize)]
-struct KVBatchUploadResponse {
+struct KVUploadResponse {
     success: bool,
     errors: Vec<CFRequestError>,
     messages: Vec<String>,
 }
 
-pub fn upload_kv_batch(
+pub fn upload_kv(
     client: &Client,
     auth: &CFAuth,
-    batch: &HashMap<String, String>,
+    key: &str,
+    value: Vec<u8>,
     kv_namespace: &String,
-    base64: bool,
 ) -> () {
-    if batch.is_empty() {
-        return;
-    };
-
-    let _: KVBatchUploadResponse = make_json_request(
+    let _: KVUploadResponse = make_request(
         client,
         Method::PUT,
         auth,
-        format!("/storage/kv/namespaces/{}/bulk", kv_namespace),
-        &batch.iter().map(|(key, value)| KVEntry {
-            key: key.to_string(),
-            value: value.to_string(),
-            base64,
-        }).collect::<Vec<KVEntry>>(),
+        format!("/storage/kv/namespaces/{}/values/{}", kv_namespace, key),
+        Body::Bytes(value),
     );
 }

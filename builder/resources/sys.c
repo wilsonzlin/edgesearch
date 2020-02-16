@@ -31,6 +31,9 @@ typedef uint8_t bool;
 #define INT64_C(c) c ## ll
 #define UINT64_C(c) c ## ull
 
+void _wasm_import_log(uintptr_t args_ptr);
+void _wasm_import_error(uintptr_t args_ptr);
+
 #define WASM_EXPORT __attribute__((visibility("default")))
 
 #define assert(ignore)((void) 0)
@@ -215,21 +218,24 @@ size_t strlen(char const* bytes) {
   return len;
 }
 
+uint8_t stderr_fileno = 2;
+void* stderr = &stderr_fileno;
+
 // TODO
 typedef uint8_t FILE;
-#define stderr NULL
 #define PRIu32 "u"
 #define PRId32 "d"
 
 int printf(char const* format, ...) {
-  // TODO
-  (void) format;
+  _wasm_import_log((uintptr_t) &format);
   return 0;
 }
 
 int fprintf(FILE* stream, char const* format, ...) {
-  // TODO
-  (void) stream;
-  (void) format;
+  if (stream != stderr) {
+    _wasm_import_log((uintptr_t) &format);
+  } else {
+    _wasm_import_error((uintptr_t) &format);
+  }
   return 0;
 }

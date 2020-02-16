@@ -1,11 +1,9 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-pub mod bitmaps;
 pub mod document_terms;
 pub mod documents;
-pub mod matrix;
-pub mod postings_list;
+pub mod packed;
 
 fn read_null_terminated(reader: &mut BufReader<File>) -> Option<Vec<u8>> {
     let mut data = Vec::<u8>::new();
