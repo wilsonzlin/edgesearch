@@ -97,6 +97,8 @@ pub fn build(BuildConfig {
         };
     };
 
+    println!("There are {} documents with {} terms", number(terms_by_document.len()), number(terms.len()));
+
     let mut highest_frequency_terms = (0..terms.len()).collect::<Vec<TermId>>();
     // Sort by term if frequency is identical for deterministic orderings.
     highest_frequency_terms.sort_by(|a, b| term_frequency[b].cmp(&term_frequency[a]).then(terms[*b].cmp(&terms[*a])));
