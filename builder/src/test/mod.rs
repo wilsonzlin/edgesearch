@@ -2,11 +2,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use actix_web::{App, HttpResponse, HttpServer, web};
+use actix_web::body::Body;
 use actix_web::middleware::Logger;
 use actix_web::web::Bytes;
 
 use crate::data::packed::PackedReader;
-use actix_web::body::Body;
 
 struct TestServer {
     default_results: Bytes,

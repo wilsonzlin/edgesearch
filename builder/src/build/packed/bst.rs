@@ -2,6 +2,7 @@ use std::convert::TryInto;
 use std::io::Write;
 
 use byteorder::{BigEndian, WriteBytesExt};
+
 use crate::build::packed::PackedEntryKey;
 
 struct BST<K: PackedEntryKey> {

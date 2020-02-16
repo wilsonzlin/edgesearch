@@ -1,10 +1,9 @@
+use std::convert::TryInto;
 use std::fs::File;
-use std::io::{BufReader, Read, Write, ErrorKind};
+use std::io::{BufReader, ErrorKind, Read, Write};
 use std::path::PathBuf;
 
-use byteorder::{ReadBytesExt, BigEndian, WriteBytesExt};
-
-use std::convert::TryInto;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub fn write_packed(output_dir: &PathBuf, name: &str, serialised_entries: &Vec<Vec<u8>>) -> () {
     let mut output = File::create(output_dir.join(format!("{}.packed", name))).expect("opening output file for packed entries");

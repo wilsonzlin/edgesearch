@@ -7,9 +7,9 @@ use croaring::Bitmap;
 
 use crate::{Term, TermId};
 use crate::build::js::generate_worker_js;
+use crate::build::packed::{PackedStrKey, PackedU32Key};
 use crate::build::packed::bst::PackedEntriesWithBSTLookup;
 use crate::build::packed::direct::PackedEntriesWithDirectLookup;
-use crate::build::packed::{PackedU32Key, PackedStrKey};
 use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 pub use crate::data::documents::DocumentEncoding;
