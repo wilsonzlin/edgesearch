@@ -1,8 +1,8 @@
 import React from 'react';
-import styles from './App.module.css';
-import {useSearch} from '../search/search';
-import {FullArticle} from '../FullArticle/FullArticle';
 import {BasicArticle} from '../BasicArticle/BasicArticle';
+import {FullArticle} from '../FullArticle/FullArticle';
+import {useSearch} from '../search/search';
+import styles from './App.module.css';
 
 export const App = () => {
   const search = useSearch();
@@ -10,12 +10,23 @@ export const App = () => {
   return (
     <div>
       <header className={styles.header}>
-        <input
-          className={styles.queryInput}
-          value={search.query}
-          onChange={e => search.setQuery(e.target.value)}
-          placeholder="Search Wikipedia"
-        />
+        <form
+          className={styles.searchForm}
+          onSubmit={e => {
+            e.preventDefault();
+            search.setQuery(search.input);
+          }}
+        >
+          <input
+            className={styles.queryInput}
+            value={search.input}
+            onChange={e => search.setInput(e.target.value)}
+            placeholder="Search Wikipedia"
+          />
+          <button
+            className={styles.searchButton}
+          >Search</button>
+        </form>
       </header>
       <main className={styles.main}>
         {!search.results

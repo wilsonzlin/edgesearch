@@ -9,6 +9,10 @@ body {
   margin: 0;
 }
 
+::-moz-focus-inner {
+  border: 0;
+}
+
 a {
   color: #0645ad;
   text-decoration: none;
@@ -27,6 +31,10 @@ button, img, input, label, select, textarea {
   margin: 0;
   outline: 0;
   padding: 0;
+}
+
+button {
+  cursor: pointer;
 }
 
 h1, h2, h3, h4, h5, h6 {

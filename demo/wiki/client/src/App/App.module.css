@@ -6,12 +6,27 @@
   padding: 1rem;
 }
 
-.queryInput {
+.searchForm {
+  align-items: stretch;
+  height: 1.5rem;
   background: white;
   border-radius: 2px;
-  border: 1px solid white;
-  padding: 0.5rem;
+  border: 1px solid #a2a9b1;
+  display: flex;
+  /* To enforce border-radius. */
+  overflow: hidden;
+  padding: 0.33rem;
   width: 20rem;
+}
+
+.queryInput {
+  font-size: 0.875rem;
+  flex-grow: 1;
+}
+
+.searchButton {
+  font-size: 0.875rem;
+  padding: 0 0.25rem;
 }
 
 .main {

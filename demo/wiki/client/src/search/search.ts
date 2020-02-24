@@ -1,7 +1,7 @@
-import {useEffect, useRef, useState} from 'react';
 import * as edgesearch from 'edgesearch-client';
-import {IFullArticle} from '../FullArticle/FullArticle';
+import {useEffect, useRef, useState} from 'react';
 import {IBasicArticle} from '../BasicArticle/BasicArticle';
+import {IFullArticle} from '../FullArticle/FullArticle';
 
 type EdgesearchResult = string;
 
@@ -25,17 +25,18 @@ export type FulfilledSearchResults = {
 };
 
 export const useSearch = () => {
+  const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<FulfilledSearchResults | undefined>(undefined);
-  const searchDebounce = useRef<number | undefined>();
+  const searchIdRef = useRef<number>(0);
 
   useEffect(() => {
     const terms = query.split(/[^a-zA-Z0-9]+/).filter(t => t).map(t => t.toLowerCase());
     setResults(undefined);
-    clearTimeout(searchDebounce.current);
-    const searchId = searchDebounce.current = window.setTimeout(async () => {
+    const searchId = ++searchIdRef.current;
+    (async () => {
       const titles = await client.search(new edgesearch.Query().add(edgesearch.Mode.REQUIRE, ...terms));
-      if (searchId !== searchDebounce.current) {
+      if (searchId !== searchIdRef.current) {
         return;
       }
       const articles: readonly (WikipediaPageSummary | null)[] = await Promise.all(titles.results.map(async (title) => {
@@ -75,10 +76,10 @@ export const useSearch = () => {
         count: fullArticles.length + basicArticles.length,
         more: titles.more,
       });
-    }, 250);
+    })();
   }, [query]);
 
   return {
-    query, setQuery, results,
+    query, setQuery, input, setInput, results,
   };
 };

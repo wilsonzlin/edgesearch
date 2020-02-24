@@ -5,10 +5,27 @@
   padding: 1rem;
 }
 
+@media (max-width: 768px) {
+  .article {
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .image {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .image {
+    margin-right: 1rem;
+  }
+}
+
 .image {
   background: #f8f9fa;
   border: 1px solid #c8ccd1;
-  margin-right: 1rem;
   padding: 1rem;
   width: 10rem;
 }
