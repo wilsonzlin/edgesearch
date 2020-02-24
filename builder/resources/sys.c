@@ -68,92 +68,16 @@ void free(void* ptr) {
   }
 }
 
-#define MEMCPY_ALIGNED(align_width, align_t) \
-  static inline void memcpy##align_width(void* restrict dest, void const* restrict src, size_t n) { \
-    uintptr_t srcpos = (uintptr_t) src; \
-    size_t head = (srcpos % align_width) ? align_width - (srcpos % align_width) : 0; \
-    size_t tail = (srcpos + n) % align_width; \
-    size_t blocks = (n - head - tail) / align_width; \
-    \
-    byte* hdest = (byte*) dest; \
-    byte* hsrc = (byte*) src; \
-    for (size_t i = 0; i < head; i++) { *hdest = *hsrc; hdest++; hsrc++; } \
-    \
-    align_t* wdest = (align_t *) (dest + head); \
-    align_t* wsrc = (align_t *) (src + head); \
-    for (size_t i = 0; i < blocks; i++) { *wdest = *wsrc; wdest++; wsrc++; } \
-    \
-    byte* tdest = (byte*) (dest + n - tail); \
-    byte* tsrc = (byte*) (src + n - tail); \
-    for (size_t i = 0; i < tail; i++) { *tdest = *tsrc; tdest++; tsrc++; } \
-  }
-
-MEMCPY_ALIGNED(2, uint16_t)
-MEMCPY_ALIGNED(4, uint32_t)
-MEMCPY_ALIGNED(8, uint64_t)
-
-#define MEMCPY_REVERSE_ALIGNED(align_width, align_t) \
-  static inline void memcpy_reverse##align_width(void* restrict dest, void const* restrict src, size_t n) { \
-    uintptr_t srcpos = (uintptr_t) src; \
-    size_t head = (srcpos % align_width) ? align_width - (srcpos % align_width) : 0; \
-    size_t tail = (srcpos + n) % align_width; \
-    size_t blocks = (n - head - tail) / align_width; \
-    \
-    byte* tdest = (byte*) (dest + n - 1); \
-    byte* tsrc = (byte*) (src + n - 1); \
-    for (size_t i = 0; i < tail; i++) { *tdest = *tsrc; tdest--; tsrc--; } \
-    \
-    align_t* wdest = (align_t *) (dest + n - tail - align_width); \
-    align_t* wsrc = (align_t *) (src + n - tail - align_width); \
-    for (size_t i = 0; i < blocks; i++) { *wdest = *wsrc; wdest--; wsrc--; } \
-    \
-    byte* hdest = (byte*) (dest + head - 1); \
-    byte* hsrc = (byte*) (src + head - 1); \
-    for (size_t i = 0; i < head; i++) { *hdest = *hsrc; hdest--; hsrc--; } \
-  }
-
-MEMCPY_REVERSE_ALIGNED(2, uint16_t)
-MEMCPY_REVERSE_ALIGNED(4, uint32_t)
-MEMCPY_REVERSE_ALIGNED(8, uint64_t)
-
 static inline void memcpy_aligned(void* restrict dest, void const* restrict src, size_t n, bool forwards) {
-#if USE_ALIGNED_MALLOC
-  intptr_t align_dist = (((intptr_t) dest) % sizeof(word_t)) - (((intptr_t) src) % sizeof(word_t));
-  if (align_dist < 0) align_dist = -align_dist;
-#endif
   byte* bdest; byte* bsrc;
   if (forwards) {
-#if USE_ALIGNED_MALLOC
-    switch (align_dist) {
-    case 0: memcpy8(dest, src, n); break;
-    case 2: memcpy2(dest, src, n); break;
-    case 4: memcpy4(dest, src, n); break;
-    case 6: memcpy2(dest, src, n); break;
-    default:
-#endif
       bdest = (byte*) dest;
       bsrc = (byte*) src;
       while (n-- > 0) *bdest++ = *bsrc++;
-#if USE_ALIGNED_MALLOC
-      break;
-    }
-#endif
   } else {
-#if USE_ALIGNED_MALLOC
-    switch (align_dist) {
-    case 0: memcpy_reverse8(dest, src, n); break;
-    case 2: memcpy_reverse2(dest, src, n); break;
-    case 4: memcpy_reverse4(dest, src, n); break;
-    case 6: memcpy_reverse2(dest, src, n); break;
-    default:
-#endif
       bdest = (byte*) (dest + n - 1);
       bsrc = (byte*) (src + n - 1);
       while (n-- > 0) *bdest-- = *bsrc--;
-#if USE_ALIGNED_MALLOC
-      break;
-    }
-#endif
   }
 }
 
@@ -170,7 +94,6 @@ void* memmove(void* dest, void const* src, size_t n) {
 }
 
 void* memset(void* s, int c, size_t n) {
-  // TODO Aligned-block set
   byte* bs = (byte*) s;
   while (n--) *bs++ = (byte) c;
   return s;
@@ -201,7 +124,6 @@ void* calloc(size_t nmemb, size_t size) {
 }
 
 int memcmp(void const* s1, void const* s2, size_t n) {
-  // TODO Aligned-block compare
   byte* bs1 = (byte*) s1;
   byte* bs2 = (byte*) s2;
   while (n-- > 0) {
@@ -218,13 +140,12 @@ size_t strlen(char const* bytes) {
   return len;
 }
 
-uint8_t stderr_fileno = 2;
-void* stderr = &stderr_fileno;
-
-// TODO
-typedef uint8_t FILE;
 #define PRIu32 "u"
 #define PRId32 "d"
+
+typedef uint8_t FILE;
+FILE stderr_fileno = 2;
+FILE* stderr = &stderr_fileno;
 
 int printf(char const* format, ...) {
   _wasm_import_log((uintptr_t) &format);
