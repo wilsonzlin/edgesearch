@@ -1,13 +1,15 @@
 type WorkersKVNamespace = {
-  get (key: string, encoding: 'text' | 'json' | 'arrayBuffer'): Promise<any>;
+  get<T> (key: string, encoding: 'json'): Promise<T>;
+  get (key: string, encoding: 'text'): Promise<string>;
+  get (key: string, encoding: 'arrayBuffer'): Promise<ArrayBuffer>;
 }
 
 // Set by Cloudflare.
 declare var KV: WorkersKVNamespace;
-// Set by Cloudflare to the WebAssembly module that was upload alongside this script.
+// Set by Cloudflare to the WebAssembly module that was uploaded alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
-// Following variables set by build/js.rs.
+// Following variables are set by build/js.rs.
 // Maximum amount of bytes a query can be.
 declare var MAX_QUERY_BYTES: number;
 // Maximum amount of terms a query can have across all modes.
@@ -21,12 +23,14 @@ declare var PACKED_NORMAL_POSTINGS_LIST_ENTRIES_LOOKUP: [string, number, number]
 // [documentId, packageId, middlePos].
 declare var PACKED_DOCUMENTS_LOOKUP: [number, number, number][];
 
-const PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP: Map<string, { packageId: number, offset: number, length: number }> = new Map(PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW.map(([term, packageId, offset, length]) => [term, {
-  packageId,
-  offset,
-  length,
-}]));
+const PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP: Map<string, { packageId: number, offset: number, length: number }> = new Map(PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW.map(([term, packageId, offset, length]) => [term,
+  {
+    packageId,
+    offset,
+    length,
+  }]));
 
+// Easy reading and writing of memory sequentially without having to manage and update offsets/positions/pointers.
 class MemoryWalker {
   private readonly dataView: DataView;
   private readonly uint8Array: Uint8Array;
@@ -169,7 +173,7 @@ const formatFromVarargs = (mem: MemoryWalker): string => mem
   .readAndDereferencePointer()
   .readNullTerminatedString()
   .replace(/%([-+ 0'#]*)((?:[0-9]+|\*)?)((?:\.(?:[0-9]+|\*))?)((?:hh|h|l|ll|L|z|j|t|I|I32|I64|q)?)([%diufFeEgGxXoscpaA])/g, ((spec, flags, width, precision, length, type) => {
-    // TODO
+    // These aren't used in our C code right now but we can implement later on if we do.
     if (flags || width || precision) {
       throw new Error(`Unsupported format specifier "${spec}"`);
     }
@@ -179,9 +183,8 @@ const formatFromVarargs = (mem: MemoryWalker): string => mem
       throw new SyntaxError(`Invalid format specifier "${spec}"`);
     }
     const rawValue = parser.parse(mem);
-    const formatted = SPECIFIER_FORMATTERS[type](rawValue);
 
-    return formatted;
+    return SPECIFIER_FORMATTERS[type](rawValue);
   }));
 
 const wasmMemory = new WebAssembly.Memory({initial: 2048});
@@ -200,9 +203,9 @@ const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
 const queryRunner = wasmInstance.exports as {
   // Keep synchronised with function declarations builder/resources/*.c with WASM_EXPORT.
   reset (): void;
-  postingslist_alloc_serialised (size: number): number;
-  postingslist_query_init (): number;
-  postingslist_query (input: number): number;
+  index_alloc_serialised (size: number): number;
+  index_query_init (): number;
+  index_query (input: number): number;
 };
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
 
@@ -235,7 +238,6 @@ const responseSuccessRawJson = (json: string, status = 200) => new Response(json
 
 const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"more":true}`);
 const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"more":false}`);
-
 const responseSuccess = (data: object, status = 200) => responseSuccessRawJson(JSON.stringify(data), status);
 
 type PackageEntryKey = string | number;
@@ -264,12 +266,16 @@ const getFromBstPackage = <K extends PackageEntryKey> (packageData: MemoryWalker
     const valueLen = packageData.readUInt32BE();
     const cmp = compareKey(targetKey, currentKey);
     if (cmp < 0) {
-      if (leftPos == -1) break;
+      if (leftPos == -1) {
+        break;
+      }
       packageData.jumpTo(leftPos);
     } else if (cmp == 0) {
       return packageData.readSlice(valueLen);
     } else {
-      if (rightPos == -1) break;
+      if (rightPos == -1) {
+        break;
+      }
       packageData.jumpTo(rightPos);
     }
   }
@@ -278,7 +284,9 @@ const getFromBstPackage = <K extends PackageEntryKey> (packageData: MemoryWalker
 
 const findInPackages = async <K extends PackageEntryKey> (packagesLookup: ReadonlyArray<[K, number, number]>, key: K, packageIdPrefix: string): Promise<ArrayBuffer | undefined> => {
   let lo = 0, hi = packagesLookup.length - 1;
-  if (!packagesLookup.length) return undefined;
+  if (!packagesLookup.length) {
+    return undefined;
+  }
   let entry: [K, number, number] | undefined;
   while (!entry) {
     const dist = hi + 1 - lo;
@@ -305,6 +313,7 @@ const findInPackages = async <K extends PackageEntryKey> (packagesLookup: Readon
   return getFromBstPackage(packageData.jumpTo(entry[2]), key);
 };
 
+// Keep order in sync with mode_t.
 type ParsedQuery = [
   // Require.
   string[],
@@ -314,6 +323,7 @@ type ParsedQuery = [
   string[],
 ];
 
+// Take a raw query string and parse in into an array with three subarrays, each subarray representing terms for a mode.
 const parseQuery = (qs: string): ParsedQuery | undefined => {
   if (!qs.startsWith('?q=')) {
     return;
@@ -386,11 +396,11 @@ const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuff
 const buildPostingsListQuery = async (modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
 
-  // Synchronise with postingslist_query_t.
+  // Synchronise with index_query_t.
   const input = new MemoryWalker(new ArrayBuffer((bitmapCount * 2 + 3) * 4));
   for (const mode of modeTermBitmaps) {
     for (const bitmap of mode) {
-      const ptr = queryRunner.postingslist_alloc_serialised(bitmap.byteLength);
+      const ptr = queryRunner.index_alloc_serialised(bitmap.byteLength);
       queryRunnerMemory.forkAndJump(ptr).writeAll(new Uint8Array(bitmap));
       // WASM is LE.
       input
@@ -404,9 +414,9 @@ const buildPostingsListQuery = async (modeTermBitmaps: ArrayBuffer[][]): Promise
 };
 
 const executePostingsListQuery = (queryData: Uint8Array): QueryResult | undefined => {
-  const inputPtr = queryRunner.postingslist_query_init();
+  const inputPtr = queryRunner.index_query_init();
   queryRunnerMemory.forkAndJump(inputPtr).writeAll(queryData);
-  const outputPtr = queryRunner.postingslist_query(inputPtr);
+  const outputPtr = queryRunner.index_query(inputPtr);
   return outputPtr == 0 ? undefined : readResult(queryRunnerMemory.forkAndJump(outputPtr));
 };
 
@@ -449,8 +459,10 @@ const handleSearch = async (url: URL) => {
     const encoded = await findInPackages(PACKED_DOCUMENTS_LOOKUP, docId, 'doc_');
     const value = textDecoder.decode(encoded);
     switch (DOCUMENT_ENCODING) {
-    case 'text': return value;
-    case 'json': return JSON.parse(value);
+    case 'text':
+      return value;
+    case 'json':
+      return JSON.parse(value);
     }
   }));
 
@@ -465,8 +477,10 @@ const requestHandler = async (request: Request) => {
   const url = new URL(request.url);
 
   switch (url.pathname) {
-  case '/search': return handleSearch(url);
-  default: return new Response(null, {status: 404});
+  case '/search':
+    return handleSearch(url);
+  default:
+    return new Response(null, {status: 404});
   }
 };
 

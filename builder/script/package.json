@@ -2,9 +2,10 @@
   "private": true,
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "npm run clean && tsc"
+    "build": "npm run clean && tsc && node minify.js && rm dist/main.d.ts"
   },
   "devDependencies": {
+    "terser": "^4.6.4",
     "typescript": "^3.7.2"
   }
 }

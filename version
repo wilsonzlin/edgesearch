@@ -1,0 +1,79 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const {readFileSync, writeFileSync} = require('fs');
+const {spawnSync} = require('child_process');
+const {join} = require('path');
+
+const currentVersion = /^version = "(\d+)\.(\d+)\.(\d+)"\s*$/m.exec(readFileSync('builder/Cargo.toml', 'utf8')).slice(1).map(n => Number.parseInt(n, 10));
+
+const assertBetween = (n, min, max) => {
+  if (n < min || n > max) {
+    throw new Error('Invalid argument');
+  }
+  return n;
+};
+
+const newVersion = currentVersion.slice();
+newVersion[assertBetween(['major', 'minor', 'patch'].indexOf(process.argv[2].toLowerCase()), 0, 2)]++;
+
+console.log(`${currentVersion.join('.')} => ${newVersion.join('.')}`);
+
+const NEW_VERSION = newVersion.join('.');
+
+const cmd = (...cfg) => {
+  const command = cfg[0];
+  const args = cfg.slice(1);
+  const {
+    workingDir,
+    throwOnBadStatus = true,
+    throwOnSignal = true,
+    captureStdio = false,
+    throwOnStdErr = false,
+  } = typeof args[args.length - 1] == 'object' ? args.pop() : {};
+
+  const throwErr = msg => {
+    throw new Error(`${msg}\n  ${command} ${args.join(' ')}`);
+  };
+
+  const {status, signal, error, stdout, stderr} = spawnSync(command, args.map(String), {
+    cwd: workingDir,
+    stdio: ['ignore', captureStdio ? 'pipe' : 'inherit', captureStdio || throwOnStdErr ? 'pipe' : 'inherit'],
+    encoding: 'utf8',
+  });
+  if (error) {
+    throwErr(error.message);
+  }
+  if (throwOnSignal && signal) {
+    throwErr(`Command exited with signal ${signal}`);
+  }
+  if (throwOnBadStatus && status !== 0) {
+    throwErr(`Command exited with status ${status}`);
+  }
+  if (throwOnStdErr && stderr) {
+    throwErr(`stderr: ${stderr}`);
+  }
+  return {status, signal, stdout, stderr};
+};
+
+const replaceInFile = (path, pattern, replacement) => writeFileSync(path, readFileSync(path, 'utf8').replace(pattern, replacement));
+
+if (cmd('git', 'status', '--porcelain', {throwOnStderr: true, captureStdio: true}).stdout) {
+  throw new Error('Working directory not clean');
+}
+
+for (const f of ['builder/Cargo.toml']) {
+  replaceInFile(f, /^version = "\d+\.\d+\.\d+"\s*$/m, `version = "${NEW_VERSION}"`);
+}
+
+for (const f of ['README.md']) {
+  replaceInFile(f, /(wilsonl\.in\/edgesearch\/bin\/)\d+\.\d+\.\d+/g, `$1${NEW_VERSION}`);
+}
+
+cmd('cargo', 'generate-lockfile', {workingDir: join(__dirname, 'builder')});
+cmd('git', 'add', '-A');
+cmd('git', 'commit', '-m', NEW_VERSION);
+cmd('git', 'tag', '-a', `v${NEW_VERSION}`, '-m', '');
+cmd('cargo', 'publish');
+cmd('git', 'push', '--follow-tags');

@@ -4,17 +4,27 @@ Build a full text search API using Cloudflare Workers and WebAssembly.
 
 Documentation is currently WIP.
 
+## At a glance
+
 ## Features
 
 - Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/) stored in [Cloudflare Workers KV](https://www.cloudflare.com/products/workers-kv/).
 - Packing multiple index entries and documents allows storing 13.4 million [Wikipedia article titles](./demo/wiki/) with 2.3 million unique terms in 66 keys&mdash;no database or server required.
 - Runs on Cloudflare Workers at edge locations with WebAssembly code for fast, scalable performance.
 
-## Usage
+## Demos
 
 Check out the [demo](./demo) folder for live demos with source code.
 
-### Building the worker
+## Usage
+
+### Get the CLI
+
+[Windows](https://wilsonl.in/edgesearch/bin/0.0.1-windows-x86_64.exe) |
+[macOS](https://wilsonl.in/edgesearch/bin/0.0.1-macos-x86_64) |
+[Linux](https://wilsonl.in/edgesearch/bin/0.0.1-linux-x86_64)
+
+### Build the worker
 
 ```bash
 edgesearch build \
@@ -24,7 +34,7 @@ edgesearch build \
   --output-dir dist/worker/
 ```
 
-### Deploying the worker
+### Deploy the worker
 
 ```bash
 edgesearch deploy \
@@ -94,3 +104,5 @@ The entire app runs off a single JavaScript script + accompanying WASM code. It 
 - Naturally distributed to the edge for very low latency.
 - Takes advantage of Cloudflare for SSL, caching, and distribution.
 - No need to worry about scaling, networking, or servers.
+
+## Performance

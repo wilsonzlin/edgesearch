@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 const RUNNER_C_MAIN: &'static str = include_str!("../../resources/main.c");
-const RUNNER_C_POSTINGSLIST: &'static str = include_str!("../../resources/postingslist.c");
+const RUNNER_C_POSTINGSLIST: &'static str = include_str!("../../resources/index.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../resources/roaring.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../resources/sys.c");
 

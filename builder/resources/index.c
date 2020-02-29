@@ -1,25 +1,31 @@
 typedef struct {
-  // `words` is a sequentialised form of (size_t, byte*)[][].
-  // There's a subarray for each mode.
+  // This is a flattened form of (size_t, byte*)[][].
+  // There's a subarray for each mode, and they are ordered according to their numeric value (see mode_t).
   // Each mode contains array lengths followed by pointers to byte arrays containing serialised Roaring Bitmaps representing a term.
   // Each mode is terminated by NULL.
-  // For example: {
+  // For example: `{
   //   200, &bitmapForHello, 100, &bitmapForWorld, NULL,
   //   60, &bitmapForThe, 130, &bitmapForQuick, 140, &bitmapForFox, NULL,
   //   5, &bitmapForAstronaut, NULL,
-  // }.
+  // }`.
   uint32_t serialised[MAX_QUERY_TERMS * 2 + 3];
-} postingslist_query_t;
+} index_query_t;
 
-WASM_EXPORT postingslist_query_t* postingslist_query_init(void) {
-  return malloc(sizeof(postingslist_query_t));
+// Function to be called from JS that allocates enough memory for a query and returns the pointer to it.
+WASM_EXPORT index_query_t* index_query_init(void) {
+  return malloc(sizeof(index_query_t));
 }
 
-WASM_EXPORT byte* postingslist_alloc_serialised(size_t size) {
+// Function to be called from JS that allocates enough memory to copy over the bytes of a serialised bitmap from JS to WASM and returns the pointer to it.
+WASM_EXPORT byte* index_alloc_serialised(size_t size) {
   return malloc(size);
 }
 
-inline roaring_bitmap_t* postingslist_deserialise_and_combine(roaring_bitmap_t** deserialised_holding, uint32_t* mode_query_data, size_t* mode_query_data_next) {
+// Internal function used to deserialise multiple bitmaps from a `index_query_t->serialised` value.
+// `mode_query_data` should point to `index_query_t->serialised`, and `mode_query_data_next` should be the next offset to process.
+// `deserialised_holding` must be provided as a scratch space so that pointers to deserialised bitmaps (which are allocated on the heap) can be stored somewhere temporarily.
+// The deserialised bitmaps are then combined using OR on the heap and the pointer to it will be returned. If there are no bitmaps to combine, NULL is returned instead.
+inline roaring_bitmap_t* index_deserialise_and_combine(roaring_bitmap_t** deserialised_holding, uint32_t* mode_query_data, size_t* mode_query_data_next) {
   size_t bitmaps_to_combine_count = 0;
   while (mode_query_data[*mode_query_data_next]) {
     size_t serialised_size = mode_query_data[*mode_query_data_next];
@@ -37,7 +43,8 @@ inline roaring_bitmap_t* postingslist_deserialise_and_combine(roaring_bitmap_t**
   return NULL;
 }
 
-WASM_EXPORT results_t* postingslist_query(postingslist_query_t* query) {
+// Function to be called from JS that executes a query. May return NULL if an error occurred.
+WASM_EXPORT results_t* index_query(index_query_t* query) {
   // Portable deserialisation method is used as the source code for croaring-rs seems to use the portable serialisation method.
   roaring_bitmap_t* result_bitmap = NULL;
   size_t i = 0;
@@ -55,7 +62,7 @@ WASM_EXPORT results_t* postingslist_query(postingslist_query_t* query) {
 
   // CONTAIN.
   // Repurpose query data array for storing pointers to deserialised bitmaps.
-  roaring_bitmap_t* contain_bitmaps_combined = postingslist_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
+  roaring_bitmap_t* contain_bitmaps_combined = index_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
   if (contain_bitmaps_combined != NULL) {
     if (result_bitmap == NULL) result_bitmap = contain_bitmaps_combined;
     else roaring_bitmap_and_inplace(result_bitmap, contain_bitmaps_combined);
@@ -63,7 +70,7 @@ WASM_EXPORT results_t* postingslist_query(postingslist_query_t* query) {
 
   // EXCLUDE.
   // Repurpose query data array for storing pointers to deserialised bitmaps.
-  roaring_bitmap_t* exclude_bitmaps_combined = postingslist_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
+  roaring_bitmap_t* exclude_bitmaps_combined = index_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
   if (exclude_bitmaps_combined != NULL) {
     if (result_bitmap == NULL) result_bitmap = exclude_bitmaps_combined;
     else roaring_bitmap_andnot_inplace(result_bitmap, exclude_bitmaps_combined);
