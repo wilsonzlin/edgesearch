@@ -201,7 +201,7 @@ const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
 });
 
 const queryRunner = wasmInstance.exports as {
-  // Keep synchronised with function declarations builder/resources/*.c with WASM_EXPORT.
+  // Keep synchronised with function declarations resources/*.c with WASM_EXPORT.
   reset (): void;
   index_alloc_serialised (size: number): number;
   index_query_init (): number;
@@ -336,7 +336,7 @@ const parseQuery = (qs: string): ParsedQuery | undefined => {
     Array<string>(),
   ];
   while (qs) {
-    // Synchronise mode IDs with mode_t enum in builder/resources/main.c.
+    // Synchronise mode IDs with mode_t enum in resources/main.c.
     const matches = /^([012])_([^&]+)(?:&|$)/.exec(qs);
     if (!matches) {
       return;
@@ -357,14 +357,14 @@ type QueryResult = {
 };
 
 const readResult = (result: MemoryWalker): QueryResult => {
-  // Synchronise with `results_t` in builder/resources/main.c.
+  // Synchronise with `results_t` in resources/main.c.
   const count = result.readUInt8();
   const more = result.readBoolean();
   // Starts from next WORD_SIZE (uint32_t) due to alignment.
   result.skip(2);
   const documents: number[] = [];
   for (let resultNo = 0; resultNo < count; resultNo++) {
-    // Synchronise with `doc_id_t` in builder/resources/main.c.
+    // Synchronise with `doc_id_t` in resources/main.c.
     // WASM is little endian.
     const docId = result.readUInt32LE();
     documents.push(docId);

@@ -41,7 +41,6 @@ jobs:
           profile: minimal
           default: true
       - name: Build CLI
-        working-directory: ./builder
         run: cargo build --release
       - uses: chrislennon/action-aws-cli@v1.1
       - name: Upload to S3
@@ -49,4 +48,4 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: us-west-2
-        run: aws s3 cp ./builder/target/release/edgesearch${{ matrix.EXT }} s3://${{ secrets.AWS_S3_BUCKET }}/edgesearch/bin/${{ steps.file.outputs.FILE }} --content-type ${{ matrix.MIME }}
+        run: aws s3 cp ./target/release/edgesearch${{ matrix.EXT }} s3://${{ secrets.AWS_S3_BUCKET }}/edgesearch/bin/${{ steps.file.outputs.FILE }} --content-type ${{ matrix.MIME }}

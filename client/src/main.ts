@@ -1,4 +1,4 @@
-// Synchronise mode IDs with mode_t enum in builder/resources/main.c.
+// Synchronise mode IDs with mode_t enum in resources/main.c.
 export enum Mode {
   REQUIRE = '0',
   CONTAIN = '1',

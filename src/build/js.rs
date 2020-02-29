@@ -8,7 +8,7 @@ const WORKER_JS_TEMPLATE: &'static str = include_str!("../../script/dist/main.js
 
 pub fn generate_worker_js(output_dir: &PathBuf, document_encoding: DocumentEncoding, max_query_bytes: usize, max_query_terms: usize, popular_postings_list_lookup_raw: &str, normal_postings_list_lookup_raw: &str, documents_lookup_raw: &str) -> () {
     let js = WORKER_JS_TEMPLATE
-        // Keep in sync with variables declared in builder/script/src/main.ts.
+        // Keep in sync with variables declared in script/src/main.ts.
         .replace(r#""use strict";"#, format!(r#"
             const DOCUMENT_ENCODING = "{DOCUMENT_ENCODING}";
             const MAX_QUERY_BYTES = {MAX_QUERY_BYTES};
