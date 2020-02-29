@@ -53,7 +53,7 @@ edgesearch deploy \
 A [client](./client/) for the browser is available for using a deployed Edgesearch worker:
 
 ```typescript
-import * as edgesearch from 'edgesearch-client';
+import * as Edgesearch from 'edgesearch-client';
 
 type Document = {
   id: string;
@@ -61,11 +61,11 @@ type Document = {
   description: string;
 };
 
-const client = new edgesearch.Client<Document>('my-edgesearch.me.workers.dev');
-const query = new edgesearch.Query();
-query.add(edgesearch.Mode.REQUIRE, 'world');
-query.add(edgesearch.Mode.CONTAIN, 'hello', 'welcome', 'greetings');
-query.add(edgesearch.Mode.EXCLUDE, 'bye', 'goodbye');
+const client = new Edgesearch.Client<Document>('my-edgesearch.me.workers.dev');
+const query = new Edgesearch.Query();
+query.add(Edgesearch.Mode.REQUIRE, 'world');
+query.add(Edgesearch.Mode.CONTAIN, 'hello', 'welcome', 'greetings');
+query.add(Edgesearch.Mode.EXCLUDE, 'bye', 'goodbye');
 const results = await client.search(query);
 ```
 
