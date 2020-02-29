@@ -5,7 +5,7 @@
 const {readFileSync, writeFileSync} = require('fs');
 const {spawnSync} = require('child_process');
 
-const currentVersion = /^version = "(\d+)\.(\d+)\.(\d+)"\s*$/m.exec(readFileSync('builder/Cargo.toml', 'utf8')).slice(1).map(n => Number.parseInt(n, 10));
+const currentVersion = /^version = "(\d+)\.(\d+)\.(\d+)"\s*$/m.exec(readFileSync('Cargo.toml', 'utf8')).slice(1).map(n => Number.parseInt(n, 10));
 
 const assertBetween = (n, min, max) => {
   if (n < min || n > max) {
