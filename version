@@ -4,7 +4,6 @@
 
 const {readFileSync, writeFileSync} = require('fs');
 const {spawnSync} = require('child_process');
-const {join} = require('path');
 
 const currentVersion = /^version = "(\d+)\.(\d+)\.(\d+)"\s*$/m.exec(readFileSync('builder/Cargo.toml', 'utf8')).slice(1).map(n => Number.parseInt(n, 10));
 
@@ -71,9 +70,9 @@ for (const f of ['README.md']) {
   replaceInFile(f, /(wilsonl\.in\/edgesearch\/bin\/)\d+\.\d+\.\d+/g, `$1${NEW_VERSION}`);
 }
 
-cmd('cargo', 'generate-lockfile', {workingDir: join(__dirname, 'builder')});
+cmd('cargo', 'generate-lockfile');
 cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
 cmd('git', 'tag', '-a', `v${NEW_VERSION}`, '-m', '');
-cmd('cargo', 'publish', {workingDir: join(__dirname, 'builder')});
+cmd('cargo', 'publish');
 cmd('git', 'push', '--follow-tags');
