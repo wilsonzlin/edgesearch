@@ -75,5 +75,5 @@ cmd('cargo', 'generate-lockfile', {workingDir: join(__dirname, 'builder')});
 cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
 cmd('git', 'tag', '-a', `v${NEW_VERSION}`, '-m', '');
-cmd('cargo', 'publish');
+cmd('cargo', 'publish', {workingDir: join(__dirname, 'builder')});
 cmd('git', 'push', '--follow-tags');
