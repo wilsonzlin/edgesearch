@@ -1,4 +1,4 @@
-# edgesearch
+# Edgesearch
 
 Build a full text search API using Cloudflare Workers and WebAssembly.
 

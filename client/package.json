@@ -1,6 +1,6 @@
 {
   "name": "edgesearch-client",
-  "description": "Client for accessing a published edgesearch worker",
+  "description": "Client for accessing a published Edgesearch worker",
   "version": "0.0.2",
   "main": "dist/main.js",
   "files": [

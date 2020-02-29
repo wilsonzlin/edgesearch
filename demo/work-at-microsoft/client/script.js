@@ -45,7 +45,7 @@
    *
    */
 
-  const client = new edgesearch.Client('work-at-microsoft.wlin.workers.dev');
+  const client = new Edgesearch.Client('work-at-microsoft.wlin.workers.dev');
 
   /*
    *
@@ -401,7 +401,7 @@
 
     // Always query for latest set of .search-term elements
     // Only find in form to avoid finding in templates on unsupported browsers
-    const query = new edgesearch.Query();
+    const query = new Edgesearch.Query();
     const hash = '#' + $$('.search-term', $filter_form).map($term => {
       const mode = $term.children[0].value;
       const field = $term.dataset.field;
@@ -437,7 +437,7 @@
   const handle_hash = () => {
     reflect_url();
     clear_search_terms();
-    const query = new edgesearch.Query();
+    const query = new Edgesearch.Query();
 
     for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
       const mode = {

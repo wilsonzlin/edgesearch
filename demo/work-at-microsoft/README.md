@@ -1,6 +1,6 @@
 # [wilsonl.in/msft](https://wilsonl.in/msft)
 
-An at-edge web service + app for finding careers at Microsoft, built as a demo for [edgesearch](https://github.com/wilsonzlin/edgesearch).
+An at-edge web service + app for finding careers at Microsoft, built as a demo for [Edgesearch](https://github.com/wilsonzlin/edgesearch).
 
 Faster and more precise than the official website, and comes with a nice UI.
 
@@ -36,7 +36,7 @@ The `title`, `location`, and `description` fields are searchable. This means tha
 
 ### Backend
 
-The worker code is built using [edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details.
+The worker code is built using [Edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details.
 
 ### Frontend
 

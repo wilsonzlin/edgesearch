@@ -1,11 +1,11 @@
-import * as edgesearch from 'edgesearch-client';
+import * as Edgesearch from 'edgesearch-client';
 import {useEffect, useRef, useState} from 'react';
 import {IBasicArticle} from '../BasicArticle/BasicArticle';
 import {IFullArticle} from '../FullArticle/FullArticle';
 
 type EdgesearchResult = string;
 
-const client = new edgesearch.Client<EdgesearchResult>('wiki.wlin.workers.dev');
+const client = new Edgesearch.Client<EdgesearchResult>('wiki.wlin.workers.dev');
 
 type WikipediaPageSummary = {
   id: number,
@@ -35,7 +35,7 @@ export const useSearch = () => {
     setResults(undefined);
     const searchId = ++searchIdRef.current;
     (async () => {
-      const titles = await client.search(new edgesearch.Query().add(edgesearch.Mode.REQUIRE, ...terms));
+      const titles = await client.search(new Edgesearch.Query().add(Edgesearch.Mode.REQUIRE, ...terms));
       if (searchId !== searchIdRef.current) {
         return;
       }

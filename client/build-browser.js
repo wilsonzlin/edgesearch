@@ -12,7 +12,7 @@ const compat = babel.transformSync(compiled, {
 }).code;
 const browser = `
 (function () {
-  const exports = window.edgesearch = {};
+  const exports = window.Edgesearch = {};
   ${compat}
 })();
 `;
