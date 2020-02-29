@@ -20,9 +20,9 @@ Check out the [demo](./demo) folder for live demos with source code.
 
 ### Get the CLI
 
-[Windows](https://wilsonl.in/edgesearch/bin/0.0.1-windows-x86_64.exe) |
-[macOS](https://wilsonl.in/edgesearch/bin/0.0.1-macos-x86_64) |
-[Linux](https://wilsonl.in/edgesearch/bin/0.0.1-linux-x86_64)
+[Windows](https://wilsonl.in/edgesearch/bin/0.0.2-windows-x86_64.exe) |
+[macOS](https://wilsonl.in/edgesearch/bin/0.0.2-macos-x86_64) |
+[Linux](https://wilsonl.in/edgesearch/bin/0.0.2-linux-x86_64)
 
 ### Build the worker
 
