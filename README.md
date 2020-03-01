@@ -39,7 +39,7 @@ For example:
 ```bash
 edgesearch build \
   --documents documents.txt \
-  --document-terms terms.txt \
+  --document-terms document-terms.txt \
   --maximum-query-results 20 \
   --output-dir dist/worker/
 ```
