@@ -2,10 +2,6 @@
 
 Build a full text search API using Cloudflare Workers and WebAssembly.
 
-Documentation is currently WIP.
-
-## At a glance
-
 ## Features
 
 - Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/) stored in [Cloudflare Workers KV](https://www.cloudflare.com/products/workers-kv/).
@@ -25,6 +21,20 @@ Check out the [demo](./demo) folder for live demos with source code.
 [Linux](https://wilsonl.in/edgesearch/bin/0.0.2-linux-x86_64)
 
 ### Build the worker
+
+The data needs to be formatted into three files:
+
+- *Documents*: contents of all documents, delimited by NULL ('\0'), including at the end.
+- *Document terms*: terms for each corresponding document. Each term and document must end with NULL ('\0').
+- *Default results*: the JSON-serialised array of results to return when not querying by any term.
+
+For example:
+
+|File|Contents|
+|---|---|
+|documents.txt|`{"title":"Stupid Love","artist":"Lady Gaga","year":2020}` `\0` <br> `{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}` `\0` <br> ...|
+|document-terms.txt|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
+|default-results.txt|`[{"title":"Stupid Love","artist":"Lady Gaga","year":2020},{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}]`|
 
 ```bash
 edgesearch build \
