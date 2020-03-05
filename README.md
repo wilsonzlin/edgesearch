@@ -28,13 +28,13 @@ Edgesearch will build a reverse index by mapping each term to a compressed bit s
 
 Each Cloudflare Workers KV key only able to store a maximum of 10 MiB of data.
 
-For the top few terms by frequency, their bitmaps are packed into the minimum amount of keys able to store them. Their key and byte offset within the key's value are recorded and stored in JS code as a map.
+For the top few terms by frequency, their bit sets are packed into the minimum amount of keys able to store them. Their key and byte offset within the key's value are recorded and stored in JS code as a map.
 
 For the remaining terms as well as documents, they are sorted and then packed into keys as well. However, instead of storing each term's/document's key and offset, only the first term/document in a key is stored in JS alongside the position of the middle term/document in the key.
 
-When searching for the corresponding bitset for a term, if the term is in the popular terms map, the bitmap is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the key containing the term's bitmap, and then a binary search is done in the key's value to find the bitmap. Retrieving the contents of a document uses the same binary search approach.
+When searching for the corresponding bit set for a term, if the term is in the popular terms map, the bit set is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the key containing the term's bit set, and then a binary search is done in the key's value to find the bit set. Retrieving the contents of a document uses the same binary search approach.
 
-Packing multiple bitmaps/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 keys.
+Packing multiple bit sets/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 keys.
 
 ### Searching
 
@@ -60,6 +60,10 @@ The entire app runs off a single JavaScript script + accompanying WASM code. It 
 - Naturally distributed to the edge for very low latency.
 - Takes advantage of Cloudflare for SSL, caching, and distribution.
 - No need to worry about scaling, networking, or servers.
+
+### WebAssembly
+
+The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bitmaps is compiled to WebAssembly. A [basic implementation](./wasm/) of essential standard library functionality is implemented to make compilation possible.
 
 ## Usage
 
