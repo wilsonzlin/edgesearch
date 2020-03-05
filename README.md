@@ -5,12 +5,34 @@ Build a full text search API using Cloudflare Workers and WebAssembly.
 ## Features
 
 - Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/) stored in [Cloudflare Workers KV](https://www.cloudflare.com/products/workers-kv/).
-- Packing multiple index entries and documents allows storing 13.4 million [Wikipedia article titles](./demo/wiki/) with 2.3 million unique terms in 66 keys&mdash;no database or server required.
+- Packing multiple index entries and documents allows storing large amounts of data in relatively few keys&mdash;no database or server required.
 - Runs on Cloudflare Workers at edge locations with WebAssembly code for fast, scalable performance.
 
 ## Demos
 
-Check out the [demo](./demo) folder for live demos with source code.
+Check out the [demo](./demo) folder for live deployed demos with source code.
+
+## How it works
+
+Assume we want to index a collection of documents, where a **document** is simply any nonempty UTF-8 sequence of characters. When searching, we are trying to find any documents that match one or more **terms**, which are also simply any nonempty UTF-8 sequence of characters.
+
+The documents and their terms are provided to Edgesearch to build an index using `edgesearch build`. The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
+
+Edgesearch will then use the data to create code and data files ready to be deployed to Cloudflare using `edgesearch deploy`. The worker can also be tested locally by running `edgesearch test`.
+
+### Data
+
+The contents of every document are provided in a file. Each document is sequentially numbered from zero, which becomes their ID. Another file is provided which has the corresponding terms for each document.
+
+Edgesearch will build a reverse index by mapping each term to a compressed bitset (using Roaring Bitmaps) of document IDs representing documents containing the term.
+
+For the top few terms by frequency, their bitmaps are packed into the minimum amount of keys able to store them, with each Cloudflare Workers KV key only able to store a maximum of 10 MiB of data. Their key and byte offset within the key's value are recorded and stored in JS code as a map.
+
+For the remaining terms as well as documents, they are sorted and then packed into keys as well. However, instead of storing each term's/document's key and offset, only the first term/document in a key is stored in JS alongside the position of the middle term/document in the key.
+
+When searching for the corresponding bitset for a term, if the term is in the popular terms map, the bitmap is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the key containing the term's bitmap, and then a binary search is done in that key to find the bitmap. Retrieving the contents of documents uses the same binary search approach.
+
+Packing multiple bitmaps/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 keys.
 
 ## Usage
 
@@ -116,3 +138,7 @@ The entire app runs off a single JavaScript script + accompanying WASM code. It 
 - No need to worry about scaling, networking, or servers.
 
 ## Performance
+
+The code is reasonably fast, so most of the latency will arise from how cached the script and Workers KV data are at Cloudflare edge locations.
+
+Keys that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. Script code and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, to ensure consistent low-latency request responses, ensure that there is consistent traffic hitting the worker to keep code and data at the edge.
