@@ -9,7 +9,7 @@ Faster and more precise than the official website, and comes with a nice UI.
 ## Improvements
 
 This app allows the combining of simple filters to form advanced, precise queries.
-Combined with the performance optimisations, it delivers far more filtered results in usually under a second.
+Combined with the performance optimisations, it delivers more filtered results in usually under a second.
 
 For a UI comparison, see the [screenshots folder](./screenshots).
 
@@ -30,7 +30,7 @@ Each object represents a job, with fields describing some aspect of the job:
 }
 ```
 
-The `title`, `location`, and `description` fields are searchable. This means that their words have to be indexed using bit sets.
+The `title`, `location`, and `description` fields are searchable.
 
 ## Code
 
@@ -58,4 +58,4 @@ Data fetching and processing is done by [data.ts](./build/src/data/data.ts).
 
 Both the worker and client app need to be built. [client.ts](./build/src/client/client.ts) and [worker.js](./build/src/worker/worker.ts) take care of building.
 
-Building the worker requires at least clang 7 and lld 7. 
+Building the worker requires at least clang 7 and lld 7. See [Edgesearch](https://github.com/wilsonzlin/edgesearch) for more details.
