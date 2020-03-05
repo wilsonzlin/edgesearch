@@ -70,7 +70,6 @@ for (const f of ['README.md']) {
   replaceInFile(f, /(wilsonl\.in\/edgesearch\/bin\/)\d+\.\d+\.\d+/g, `$1${NEW_VERSION}`);
 }
 
-cmd('cargo', 'generate-lockfile');
 cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
 cmd('git', 'tag', '-a', `v${NEW_VERSION}`, '-m', '');
