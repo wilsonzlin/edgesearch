@@ -34,12 +34,21 @@ jobs:
         id: file
         shell: bash
         run: echo ::set-output name=FILE::${{ steps.version.outputs.VERSION }}-${{ matrix.ARCH }}${{ matrix.EXT }}
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           default: true
+      - name: Build worker script template
+        working-directory: ./script
+        run: |
+          npm install
+          npm run build
       - name: Build CLI
         run: cargo build --release
       - uses: chrislennon/action-aws-cli@v1.1
