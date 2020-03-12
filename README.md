@@ -5,18 +5,18 @@ Build a full text search API using Cloudflare Workers and WebAssembly.
 ## Features
 
 - Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/) stored in [Cloudflare Workers KV](https://www.cloudflare.com/products/workers-kv/).
-- Packing multiple index entries and documents allows storing large amounts of data in relatively few keys&mdash;no database or server required.
+- Packs multiple index entries and documents, storing large amounts of data in relatively few keys&mdash;no database or server required.
 - Runs on Cloudflare Workers at edge locations with WebAssembly code for fast, scalable performance.
 
 ## Demos
 
-Check out the [demo](./demo) folder for live deployed demos with source code.
+Check out the [demo](./demo) folder for live demos with source code.
 
 ## How it works
 
 Assume we want to index a collection of documents, where a **document** is simply any nonempty UTF-8 sequence of characters. When searching, we are trying to find any documents that match one or more **terms**, which are also simply any nonempty UTF-8 sequence of characters.
 
-The documents and their terms are provided to Edgesearch to build an index using `edgesearch build`. The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
+The documents and their associated terms are provided to Edgesearch to build an index using `edgesearch build`. The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
 
 Edgesearch will then use the data to create code and data files ready to be deployed to Cloudflare using `edgesearch deploy`. The worker can also be tested locally by running `edgesearch test`.
 
@@ -26,15 +26,15 @@ The contents of every document are provided in a file. Each document is sequenti
 
 Edgesearch will build a reverse index by mapping each term to a compressed bit set (using Roaring Bitmaps) of document IDs representing documents containing the term.
 
-Each Cloudflare Workers KV key only able to store a maximum of 10 MiB of data.
+Each Cloudflare Workers KV entry can hold a value up to 10 MiB in size, and charges per read/write of an entry.
 
-For the top few terms by frequency, their bit sets are packed into the minimum amount of keys able to store them. Their key and byte offset within the key's value are recorded and stored in JS code as a map.
+For the top few terms by frequency, their bit sets are packed into the minimum amount of entries able to store them. Their key and byte offset within the entry's value are recorded and stored in the worker's JS code as a map.
 
-For the remaining terms as well as documents, they are sorted and then packed into keys as well. However, instead of storing each term's/document's key and offset, only the first term/document in a key is stored in JS alongside the position of the middle term/document in the key.
+The remaining terms and all documents are sorted and also packed into entries. However, instead of storing each term's/document's key and offset, only the first term/document in an entry is stored in the JS code alongside the position of the middle term/document in the key.
 
-When searching for the corresponding bit set for a term, if the term is in the popular terms map, the bit set is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the key containing the term's bit set, and then a binary search is done in the key's value to find the bit set. Retrieving the contents of a document uses the same binary search approach.
+When searching for the corresponding bit set for a term, if the term is in the popular terms map, the bit set is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the entry containing the term's bit set, and then a binary search is done in the entry's value to find the bit set. Retrieving the contents of a document uses the same binary search approach.
 
-Packing multiple bit sets/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 keys.
+Packing multiple bit sets/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 entries.
 
 ### Searching
 
@@ -54,7 +54,7 @@ result = (req_a & req_b & req_c & ...) & (con_a | con_b | con_c | ...) & ~(exc_a
 
 ### Cloudflare
 
-The entire app runs off a single JavaScript script + accompanying WASM code. It does not need any database or server, and uses Cloudflare Workers. This allows for some cool features:
+The entire app runs off a single JavaScript script + accompanying WASM code. It does not need any database or server, and uses Cloudflare Workers. This allows for some nice advantages:
 
 - Faster than a VM or container with less cold starts, as code is run on a V8 Isolate.
 - Naturally distributed to the edge for very low latency.
@@ -63,7 +63,7 @@ The entire app runs off a single JavaScript script + accompanying WASM code. It 
 
 ### WebAssembly
 
-The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bitmaps is compiled to WebAssembly. A [basic implementation](./wasm/) of essential standard library functionality is implemented to make compilation possible.
+The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bitmaps is compiled to WebAssembly. A [basic implementation](./wasm/) of essential C standard library functionality is implemented to make compilation possible.
 
 ## Usage
 
@@ -89,7 +89,7 @@ For example:
 |document-terms.txt|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
 |default-results.txt|`[{"title":"Stupid Love","artist":"Lady Gaga","year":2020},{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}]`|
 
-An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other files.
+An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other contents.
 
 ```bash
 edgesearch build \
@@ -140,4 +140,4 @@ const results = await client.search(query);
 
 The code is reasonably fast, so most of the latency will arise from how cached the script and Workers KV data are at Cloudflare edge locations.
 
-Keys that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. Script code and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, to ensure consistent low-latency request responses, ensure that there is consistent traffic hitting the worker to keep code and data at the edge.
+Keys that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. The script and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, for consistent low-latency request responses, ensure that there is constant traffic hitting the worker to keep code and data at the edge.
