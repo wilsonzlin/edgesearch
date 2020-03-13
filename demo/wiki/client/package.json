@@ -12,7 +12,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "postbuild": "mv build ../dist/client",
+    "postbuild": "mkdir -p ../dist && mv build ../dist/client",
     "eject": "react-scripts eject"
   },
   "homepage": "https://wilsonl.in/wiki",
