@@ -70,7 +70,6 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 ### Get the CLI
 
 [Windows](https://wilsonl.in/edgesearch/bin/0.0.5-windows-x86_64.exe) |
-[macOS](https://wilsonl.in/edgesearch/bin/0.0.5-macos-x86_64) |
 [Linux](https://wilsonl.in/edgesearch/bin/0.0.5-linux-x86_64)
 
 ### Build the worker

@@ -10,7 +10,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
             ARCH: linux-x86_64
@@ -49,14 +49,8 @@ jobs:
         run: |
           npm install
           npm run build
-      - name: Build CLI (Windows, Linux)
-        if: runner.os != 'macOS'
+      - name: Build CLI
         run: cargo build --release
-      - name: Build CLI (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          sudo xcode-select -s /Applications/Xcode_11.2.1.app/Contents/Developer
-          cargo build --release
       - uses: chrislennon/action-aws-cli@v1.1
       - name: Upload to S3
         env:

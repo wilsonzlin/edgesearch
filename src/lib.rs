@@ -7,10 +7,9 @@ pub mod deploy;
 pub mod test;
 
 // JavaScript and Roaring Bitmaps only support 32-bit integers.
-type DocumentId = u32;
-
 #[allow(dead_code)]
-const DOCUMENT_ID_BYTES: usize = 4;
-
+type DocumentId = u32;
+#[allow(dead_code)]
 type Term = String;
+#[allow(dead_code)]
 type TermId = usize;
