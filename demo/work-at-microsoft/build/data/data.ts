@@ -5,7 +5,7 @@ import path from 'path';
 import {Queue} from './queue';
 import {
   CACHE_DIR,
-  DATA_CONTENTS,
+  DATA_DOCUMENTS,
   DATA_DEFAULT,
   DATA_PARSED_JSON,
   DATA_RAW_JSON,
@@ -114,7 +114,7 @@ const parse = (rawData: any[]) =>
       .flat(Infinity)
       .join('') + '\0',
   ).join('');
-  await fs.writeFile(DATA_CONTENTS, contents);
+  await fs.writeFile(DATA_DOCUMENTS, contents);
   await fs.writeFile(DATA_TERMS, terms);
 })()
   .catch(e => console.error(e));
