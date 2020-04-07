@@ -27,7 +27,7 @@ jobs:
           npm install
           npm run build
       - name: Set up Clang and LLVM
-        run: sudo apt install clang-7 llvm-7
+        run: sudo apt install clang-9 llvm-9 lld-9
       - name: Build CLI
         run: cargo build --release
       - name: Install dependencies
@@ -38,7 +38,9 @@ jobs:
         run: npm run build-data
       - name: Build worker
         working-directory: ./demo/work-at-microsoft/build
-        run: PATH="/usr/lib/llvm-7/bin:$PATH" npm run build-worker
+        run: |
+          export PATH="/usr/lib/llvm-9/bin:$PATH"
+          npm run build-worker
       - name: Deploy worker
         working-directory: ./demo/work-at-microsoft/build
         env:
