@@ -1,0 +1,40 @@
+name: Update and deploy Microsoft Careers demo
+
+on:
+  schedule:
+    - cron: '0 */3 * * *'
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          default: true
+      - name: Build CLI
+        run: cargo build --release
+      - name: Install script dependencies
+        working-directory: ./demo/work-at-microsoft/build
+        run: npm install
+      - name: Fetch and build data
+        working-directory: ./demo/work-at-microsoft/build
+        run: npm run build-data
+      - name: Build worker
+        working-directory: ./demo/work-at-microsoft/build
+        run: npm run build-worker
+      - name: Deploy worker
+        working-directory: ./demo/work-at-microsoft/build
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_ACCOUNT_EMAIL: ${{ secrets.CF_ACCOUNT_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_MSFT_ID }}
+        run: npm run deploy-worker
