@@ -209,7 +209,6 @@ const queryRunner = wasmInstance.exports as {
 };
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
 
-const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 const CORS_HEADERS = {
