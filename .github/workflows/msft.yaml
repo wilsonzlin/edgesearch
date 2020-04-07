@@ -3,6 +3,8 @@ name: Update and deploy Microsoft Careers demo
 on:
   schedule:
     - cron: '0 */3 * * *'
+  repository_dispatch:
+    types: [msft-deploy]
 
 jobs:
   fetch:
