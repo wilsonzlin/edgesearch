@@ -48,5 +48,6 @@ export const EXTRACT_WORDS_FN = (sentence: string) => sentence
   .split(/[^a-zA-Z0-9]/)
   .filter(t => t)
   .map(t => t.toLowerCase())
-  .map(t => WORD_MAP[t] || t)
-  .flat();
+  .map(t => WORD_MAP[t] || [t])
+  // Don't use .flat, as it's not supported in Edge.
+  .reduce((flat, words) => flat.concat(words), new Array<string>());
