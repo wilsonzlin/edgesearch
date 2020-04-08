@@ -4,7 +4,7 @@
     "clean": "rm -rf cache",
     "build-client": "ts-node client/client.ts",
     "build-data": "ts-node data/data.ts",
-    "build-worker": "mkdir -p ./dist/worker && ../../../target/release/edgesearch build --documents data/documents.txt --document-encoding json --document-terms data/terms.txt --maximum-query-results 50 --output-dir ../dist/worker",
+    "build-worker": "../../../target/release/edgesearch build --documents data/documents.txt --document-encoding json --document-terms data/terms.txt --maximum-query-results 50 --output-dir ../dist/worker",
     "deploy-worker": "../../../target/release/edgesearch deploy --default-results data/default-results.txt --account-id $CF_ACCOUNT_ID --account-email $CF_ACCOUNT_EMAIL --global-api-key $CF_GLOBAL_API_KEY --name work-at-microsoft --output-dir ../dist/worker --namespace $CF_KV_NAMESPACE_ID --upload-data"
   },
   "dependencies": {
