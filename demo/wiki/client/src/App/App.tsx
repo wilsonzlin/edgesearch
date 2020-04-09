@@ -25,21 +25,24 @@ export const App = () => {
           />
           <button
             className={styles.searchButton}
-          >Search</button>
+          >Search
+          </button>
         </form>
       </header>
       <main className={styles.main}>
-        {!search.results
-          ? <p className={styles.status}>Searching&hellip;</p>
-          : <>
-            <p className={styles.status}>{search.results.count}{search.results.more ? '+' : ''} result{search.results.count === 1 ? '' : 's'}</p>
-            <ul className={styles.fullArticlesList}>
-              {search.results.fullArticles.map(result => <li className={styles.resultsListEntry} key={result.id}><FullArticle {...result}/></li>)}
-            </ul>
-            <ul className={styles.basicArticlesList}>
-              {search.results.basicArticles.map(result => <li className={styles.resultsListEntry} key={result.id}><BasicArticle {...result}/></li>)}
-            </ul>
-          </>}
+        {!search.query
+          ? 'Enter a query to search'
+          : !search.results
+            ? <p className={styles.status}>Searching&hellip;</p>
+            : <>
+              <p className={styles.status}>{search.results.count}{search.results.more ? '+' : ''} result{search.results.count === 1 ? '' : 's'}</p>
+              <ul className={styles.fullArticlesList}>
+                {search.results.fullArticles.map(result => <li className={styles.resultsListEntry} key={result.id}><FullArticle {...result}/></li>)}
+              </ul>
+              <ul className={styles.basicArticlesList}>
+                {search.results.basicArticles.map(result => <li className={styles.resultsListEntry} key={result.id}><BasicArticle {...result}/></li>)}
+              </ul>
+            </>}
       </main>
     </div>
   );
