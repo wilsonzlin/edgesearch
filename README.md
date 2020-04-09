@@ -121,7 +121,6 @@ A [client](./client/) for the browser is available for using a deployed Edgesear
 import * as Edgesearch from 'edgesearch-client';
 
 type Document = {
-  id: string;
   title: string;
   artist: string;
   year: number;
