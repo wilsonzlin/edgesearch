@@ -123,7 +123,8 @@ import * as Edgesearch from 'edgesearch-client';
 type Document = {
   id: string;
   title: string;
-  description: string;
+  artist: string;
+  year: number;
 };
 
 const client = new Edgesearch.Client<Document>('my-edgesearch.me.workers.dev');
@@ -136,6 +137,6 @@ const results = await client.search(query);
 
 ## Performance
 
-The code is reasonably fast, so most of the latency will arise from how cached the script and Workers KV data are at Cloudflare edge locations.
+The code is reasonably fast, so most of the latency will arise from whether or not the script and Workers KV entries are cached at Cloudflare edge locations.
 
-Keys that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. The script and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, for consistent low-latency request responses, ensure that there is constant traffic hitting the worker to keep code and data at the edge.
+Entries that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. The script and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, for consistent low-latency request responses, ensure that there is constant traffic hitting the worker to keep code and data at the edge.
