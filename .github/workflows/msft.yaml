@@ -49,4 +49,5 @@ jobs:
           CF_ACCOUNT_EMAIL: ${{ secrets.CF_ACCOUNT_EMAIL }}
           CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_MSFT_ID }}
+          CF_WORKER_NAME: work-at-microsoft
         run: npm run deploy-worker
