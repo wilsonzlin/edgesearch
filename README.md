@@ -14,27 +14,19 @@ Check out the [demo](./demo) folder for live demos with source code.
 
 ## How it works
 
-Assume we want to index a collection of documents, where a **document** is simply any nonempty UTF-8 sequence of characters. When searching, we are trying to find any documents that match one or more **terms**, which are also simply any nonempty UTF-8 sequence of characters.
-
-The documents and their associated terms are provided to Edgesearch to build an index using `edgesearch build`. The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
-
-Edgesearch will then use the data to create code and data files ready to be deployed to Cloudflare using `edgesearch deploy`. The worker can also be tested locally by running `edgesearch test`.
+Edgesearch builds a reverse index by mapping terms to a compressed bit set (using Roaring Bitmaps) of IDs of documents containing the term, and creates a custom worker script and data to upload to Cloudflare Workers.
 
 ### Data
 
-The contents of every document are provided in a file. Each document is sequentially assigned an ID, starting from zero. Another file is provided which has the corresponding terms for each document.
+An array of term-documents pairs sorted by term is built, where **term** is a string and **documents** is a compressed bit set.
 
-Edgesearch will build a reverse index by mapping each term to a compressed bit set (using Roaring Bitmaps) of document IDs representing documents containing the term.
+This array is then split into chunks of up to 10 MiB, as each Cloudflare Workers KV entry can hold a value up to 10 MiB in size.
 
-Each Cloudflare Workers KV entry can hold a value up to 10 MiB in size, and charges per read/write of an entry.
+To find the documents bit set associated with a term, a binary search is done to find the appropriate chunk, and then the entry within the chunk.
 
-For the top few terms by frequency, their bit sets are packed into the minimum amount of entries able to store them. Their key and byte offset within the entry's value are recorded and stored in the worker's JS code as a map.
+The same structure and process is used to store and retrieve document contents.
 
-The remaining terms and all documents are sorted and also packed into entries. However, instead of storing each term's/document's key and offset, only the first term/document in an entry is stored in the JS code alongside the position of the middle term/document in the key.
-
-When searching for the corresponding bit set for a term, if the term is in the popular terms map, the bit set is simply retrieved directly from Cloudflare Workers KV. If it's not, a binary search is done to find the entry containing the term's bit set, and then a binary search is done in the entry's value to find the bit set. Retrieving the contents of a document uses the same binary search approach.
-
-Packing multiple bit sets/documents reduces costs and deploy times, especially for large datasets. It also improves caching. For example, the [English Wikipedia demo](./demo/wiki/) has 13.4 million documents and 2.3 million terms, which when packed results in only 66 entries.
+Packing multiple bit sets/documents reduces read/write costs and deploy times, and improves caching.
 
 ### Searching
 
@@ -79,13 +71,18 @@ The data needs to be formatted into three files:
 - *Document terms*: terms for each corresponding document. Each term and document must end with NULL ('\0').
 - *Default results*: the JSON-serialised array of results to return when not querying by any term.
 
+This format allows for simple reading and writing without libraries, parsers, or loading data into memory.
+Terms are separate from documents for easy switching between or testing of different documents-terms mappings.
+
+The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
+
 For example:
 
 |File|Contents|
 |---|---|
 |documents.txt|`{"title":"Stupid Love","artist":"Lady Gaga","year":2020}` `\0` <br> `{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}` `\0` <br> ...|
 |document-terms.txt|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
-|default-results.txt|`[{"title":"Stupid Love","artist":"Lady Gaga","year":2020},{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}]`|
+|default-results.json|`[{"title":"Stupid Love","artist":"Lady Gaga","year":2020},{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}]`|
 
 An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other contents.
 
@@ -103,7 +100,7 @@ This will upload the worker script and associated WASM to Cloudflare Workers, an
 
 ```bash
 edgesearch deploy \
-  --default-results default.txt \ 
+  --default-results default-results.json \ 
   --account-id CF_ACCOUNT_ID \
   --account-email me@email.com \ 
   --global-api-key CF_GLOBAL_API_KEY \
@@ -136,6 +133,6 @@ const results = await client.search(query);
 
 ## Performance
 
-The code is reasonably fast, so most of the latency will arise from whether or not the script and Workers KV entries are cached at Cloudflare edge locations.
+The code is reasonably fast, so most of the latency will arise from whether or not the Workers KV entries are cached at Cloudflare edge locations.
 
-Entries that are not frequently retrieved from Workers KV will take longer to retrieve due to cache misses from edge locations. The script and accompanying WASM binary may not be present at edge locations if not executed frequently. Therefore, for consistent low-latency request responses, ensure that there is constant traffic hitting the worker to keep code and data at the edge.
+Searches that retrieve entries not cached at edge locations will take a lot longer. Therefore, for consistently fast searches, ensure that there is constant traffic hitting the worker to keep data at the edge.
