@@ -112,7 +112,7 @@ edgesearch deploy \
 
 ### Calling the API
 
-A [client](./client/) for the browser is available for using a deployed Edgesearch worker:
+A JavaScript [client](./client/) for the browser and Node.js is available for using a deployed Edgesearch worker:
 
 ```typescript
 import * as Edgesearch from 'edgesearch-client';
@@ -123,7 +123,7 @@ type Document = {
   year: number;
 };
 
-const client = new Edgesearch.Client<Document>('my-edgesearch.me.workers.dev');
+const client = new Edgesearch.Client<Document>('https://my-edgesearch.me.workers.dev');
 const query = new Edgesearch.Query();
 query.add(Edgesearch.Mode.REQUIRE, 'world');
 query.add(Edgesearch.Mode.CONTAIN, 'hello', 'welcome', 'greetings');

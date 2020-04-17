@@ -34,7 +34,9 @@ export class BadStatusError extends Error {
   }
 }
 
-const httpGet = <T> (url: string): Promise<T> => new Promise<T>((resolve, reject) => {
+export type Agent<T> = (url: string) => Promise<T>;
+
+export const xmlHttpRequestGet = <T> (url: string) => new Promise<T>((resolve, reject) => {
   const xhr = new XMLHttpRequest();
   xhr.onreadystatechange = () => {
     if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -51,20 +53,19 @@ const httpGet = <T> (url: string): Promise<T> => new Promise<T>((resolve, reject
   xhr.send();
 });
 
-export type SearchResponse<E> = {
-  results: E[];
+export type SearchResponse<D> = {
+  results: D[];
   more: boolean;
 };
 
-export class Client<E> {
+export class Client<D> {
   constructor (
-    private readonly host: string,
-    private readonly protocol: string = 'https',
-    private readonly agent: <T>(url: string) => Promise<T> = httpGet,
+    private readonly prefix: string,
+    private readonly agent: Agent<SearchResponse<D>> = xmlHttpRequestGet,
   ) {
   }
 
-  search (query: Query): Promise<SearchResponse<E>> {
-    return this.agent<SearchResponse<E>>(`${this.protocol}://${this.host}/search${query.build()}`);
+  search (query: Query): Promise<SearchResponse<D>> {
+    return this.agent(`${this.prefix}/search${query.build()}`);
   }
 }
