@@ -4,9 +4,10 @@ Build a full text search API using Cloudflare Workers and WebAssembly.
 
 ## Features
 
-- Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/) stored in [Cloudflare Workers KV](https://www.cloudflare.com/products/workers-kv/).
-- Packs multiple index entries and documents, storing large amounts of data in relatively few keys&mdash;no database or server required.
-- Runs on Cloudflare Workers at edge locations with WebAssembly code for fast, scalable performance.
+- Uses an [inverted index](https://en.wikipedia.org/wiki/Inverted_index) and [compressed bit sets](https://roaringbitmap.org/).
+- No servers or databases to create, manage, or scale.
+- Packs large amounts of data in relatively few [KV entries](https://www.cloudflare.com/products/workers-kv/).
+- Runs fast [WASM](https://webassembly.org/) code at Cloudflare edge PoPs for low-latency requests.
 
 ## Demos
 
