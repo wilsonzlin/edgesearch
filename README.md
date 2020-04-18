@@ -134,6 +134,4 @@ const results = await client.search(query);
 
 ## Performance
 
-The code is reasonably fast, so most of the latency will arise from whether or not the Workers KV entries are cached at Cloudflare edge locations.
-
-Searches that retrieve entries not cached at edge locations will take a lot longer. Therefore, for consistently fast searches, ensure that there is constant traffic hitting the worker to keep data at the edge.
+Searches that retrieve entries not cached at edge locations will be slow. To reduce cache misses, ensure that there is consistent traffic.
