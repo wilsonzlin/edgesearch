@@ -23,7 +23,7 @@ An array of term-documents pairs sorted by term is built, where **term** is a st
 
 This array is then split into chunks of up to 10 MiB, as each Cloudflare Workers KV entry can hold a value up to 10 MiB in size.
 
-To find the documents bit set associated with a term, a binary search is done to find the appropriate chunk, and then the entry within the chunk.
+To find the documents bit set associated with a term, a binary search is done to find the appropriate chunk, and then the pair within the chunk.
 
 The same structure and process is used to store and retrieve document contents.
 
@@ -50,7 +50,7 @@ result = (req_a & req_b & req_c & ...) & (con_a | con_b | con_c | ...) & ~(exc_a
 
 ### Cloudflare
 
-The entire app runs off a single JavaScript script + accompanying WASM code. It does not need any database or server, and uses Cloudflare Workers. This allows for some nice advantages:
+There are some nice advantages when only using Cloudflare Workers:
 
 - Faster than a VM or container with less cold starts, as code is run on a V8 Isolate.
 - Naturally distributed to the edge for very low latency.
