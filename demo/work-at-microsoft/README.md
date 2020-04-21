@@ -36,11 +36,13 @@ The `title`, `location`, and `description` fields are searchable.
 
 ### Backend
 
-The worker code is built using [Edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details.
+The worker code is built using [Edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details. To build and deploy the worker, see the [package.json scripts](./build/package.json).
+
+Building the worker requires at least clang 7 and lld 7. The build scripts use a release build of Edgesearch from this repository, so build Edgesearch using `cargo build --release` before running them.
 
 ### Frontend
 
-All the app files are located in [src](./src/):
+All the app files are located in [client](./client/):
 
 - `page.hbs`: main HTML file, written as a Handlebars template to remove repetition and allow conditional content
 - `script.js`: custom JS that contains logic for autocomplete, animations, searching, and general UX
@@ -48,14 +50,8 @@ All the app files are located in [src](./src/):
 - various external libraries and styles
 - `assets/*`: files relating to app metadata, such as `favicon.ico`
 
-All files except for `assets/*` are minified and bundled together into one HTML file to reduce the file size and amount of round trips required for the end user.
+All files except for `assets/*` are minified and bundled together into one HTML file to reduce the file size and amount of round trips required for the end user. [client.ts](./build/client/client.ts) takes care of building, invoked by [npm run build-client](./build/package.json).
 
 ### Data
 
-Data fetching and processing is done by [data.ts](./build/data/data.ts).
-
-### Build
-
-Both the worker and client app need to be built. [client.ts](./build/client/client.ts) and [npm run build-worker](./build/package.json) take care of building.
-
-Building the worker requires at least clang 7 and lld 7. See [Edgesearch](https://github.com/wilsonzlin/edgesearch) for more details.
+Data fetching and processing is done by [data.ts](./build/data/data.ts), invoked by [npm run build-data](./build/package.json).
