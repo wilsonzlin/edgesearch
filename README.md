@@ -93,6 +93,7 @@ An folder needs to be provided for Edgesearch to write temporary and built code 
 ```bash
 edgesearch build \
   --documents documents.txt \
+  --document-encoding json \
   --document-terms document-terms.txt \
   --maximum-query-results 20 \
   --output-dir dist/worker/
@@ -104,9 +105,9 @@ This will upload the worker script and associated WASM to Cloudflare Workers, an
 
 ```bash
 edgesearch deploy \
-  --default-results default-results.json \ 
+  --default-results default-results.json \
   --account-id CF_ACCOUNT_ID \
-  --account-email me@email.com \ 
+  --account-email me@email.com \
   --global-api-key CF_GLOBAL_API_KEY \
   --name my-edgesearch \
   --output-dir dist/worker/ \
