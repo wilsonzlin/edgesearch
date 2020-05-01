@@ -28,7 +28,7 @@
     "terser": "^4.6.3",
     "cheerio": "^1.0.0-rc.2",
     "html-entities": "^1.2.1",
-    "moment": "^2.22.2",
+    "moment": "2.24.0",
     "request": "^2.88.0",
     "request-promise-native": "^1.0.5"
   },
