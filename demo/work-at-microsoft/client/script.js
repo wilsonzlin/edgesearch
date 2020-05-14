@@ -45,7 +45,7 @@
    *
    */
 
-  const client = new Edgesearch.Client('work-at-microsoft.wlin.workers.dev');
+  const client = new Edgesearch.Client('https://work-at-microsoft.wlin.workers.dev');
 
   /*
    *
@@ -305,7 +305,8 @@
   };
 
   const $template_job = $('#template-job');
-  const $jobs = $('#jobs');
+  const $jobs_list = $('#jobs-list');
+  const $jobs_next_page = $('#jobs-next-page');
   const $filter_form = $('#filter-form');
   const $filter_form_submit = $('#filter-form-submit');
   const $jobs_heading = $('#jobs-heading');
@@ -342,57 +343,71 @@
 
   // It's possible to have concurrent searches when using the Back and Forward history buttons,
   // as well as hitting Enter to submit form
+  let current_request_no = 0;
   let current_search_query;
-  const search = query => {
-      const query_string = query.build();
-      if (current_search_query === query_string) {
+  let current_continuation = 0;
+  let next_continuation;
+  const update_results = () => {
+    const request_no = ++current_request_no;
+
+    set_title_and_heading(undefined, 'Searching');
+    $jobs_list.innerHTML = '';
+    $jobs_next_page.disabled = true;
+    $filter_form_submit.disabled = true;
+
+    current_search_query.setContinuation(current_continuation);
+
+    client.search(current_search_query).then(data => {
+      if (current_request_no !== request_no) {
+        // Stale results
         return;
       }
-      current_search_query = query_string;
 
-      set_title_and_heading(undefined, 'Searching');
-      for (const $job of $$('.job', $jobs)) {
-        $job.remove();
+      $filter_form_submit.disabled = false;
+
+      if (!data) {
+        set_title_and_heading('Error', 'Something went wrong');
+        return;
       }
-      $filter_form_submit.disabled = true;
 
-      client.search(query).then(data => {
-        if (current_search_query !== query_string) {
-          // Stale results
-          return;
-        }
-        current_search_query = undefined;
+      const {results: jobs, continuation} = data;
+      next_continuation = continuation;
+      if (next_continuation) {
+        $jobs_next_page.disabled = false;
+      }
 
-        $filter_form_submit.disabled = false;
+      const count = `${jobs.length}${continuation ? '+' : ''}`;
+      const plural = jobs.length != 1;
+      const title = `${count} result${plural ? 's' : ''}`;
+      const heading = `${count} match${plural ? 'es' : ''}`;
 
-        if (!data) {
-          set_title_and_heading('Error', 'Something went wrong');
-          return;
-        }
+      set_title_and_heading(title, heading);
 
-        const {results: jobs, more: overflow} = data;
+      for (const job of jobs) {
+        const $job = import_template($template_job);
+        $('.job-title-link', $job).textContent = job.title;
+        $('.job-title-link', $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+        $('.job-location', $job).textContent = job.location;
+        $('.job-description', $job).textContent = job.description;
+        const [year, month, day] = job.date.split('-').map(v => Number.parseInt(v, 10));
+        $('.job-date', $job).textContent = [MONTHS[month - 1], day, year].join(' ');
+        $('.job-date', $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
+        $jobs_list.appendChild($job);
+      }
+    });
+  };
+  const next_page = () => {
+    current_continuation = next_continuation;
+    next_continuation = undefined;
+    update_results();
+  };
+  const search = query => {
+    current_search_query = query;
+    current_continuation = 0;
+    update_results();
+  };
 
-        const count = `${jobs.length}${overflow ? '+' : ''}`;
-        const plural = jobs.length != 1;
-        const title = `${count} result${plural ? 's' : ''}`;
-        const heading = `${count} match${plural ? 'es' : ''}`;
-
-        set_title_and_heading(title, heading);
-
-        for (const job of jobs) {
-          const $job = import_template($template_job);
-          $('.job-title-link', $job).textContent = job.title;
-          $('.job-title-link', $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
-          $('.job-location', $job).textContent = job.location;
-          $('.job-description', $job).textContent = job.description;
-          const [year, month, day] = job.date.split('-').map(v => Number.parseInt(v, 10));
-          $('.job-date', $job).textContent = [MONTHS[month - 1], day, year].join(' ');
-          $('.job-date', $job).dateTime = `${year}-${left_pad(month, 2)}-${left_pad(day, 2)}T00:00:00.000Z`;
-          $jobs.appendChild($job);
-        }
-      });
-    }
-  ;
+  $jobs_next_page.addEventListener('click', next_page);
 
   const handle_form = e => {
     // NOTE: Don't rerender or normalise form on submit, as user might be
@@ -421,7 +436,7 @@
       return `${prefix}${field}:${encodeURIComponent(words.join(' ')).replace(/%20/g, '+')}`;
     }).filter(w => w).join('|');
 
-    history.pushState(null, undefined, hash);
+    history.pushState(current_continuation, undefined, hash);
     reflect_url();
     search(query);
   };
@@ -434,7 +449,7 @@
    *
    */
 
-  const handle_hash = () => {
+  const handle_hash = ({state} = {}) => {
     reflect_url();
     clear_search_terms();
     const query = new Edgesearch.Query();
@@ -460,7 +475,9 @@
       new_search_term(field, mode, words);
     }
 
-    search(query);
+    current_search_query = query;
+    current_continuation = state || 0;
+    update_results();
   };
 
   window.addEventListener('popstate', handle_hash);

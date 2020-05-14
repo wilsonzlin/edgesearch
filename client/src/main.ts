@@ -51,6 +51,6 @@ export class Client<D> {
   }
 
   search (query: Query): Promise<SearchResponse<D>> {
-    return this.agent(`${this.prefix}/search${query.build()}`);
+    return this.agent(`${this.prefix}/search?${query.build()}`);
   }
 }

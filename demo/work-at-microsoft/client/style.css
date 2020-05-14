@@ -387,6 +387,14 @@ h2.section-heading {
   padding-right: 0.5rem;
 }
 
+#jobs-next-page {
+  margin-bottom: 1rem;
+}
+
+#jobs-next-page:disabled {
+  display: none;
+}
+
 .job {
   background: #f8f8f8; /* neutralLighterAlt */
 

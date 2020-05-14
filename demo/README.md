@@ -15,6 +15,8 @@
 
 Fast search for over 5000 jobs fetched from careers.microsoft.com, with advanced querying syntax such as per-field and exclusive search.
 
+Client is built using Handlebars and vanilla JS.
+
 ## Wikipedia
 
 <table>
@@ -29,3 +31,5 @@ Fast search for over 5000 jobs fetched from careers.microsoft.com, with advanced
 </table>
 
 Search from over 13 million English Wikipedia article titles.
+
+Client is built using React and webpack.
