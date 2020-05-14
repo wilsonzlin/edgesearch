@@ -1,4 +1,5 @@
 typedef struct {
+  uint32_t first_rank;
   // This is a flattened form of (size_t, byte*)[][].
   // There's a subarray for each mode, and they are ordered according to their numeric value (see mode_t).
   // Each mode contains array lengths followed by pointers to byte arrays containing serialised Roaring Bitmaps representing a term.
@@ -10,6 +11,20 @@ typedef struct {
   // }`.
   uint32_t serialised[MAX_QUERY_TERMS * 2 + 3];
 } index_query_t;
+
+// Result of a query executed within WASM.
+typedef struct {
+  // Whether there are more documents.
+  int32_t continuation;
+  // How many documents.
+  uint8_t count;
+  // IDs of the documents in the result.
+  doc_id_t documents[MAX_RESULTS];
+} results_t;
+
+uint32_t min(uint32_t a, uint32_t b) {
+  return a < b ? a : b;
+}
 
 // Function to be called from JS that allocates enough memory for a query and returns the pointer to it.
 WASM_EXPORT index_query_t* index_query_init(void) {
@@ -82,17 +97,18 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
 
   uint64_t doc_count = roaring_bitmap_get_cardinality(result_bitmap);
   results_t* results = malloc(sizeof(results_t));
-  results->more = doc_count > MAX_RESULTS;
-  if (results->more) {
-    // Only get first MAX_RESULTS.
-    doc_id_t last_doc;
-    roaring_bitmap_select(result_bitmap, MAX_RESULTS - 1, &last_doc);
-    roaring_bitmap_range_uint32_array(result_bitmap, 0, last_doc + 1, results->documents);
-    results->count = MAX_RESULTS;
+
+  uint32_t first_rank = query->first_rank;
+
+  if (first_rank >= doc_count) {
+    results->continuation = -1;
+    results->count = 0;
   } else {
-    // Get all results as there are fewer than or exactly MAX_RESULTS.
-    roaring_bitmap_to_uint32_array(result_bitmap, results->documents);
-    results->count = doc_count;
+    uint32_t last_rank = min(doc_count - 1, first_rank + MAX_RESULTS - 1);
+    uint32_t count = last_rank + 1 - first_rank;
+    roaring_bitmap_range_uint32_array(result_bitmap, first_rank, count, results->documents);
+    results->continuation = last_rank == doc_count - 1 ? -1 : last_rank + 1;
+    results->count = count;
   }
 
   return results;

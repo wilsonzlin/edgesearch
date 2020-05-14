@@ -52,8 +52,8 @@ class MemoryWalker {
     return new MemoryWalker(this.buffer, ptr);
   }
 
-  skip (len: number): this {
-    this.next += len;
+  skip (bytes: number): this {
+    this.next += bytes;
     return this;
   }
 
@@ -235,8 +235,8 @@ const responseSuccessRawJson = (json: string, status = 200) => new Response(json
   },
 });
 
-const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"more":true}`);
-const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"more":false}`);
+const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null}`);
+const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"continuation":null}`);
 const responseSuccess = (data: object, status = 200) => responseSuccessRawJson(JSON.stringify(data), status);
 
 type PackageEntryKey = string | number;
@@ -323,52 +323,45 @@ type ParsedQuery = [
 ];
 
 // Take a raw query string and parse in into an array with three subarrays, each subarray representing terms for a mode.
-const parseQuery = (qs: string): ParsedQuery | undefined => {
-  if (!qs.startsWith('?q=')) {
-    return;
-  }
-  qs = qs.slice(3);
-
+const parseQuery = (termsRaw: string[]): ParsedQuery | undefined => {
   const modeTerms: ParsedQuery = [
     Array<string>(),
     Array<string>(),
     Array<string>(),
   ];
-  while (qs) {
+  for (const value of termsRaw) {
     // Synchronise mode IDs with mode_t enum in resources/main.c.
-    const matches = /^([012])_([^&]+)(?:&|$)/.exec(qs);
+    const matches = /^([012])_([^&]+)(?:&|$)/.exec(value);
     if (!matches) {
       return;
     }
     const mode = Number.parseInt(matches[1], 10);
     const term = decodeURIComponent(matches[2]);
     modeTerms[mode].push(term);
-    qs = qs.slice(matches[0].length);
   }
 
   return modeTerms;
 };
 
 type QueryResult = {
-  more: boolean;
+  continuation: number | null;
   count: number;
   documents: number[];
 };
 
 const readResult = (result: MemoryWalker): QueryResult => {
-  // Synchronise with `results_t` in resources/main.c.
+  // Synchronise with `results_t` in resources/index.c.
+  const continuation = result.readInt32LE();
   const count = result.readUInt8();
-  const more = result.readBoolean();
   // Starts from next WORD_SIZE (uint32_t) due to alignment.
-  result.skip(2);
+  result.skip(3);
   const documents: number[] = [];
   for (let resultNo = 0; resultNo < count; resultNo++) {
     // Synchronise with `doc_id_t` in resources/main.c.
-    // WASM is little endian.
     const docId = result.readUInt32LE();
     documents.push(docId);
   }
-  return {more, count, documents};
+  return {continuation: continuation == -1 ? null : continuation, count, documents};
 };
 
 const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> => {
@@ -392,11 +385,12 @@ const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuff
   );
 };
 
-const buildPostingsListQuery = async (modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
+const buildPostingsListQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
 
   // Synchronise with index_query_t.
-  const input = new MemoryWalker(new ArrayBuffer((bitmapCount * 2 + 3) * 4));
+  const input = new MemoryWalker(new ArrayBuffer(4 + (bitmapCount * 2 + 3) * 4));
+  input.writeUInt32LE(firstRank);
   for (const mode of modeTermBitmaps) {
     for (const bitmap of mode) {
       const ptr = queryRunner.index_alloc_serialised(bitmap.byteLength);
@@ -422,10 +416,11 @@ const executePostingsListQuery = (queryData: Uint8Array): QueryResult | undefine
 const handleSearch = async (url: URL) => {
   // NOTE: Just because there are no valid words does not mean that there are no valid results.
   // For example, excluding an invalid word actually results in all entries matching.
-  const query = parseQuery(url.search);
+  const query = parseQuery(url.searchParams.getAll('t'));
   if (!query) {
     return responseError('Malformed query');
   }
+  const continuation = Math.max(0, Number.parseInt(url.searchParams.get('c') || '', 10) || 0);
 
   const termCount = query.reduce((count, modeTerms) => count + modeTerms.length, 0);
   if (termCount > MAX_QUERY_TERMS) {
@@ -448,7 +443,7 @@ const handleSearch = async (url: URL) => {
 
   queryRunner.reset();
 
-  const postingsListQueryData = await buildPostingsListQuery(modeTermBitmaps as ArrayBuffer[][]);
+  const postingsListQueryData = await buildPostingsListQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
   const result = await executePostingsListQuery(postingsListQueryData);
   if (!result) {
     throw new Error(`Failed to execute query`);
@@ -465,7 +460,10 @@ const handleSearch = async (url: URL) => {
     }
   }));
 
-  return responseSuccess({results: documents, more: result.more});
+  return responseSuccess({
+    results: documents,
+    continuation: result.continuation,
+  });
 };
 
 const requestHandler = async (request: Request) => {
@@ -475,12 +473,9 @@ const requestHandler = async (request: Request) => {
 
   const url = new URL(request.url);
 
-  switch (url.pathname) {
-  case '/search':
-    return handleSearch(url);
-  default:
-    return new Response(null, {status: 404});
-  }
+  return url.pathname === '/search'
+    ? handleSearch(url)
+    : new Response(null, {status: 404});
 };
 
 // See https://github.com/Microsoft/TypeScript/issues/14877.

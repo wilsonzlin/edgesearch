@@ -133,7 +133,9 @@ const query = new Edgesearch.Query();
 query.add(Edgesearch.Mode.REQUIRE, 'world');
 query.add(Edgesearch.Mode.CONTAIN, 'hello', 'welcome', 'greetings');
 query.add(Edgesearch.Mode.EXCLUDE, 'bye', 'goodbye');
-const results = await client.search(query);
+let response = await client.search(query);
+query.setContinuation(response.continuation);
+response = await client.search(query);
 ```
 
 ## Performance

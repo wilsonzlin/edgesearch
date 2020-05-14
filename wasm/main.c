@@ -7,16 +7,6 @@ typedef enum {
   EXCLUDE = 2,
 } mode_t;
 
-// Result of a query executed within WASM.
-typedef struct {
-  // How many documents.
-  uint8_t count;
-  // Whether there are more documents.
-  bool more;
-  // IDs of the documents in the result.
-  doc_id_t documents[MAX_RESULTS];
-} results_t;
-
 // This should be called before every query.
 WASM_EXPORT void reset(void) {
   heap = &__heap_base;

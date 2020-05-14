@@ -26,8 +26,6 @@
   },
   "homepage": "https://github.com/wilsonzlin/edgesearch#readme",
   "devDependencies": {
-    "@babel/core": "^7.8.4",
-    "@babel/preset-env": "^7.8.4",
     "terser": "^4.6.3",
     "typescript": "^3.7.2"
   }
