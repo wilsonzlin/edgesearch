@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
-"use strict";
+'use strict';
 
 const {readFileSync, writeFileSync} = require('fs');
 const {spawnSync} = require('child_process');
+const {join} = require('path');
 
 const currentVersion = /^version = "(\d+)\.(\d+)\.(\d+)"\s*$/m.exec(readFileSync('Cargo.toml', 'utf8')).slice(1).map(n => Number.parseInt(n, 10));
 
@@ -15,7 +16,11 @@ const assertBetween = (n, min, max) => {
 };
 
 const newVersion = currentVersion.slice();
-newVersion[assertBetween(['major', 'minor', 'patch'].indexOf(process.argv[2].toLowerCase()), 0, 2)]++;
+let versionPart = assertBetween(['major', 'minor', 'patch'].indexOf(process.argv[2].toLowerCase()), 0, 2);
+newVersion[versionPart++]++;
+while (versionPart < 3) {
+  newVersion[versionPart++] = 0;
+}
 
 console.log(`${currentVersion.join('.')} => ${newVersion.join('.')}`);
 
@@ -70,6 +75,7 @@ for (const f of ['README.md']) {
   replaceInFile(f, /(wilsonl\.in\/edgesearch\/bin\/)\d+\.\d+\.\d+/g, `$1${NEW_VERSION}`);
 }
 
+cmd('npm', 'run',  'build', {workingDir: join(__dirname, 'script')});
 cmd('cargo', 'generate-lockfile');
 cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
