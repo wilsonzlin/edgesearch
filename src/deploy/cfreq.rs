@@ -10,7 +10,6 @@ pub struct CFAuth {
 }
 
 pub enum Body {
-    String(String),
     Bytes(Vec<u8>),
     Multipart(multipart::Form),
 }
@@ -42,7 +41,6 @@ pub fn make_request<R>(
         .header("X-Auth-Email", &auth.account_email)
         .header("X-Auth-Key", &auth.global_api_key);
     match body {
-        Body::String(s) => req = req.body(s),
         Body::Bytes(b) => req = req.body(b),
         Body::Multipart(m) => req = req.multipart(m),
     };

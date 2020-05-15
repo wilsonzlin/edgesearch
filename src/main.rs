@@ -33,7 +33,6 @@ enum Cli {
     },
     Test {
         #[structopt(long, parse(from_os_str))] default_results: PathBuf,
-        #[structopt(long, default_value = "text")] document_encoding: DocumentEncoding,
         #[structopt(long, parse(from_os_str))] output_dir: PathBuf,
         #[structopt(long)] port: usize,
     },
@@ -87,7 +86,6 @@ fn main() {
         }
         Test {
             default_results: default_results_path,
-            document_encoding,
             output_dir,
             port,
         } => {

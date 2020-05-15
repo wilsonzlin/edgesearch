@@ -8,14 +8,6 @@ pub fn frac_perc(num: usize, denom: usize) -> String {
     return percent(num as f64 / denom as f64);
 }
 
-pub fn average(count: usize, categories: usize) -> f64 {
-    (count as f64) / (categories as f64)
-}
-
-pub fn average_int(count: usize, categories: usize) -> usize {
-    average(count, categories).round() as usize
-}
-
 pub fn percent(ratio: f64) -> String {
     format!("{}%", round2(ratio * 100.0))
 }
@@ -33,27 +25,4 @@ pub fn number<T: Display>(n: T) -> String {
         };
     };
     s
-}
-
-pub fn bytes(b: usize) -> String {
-    let mut bytes: f64 = b as f64;
-    let mut unit = "";
-    if bytes > 1024.0 {
-        bytes /= 1024.0;
-        unit = "Ki";
-    };
-    if bytes > 1024.0 {
-        bytes /= 1024.0;
-        unit = "Mi";
-    };
-    if bytes > 1024.0 {
-        bytes /= 1024.0;
-        unit = "Gi";
-    };
-    if bytes > 1024.0 {
-        bytes /= 1024.0;
-        unit = "Ti";
-    };
-
-    format!("{} {}B", round2(bytes), unit)
 }

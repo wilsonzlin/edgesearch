@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::data::packed::PackedReader;
+use crate::data::packed::ChunksReader;
 use crate::deploy::cfreq::CFAuth;
 use crate::deploy::kv::{create_namespace, upload_kv};
 use crate::deploy::worker::publish_worker;
@@ -72,7 +72,7 @@ pub fn deploy(DeployConfig {
         println!("Uploading default results...");
         upload_kv(&client, &auth, "default", default_results.into_bytes(), &kv_namespace);
 
-        for (package_id, package) in PackedReader::new(&output_dir, "documents").enumerate() {
+        for (package_id, package) in ChunksReader::new(&output_dir, "documents").enumerate() {
             if package_id < upload_state.next_packed_document_package {
                 continue;
             };
@@ -81,7 +81,7 @@ pub fn deploy(DeployConfig {
             update_and_save_upload_state!(upload_state, next_packed_document_package, package_id + 1, upload_state_path);
         };
 
-        for (package_id, package) in PackedReader::new(&output_dir, "popular_terms").enumerate() {
+        for (package_id, package) in ChunksReader::new(&output_dir, "popular_terms").enumerate() {
             if package_id < upload_state.next_packed_popular_postings_list_entries_package {
                 continue;
             };
@@ -90,7 +90,7 @@ pub fn deploy(DeployConfig {
             update_and_save_upload_state!(upload_state, next_packed_popular_postings_list_entries_package, package_id + 1, upload_state_path);
         };
 
-        for (package_id, package) in PackedReader::new(&output_dir, "normal_terms").enumerate() {
+        for (package_id, package) in ChunksReader::new(&output_dir, "normal_terms").enumerate() {
             if package_id < upload_state.next_packed_normal_postings_list_entries_package {
                 continue;
             };

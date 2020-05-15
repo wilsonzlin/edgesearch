@@ -14,7 +14,7 @@ use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 pub use crate::data::documents::DocumentEncoding;
 use crate::data::documents::DocumentsReader;
-use crate::data::packed::write_packed;
+use crate::data::packed::write_chunks;
 use crate::util::format::{frac_perc, number, percent};
 use crate::util::log::status_log_interval;
 
@@ -115,7 +115,7 @@ pub fn build(BuildConfig {
         popular_terms.insert(*term_id);
     };
     println!("{} chunks contain {} popular terms ({} of all terms)", number(popular_terms_index.get_chunks().len()), number(popular_terms.len()), frac_perc(popular_terms.len(), terms.len()));
-    write_packed(&output_dir, "popular_terms", &popular_terms_index.get_chunks());
+    write_chunks(&output_dir, "popular_terms", &popular_terms_index.get_chunks());
 
     let mut normal_terms_index_builder = PackedEntriesWithBSTLookup::<ChunkStrKey>::new(KV_VALUE_MAX_SIZE);
     let mut terms_sorted = (0..terms.len()).collect::<Vec<TermId>>();
@@ -129,7 +129,7 @@ pub fn build(BuildConfig {
     };
     let (normal_terms_index_raw_lookup, normal_terms_index_serialised_entries) = normal_terms_index_builder.serialise();
     println!("{} chunks contain normal terms", number(normal_terms_index_builder.package_count()));
-    write_packed(&output_dir, "normal_terms", &normal_terms_index_serialised_entries);
+    write_chunks(&output_dir, "normal_terms", &normal_terms_index_serialised_entries);
 
     let mut documents_builder = PackedEntriesWithBSTLookup::<ChunkU32Key>::new(KV_VALUE_MAX_SIZE);
     for (document_id, document) in DocumentsReader::new(documents_source) {
@@ -137,7 +137,7 @@ pub fn build(BuildConfig {
     };
     let (documents_raw_lookup, documents_serialised_entries) = documents_builder.serialise();
     println!("{} chunks contain documents", number(documents_builder.package_count()));
-    write_packed(&output_dir, "documents", &documents_serialised_entries);
+    write_chunks(&output_dir, "documents", &documents_serialised_entries);
 
     generate_worker_js(&output_dir, document_encoding, maximum_query_bytes, maximum_query_terms, popular_terms_index.get_raw_lookup(), &normal_terms_index_raw_lookup, &documents_raw_lookup);
     generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes, maximum_query_terms);
