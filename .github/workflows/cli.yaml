@@ -4,13 +4,15 @@ on:
   create:
     tags:
       - 'v*'
+  repository_dispatch:
+    types: [cli-build]
 
 jobs:
   cli:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             ARCH: linux-x86_64
@@ -38,6 +40,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '13.x'
+      - name: Set up Clang (Windows)
+        if: runner.os == 'Windows'
+        run: choco install llvm
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
