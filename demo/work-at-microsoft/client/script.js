@@ -445,7 +445,7 @@
     clear_search_terms();
     const query = new Edgesearch.Query();
 
-    for (const part_raw of location.hash.slice(1).split('|')) {
+    for (const part_raw of location.hash.slice(1).split('|').filter(p => p)) {
       const [_, mode_sign, field, terms_raw] = /^([!~]?)([a-z]+):(.*)$/.exec(part_raw);
       const mode = {
         '!': '2',
