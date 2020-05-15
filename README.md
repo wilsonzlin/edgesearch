@@ -65,7 +65,7 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 
 ### Get the CLI
 
-[Linux x86-64](https://wilsonl.in/edgesearch/bin/0.0.7-linux-x86_64)
+[Linux x86-64](https://wilsonl.in/edgesearch/bin/0.1.0-linux-x86_64)
 
 ### Build the worker
 
