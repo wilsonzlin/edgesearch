@@ -80,5 +80,5 @@ cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
 cmd('git', 'tag', '-a', `v${NEW_VERSION}`, '-m', '');
 // We include files that we ignore from Git, such as script/dist/main.js.
-cmd('cargo', 'publish', '--allow-dirty');
+cmd('cargo', 'publish', '--allow-dirty', '--locked');
 cmd('git', 'push', '--follow-tags');
