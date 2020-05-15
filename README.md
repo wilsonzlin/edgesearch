@@ -65,7 +65,11 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 
 ### Get the CLI
 
-[Linux x86-64](https://wilsonl.in/edgesearch/bin/0.1.0-linux-x86_64)
+Precompiled binaries are available for x86-64:
+
+[Linux](https://wilsonl.in/edgesearch/bin/0.1.0-linux-x86_64) |
+[macOS](https://wilsonl.in/edgesearch/bin/0.1.0-macos-x86_64) |
+[Windows](https://wilsonl.in/edgesearch/bin/0.1.0-windows-x86_64)
 
 ### Build the worker
 
