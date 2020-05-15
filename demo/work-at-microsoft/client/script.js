@@ -344,20 +344,17 @@
   // It's possible to have concurrent searches when using the Back and Forward history buttons,
   // as well as hitting Enter to submit form
   let current_request_no = 0;
-  let current_search_query;
-  let current_continuation = 0;
   let next_continuation;
-  const update_results = () => {
+  const search = query => {
     const request_no = ++current_request_no;
+    next_continuation = undefined;
 
     set_title_and_heading(undefined, 'Searching');
     $jobs_list.innerHTML = '';
     $jobs_next_page.disabled = true;
     $filter_form_submit.disabled = true;
 
-    current_search_query.setContinuation(current_continuation);
-
-    client.search(current_search_query).then(data => {
+    client.search(query).then(data => {
       if (current_request_no !== request_no) {
         // Stale results
         return;
@@ -396,18 +393,12 @@
       }
     });
   };
-  const next_page = () => {
-    current_continuation = next_continuation;
-    next_continuation = undefined;
-    update_results();
-  };
-  const search = query => {
-    current_search_query = query;
-    current_continuation = 0;
-    update_results();
-  };
 
-  $jobs_next_page.addEventListener('click', next_page);
+  $jobs_next_page.addEventListener('click', () => {
+    location.hash = location.hash
+      .replace(/\|?from:\d+/g, '')
+      + '|from:' + next_continuation;
+  });
 
   const handle_form = e => {
     // NOTE: Don't rerender or normalise form on submit, as user might be
@@ -436,7 +427,7 @@
       return `${prefix}${field}:${encodeURIComponent(words.join(' ')).replace(/%20/g, '+')}`;
     }).filter(w => w).join('|');
 
-    history.pushState(current_continuation, undefined, hash);
+    history.pushState(null, undefined, hash);
     reflect_url();
     search(query);
   };
@@ -449,35 +440,39 @@
    *
    */
 
-  const handle_hash = ({state} = {}) => {
+  const handle_hash = () => {
     reflect_url();
     clear_search_terms();
     const query = new Edgesearch.Query();
 
-    for (const part of decodeURIComponent(location.hash.slice(1).replace(/\+/g, '%20')).split('|')) {
+    for (const part_raw of location.hash.slice(1).split('|')) {
+      const [_, mode_sign, field, terms_raw] = /^([!~]?)([a-z]+):(.*)$/.exec(part_raw);
       const mode = {
         '!': '2',
         '~': '1',
-      }[part[0]] || '0';
+      }[mode_sign] || '0';
 
-      const [field, words_raw] = part.slice(mode != '0').split(':', 2);
+      const terms_joined = decodeURIComponent(terms_raw.replace(/\+/g, '%20'));
+
+      if (field == 'from') {
+        query.setContinuation(Number.parseInt(terms_joined, 10));
+        continue;
+      }
 
       if (!msc_fields.has(field)) {
         continue;
       }
 
-      const words = msc_extract_words_fn(words_raw || '');
-      if (!words.length) {
+      const terms = msc_extract_words_fn(terms_joined);
+      if (!terms.length) {
         continue;
       }
 
-      query.add(mode, ...words.map(w => [field, w].join('_')));
-      new_search_term(field, mode, words);
+      query.add(mode, ...terms.map(term => [field, term].join('_')));
+      new_search_term(field, mode, terms);
     }
 
-    current_search_query = query;
-    current_continuation = state || 0;
-    update_results();
+    search(query);
   };
 
   window.addEventListener('popstate', handle_hash);
