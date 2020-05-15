@@ -3,14 +3,14 @@ use std::io::Write;
 
 use byteorder::{BigEndian, WriteBytesExt};
 
-use crate::build::packed::PackedEntryKey;
+use crate::build::chunks::ChunkEntryKey;
 
-struct BST<K: PackedEntryKey> {
+struct BST<K: ChunkEntryKey> {
     values: Vec<(K, Vec<u8>)>,
     serialised_len: usize,
 }
 
-impl<K: PackedEntryKey> BST<K> {
+impl<K: ChunkEntryKey> BST<K> {
     fn new() -> BST<K> {
         BST {
             values: Vec::new(),
@@ -85,12 +85,12 @@ impl<K: PackedEntryKey> BST<K> {
     }
 }
 
-pub struct PackedEntriesWithBSTLookup<K: PackedEntryKey> {
+pub struct PackedEntriesWithBSTLookup<K: ChunkEntryKey> {
     packages: Vec<BST<K>>,
     max_package_size: usize,
 }
 
-impl<K: PackedEntryKey> PackedEntriesWithBSTLookup<K> {
+impl<K: ChunkEntryKey> PackedEntriesWithBSTLookup<K> {
     pub fn new(max_package_size: usize) -> PackedEntriesWithBSTLookup<K> {
         PackedEntriesWithBSTLookup {
             packages: Vec::new(),

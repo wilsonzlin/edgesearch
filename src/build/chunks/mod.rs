@@ -6,28 +6,28 @@ use byteorder::{BigEndian, WriteBytesExt};
 pub mod bst;
 pub mod direct;
 
-pub trait PackedEntryKey {
+pub trait ChunkEntryKey {
     fn bytes(&self) -> &[u8];
     fn js(&self) -> &str;
 }
 
-pub struct PackedU32Key {
+pub struct ChunkU32Key {
     bytes: Vec<u8>,
     js: String,
 }
 
-impl PackedU32Key {
-    pub fn new(key: u32) -> PackedU32Key {
+impl ChunkU32Key {
+    pub fn new(key: u32) -> ChunkU32Key {
         let mut bytes = Vec::new();
         bytes.write_u32::<BigEndian>(key).unwrap();
-        PackedU32Key {
+        ChunkU32Key {
             bytes,
             js: format!("{}", key),
         }
     }
 }
 
-impl PackedEntryKey for PackedU32Key {
+impl ChunkEntryKey for ChunkU32Key {
     fn bytes(&self) -> &[u8] {
         &self.bytes
     }
@@ -38,24 +38,24 @@ impl PackedEntryKey for PackedU32Key {
 }
 
 
-pub struct PackedStrKey {
+pub struct ChunkStrKey {
     bytes: Vec<u8>,
     js: String,
 }
 
-impl PackedStrKey {
-    pub fn new(key: &str) -> PackedStrKey {
+impl ChunkStrKey {
+    pub fn new(key: &str) -> ChunkStrKey {
         let mut bytes = Vec::new();
         bytes.write_u8(key.len().try_into().expect("key is too long")).unwrap();
         bytes.write_all(key.as_bytes()).unwrap();
-        PackedStrKey {
+        ChunkStrKey {
             bytes,
             js: format!("\"{}\"", key.replace("\n", "\\n").replace("\"", "\\\"")),
         }
     }
 }
 
-impl PackedEntryKey for PackedStrKey {
+impl ChunkEntryKey for ChunkStrKey {
     fn bytes(&self) -> &[u8] {
         &self.bytes
     }

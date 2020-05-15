@@ -7,9 +7,9 @@ use croaring::Bitmap;
 
 use crate::{Term, TermId};
 use crate::build::js::generate_worker_js;
-use crate::build::packed::{PackedStrKey, PackedU32Key};
-use crate::build::packed::bst::PackedEntriesWithBSTLookup;
-use crate::build::packed::direct::PackedEntriesWithDirectLookup;
+use crate::build::chunks::{ChunkStrKey, ChunkU32Key};
+use crate::build::chunks::bst::PackedEntriesWithBSTLookup;
+use crate::build::chunks::direct::ChunksWithDirectLookup;
 use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 pub use crate::data::documents::DocumentEncoding;
@@ -19,7 +19,7 @@ use crate::util::format::{frac_perc, number, percent};
 use crate::util::log::status_log_interval;
 
 mod js;
-mod packed;
+mod chunks;
 mod wasm;
 
 // 10 MiB.
@@ -53,7 +53,7 @@ pub fn build(BuildConfig {
     // document_id => term_id[].
     let mut terms_by_document = Vec::<Vec<TermId>>::new();
     // term_id => bitmap.
-    let mut postings_list = Vec::<Bitmap>::new();
+    let mut inverted_index = Vec::<Bitmap>::new();
     // term_id => document_terms.filter(|d| d.contains(term_id)).count().
     let mut term_frequency = HashMap::<TermId, usize>::new();
 
@@ -71,11 +71,11 @@ pub fn build(BuildConfig {
         let term_id = match term_ids.get(&term) {
             Some(term_id) => *term_id,
             None => {
-                assert_eq!(terms.len(), postings_list.len());
+                assert_eq!(terms.len(), inverted_index.len());
                 let term_id = terms.len() as TermId;
                 term_ids.insert(term.clone(), term_id);
                 terms.push(term);
-                postings_list.push(Bitmap::create());
+                inverted_index.push(Bitmap::create());
                 term_id
             }
         };
@@ -93,7 +93,7 @@ pub fn build(BuildConfig {
         interval_log!(hash_log_interval, document_id, document_count, "Processing documents ({})...");
         for term_id in doc_terms {
             // Add to the relevant postings list entry bitmap.
-            postings_list[*term_id].add(document_id.try_into().expect("too many documents"));
+            inverted_index[*term_id].add(document_id.try_into().expect("too many documents"));
         };
     };
 
@@ -103,47 +103,43 @@ pub fn build(BuildConfig {
     // Sort by term if frequency is identical for deterministic orderings.
     highest_frequency_terms.sort_by(|a, b| term_frequency[b].cmp(&term_frequency[a]).then(terms[*b].cmp(&terms[*a])));
 
-    println!("Creating packed postings list entries for popular terms...");
     let mut popular_terms = HashSet::<TermId>::new();
-    let mut packed_popular_postings_list = PackedEntriesWithDirectLookup::new(KV_VALUE_MAX_SIZE, POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_MAX_SIZE);
+    let mut popular_terms_index = ChunksWithDirectLookup::new(KV_VALUE_MAX_SIZE, POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_MAX_SIZE);
     for term_id in highest_frequency_terms.iter() {
-        let postings_list_entry = &mut postings_list[*term_id];
+        let postings_list_entry = &mut inverted_index[*term_id];
         postings_list_entry.run_optimize();
         let serialised = postings_list_entry.serialize();
-        if !packed_popular_postings_list.insert(&PackedStrKey::new(&terms[*term_id]), &serialised) {
+        if !popular_terms_index.insert(&ChunkStrKey::new(&terms[*term_id]), &serialised) {
             break;
         };
         popular_terms.insert(*term_id);
     };
-    println!("There are {} ({} of all terms) popular terms spread over {} packages", number(popular_terms.len()), frac_perc(popular_terms.len(), terms.len()), number(packed_popular_postings_list.get_packages().len()));
-    write_packed(&output_dir, "popular_terms", &packed_popular_postings_list.get_packages());
+    println!("{} chunks contain {} popular terms ({} of all terms)", number(popular_terms_index.get_chunks().len()), number(popular_terms.len()), frac_perc(popular_terms.len(), terms.len()));
+    write_packed(&output_dir, "popular_terms", &popular_terms_index.get_chunks());
 
-    println!("Creating packed postings list entries for normal terms...");
-    let mut packed_normal_postings_list_builder = PackedEntriesWithBSTLookup::<PackedStrKey>::new(KV_VALUE_MAX_SIZE);
+    let mut normal_terms_index_builder = PackedEntriesWithBSTLookup::<ChunkStrKey>::new(KV_VALUE_MAX_SIZE);
     let mut terms_sorted = (0..terms.len()).collect::<Vec<TermId>>();
     terms_sorted.sort_by(|a, b| terms[*a].cmp(&terms[*b]));
     for term_id in terms_sorted.iter() {
         if popular_terms.contains(term_id) { continue; };
-        let postings_list_entry = &mut postings_list[*term_id];
+        let postings_list_entry = &mut inverted_index[*term_id];
         postings_list_entry.run_optimize();
         let serialised = postings_list_entry.serialize();
-        packed_normal_postings_list_builder.insert(PackedStrKey::new(&terms[*term_id]), serialised);
+        normal_terms_index_builder.insert(ChunkStrKey::new(&terms[*term_id]), serialised);
     };
-    let (packed_normal_postings_list_raw_lookup, packed_normal_postings_list_serialised_entries) = packed_normal_postings_list_builder.serialise();
-    println!("There are {} packages representing normal terms", number(packed_normal_postings_list_builder.package_count()));
-    write_packed(&output_dir, "normal_terms", &packed_normal_postings_list_serialised_entries);
+    let (normal_terms_index_raw_lookup, normal_terms_index_serialised_entries) = normal_terms_index_builder.serialise();
+    println!("{} chunks contain normal terms", number(normal_terms_index_builder.package_count()));
+    write_packed(&output_dir, "normal_terms", &normal_terms_index_serialised_entries);
 
-    println!("Packing documents...");
-    let mut packed_documents_builder = PackedEntriesWithBSTLookup::<PackedU32Key>::new(KV_VALUE_MAX_SIZE);
+    let mut documents_builder = PackedEntriesWithBSTLookup::<ChunkU32Key>::new(KV_VALUE_MAX_SIZE);
     for (document_id, document) in DocumentsReader::new(documents_source) {
-        packed_documents_builder.insert(PackedU32Key::new(document_id.try_into().expect("too many documents")), document.as_bytes().to_vec());
+        documents_builder.insert(ChunkU32Key::new(document_id.try_into().expect("too many documents")), document.as_bytes().to_vec());
     };
-    let (packed_documents_raw_lookup, packed_documents_serialised_entries) = packed_documents_builder.serialise();
-    println!("There are {} packages representing documents", number(packed_documents_builder.package_count()));
-    write_packed(&output_dir, "documents", &packed_documents_serialised_entries);
+    let (documents_raw_lookup, documents_serialised_entries) = documents_builder.serialise();
+    println!("{} chunks contain documents", number(documents_builder.package_count()));
+    write_packed(&output_dir, "documents", &documents_serialised_entries);
 
-    println!("Creating worker.js...");
-    generate_worker_js(&output_dir, document_encoding, maximum_query_bytes, maximum_query_terms, packed_popular_postings_list.get_raw_lookup(), &packed_normal_postings_list_raw_lookup, &packed_documents_raw_lookup);
-    println!("Creating runner.wasm...");
+    generate_worker_js(&output_dir, document_encoding, maximum_query_bytes, maximum_query_terms, popular_terms_index.get_raw_lookup(), &normal_terms_index_raw_lookup, &documents_raw_lookup);
     generate_and_compile_runner_wasm(&output_dir, maximum_query_results, maximum_query_bytes, maximum_query_terms);
+    println!("Build complete")
 }
