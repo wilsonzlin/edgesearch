@@ -23,7 +23,7 @@ export const generateTypeDefinition = (val: unknown): string => {
       return `${generateTypeDefinition(val[0])}[]`;
     }
     if (Object.getPrototypeOf(val) == Object.prototype) {
-      return `{\n${Object.entries(val).map(([prop, val]) => `${tsProp(prop)}: ${generateTypeDefinition(val)}`).join(';\n')}\n}`;
+      return `{\n${Object.entries(val).map(([prop, val]) => `${tsProp(prop)}: ${generateTypeDefinition(val)};`).join('\n')}\n}`;
     }
     // Fall through.
   default:
