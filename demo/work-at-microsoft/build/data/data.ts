@@ -51,7 +51,7 @@ const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number 
           }
           return resolve(JSON.parse(js.slice(start + DDO_START.length, js.indexOf('; phApp.sessionParams', start))));
         }
-        return reject(null);
+        return resolve(null);
       });
     }, Math.floor(Math.random() * FETCH_JITTER)));
 
