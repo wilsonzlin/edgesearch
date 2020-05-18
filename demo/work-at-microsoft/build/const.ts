@@ -18,7 +18,6 @@ export const CLIENT_DIST_HTML = path.join(CLIENT_DIST_DIR, 'index.html');
 export const WORKER_DIST_DIR = path.join(DIST_DIR, 'worker');
 mkdirp.sync(WORKER_DIST_DIR);
 
-export const NAME = 'work-at-microsoft';
 export const DESCRIPTION = 'Find your next career at Microsoft.';
 
 export const FIELDS = ['title', 'location', 'description'];

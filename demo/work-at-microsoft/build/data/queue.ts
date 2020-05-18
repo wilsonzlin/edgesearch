@@ -1,5 +1,9 @@
-export class Queue<R, T extends () => Promise<R>> {
-  private readonly _queue: { resolve: (r: R) => void, reject: (error: unknown) => void, task: T }[] = [];
+export class Queue {
+  private readonly _queue: {
+    resolve: (r: any) => void;
+    reject: (error: unknown) => void;
+    task: any;
+  }[] = [];
   private active: number = 0;
 
   constructor (
@@ -25,7 +29,7 @@ export class Queue<R, T extends () => Promise<R>> {
     }
   }
 
-  public queue (task: T): Promise<R> {
+  public queue <R>(task: () => Promise<R>): Promise<R> {
     return new Promise((resolve, reject) => {
       this._queue.push({resolve, reject, task});
       this._process();
