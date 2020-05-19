@@ -27,38 +27,39 @@ const MAX_RETRIES = 3;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const req = (params: CoreOptions & RequiredUriUrl): Promise<{
-  error: Error;
-  response: undefined;
-} | {
-  error: undefined;
-  response: Response;
-}> => new Promise(resolve => request(params, (error, response) => resolve({error, response})));
+const req = (params: CoreOptions & RequiredUriUrl): Promise<Response> => new Promise((resolve, reject) => request(params, (error, response) => {
+  if (error) {
+    reject(error);
+  } else if (response.statusCode >= 500) {
+    reject(new Error(`Server error (status ${response.statusCode})`));
+  } else {
+    resolve(response);
+  }
+}));
 
 const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number }): Promise<O | null> => {
   for (let retry = 0; retry <= MAX_RETRIES; retry++) {
     await wait(Math.floor(Math.random() * FETCH_JITTER));
-    const {error, response} = await req({
-      uri,
-      qs,
-      headers: {
-        // User agent is required, as otherwise the page responds with an error.
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
-      },
-      timeout: 10000,
-    });
-
-    const status = response?.statusCode;
-
-    if (error || status >= 500) {
+    let response: Response;
+    try {
+      response = await req({
+        uri,
+        qs,
+        headers: {
+          // User agent is required, as otherwise the page responds with an error.
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+        },
+        timeout: 10000,
+      });
+    } catch (error) {
       if (retry == MAX_RETRIES) {
-        throw error || new Error(`Bad status of ${status}`);
+        throw error;
       }
       continue;
     }
 
     // Job could be missing (404), gone (410), etc.
-    if (status < 400) {
+    if (response.statusCode < 400) {
       const $ = cheerio.load(response.body);
       for (const $script of $('script').get()) {
         const js = $($script).contents().text();
@@ -72,6 +73,7 @@ const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number 
     }
     return null;
   }
+  throw new Error(`This should never happen`);
 };
 
 const jsonFromCache = async <V> (cachePath: string, computeFn: () => Promise<V>): Promise<V> => {
