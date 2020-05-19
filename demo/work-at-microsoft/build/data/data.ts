@@ -43,13 +43,16 @@ const req = (params: CoreOptions & RequiredUriUrl): Promise<Response> => new Pro
   if (error) {
     reject(error);
   } else if (response.statusCode >= 500) {
-    reject(new Error(`Server error (status ${response.statusCode})`));
+    reject(Object.assign(new Error(`Server error (status ${response.statusCode})`), {
+      statusCode: response.statusCode,
+      response,
+    }));
   } else {
     resolve(response);
   }
 }));
 
-const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number }): Promise<O | null> => {
+const fetchDdo = async <O extends object> (uri: string, qs?: { [name: string]: string | number }): Promise<O | null> => {
   for (let retry = 0; retry <= MAX_RETRIES; retry++) {
     await wait(Math.floor(Math.random() * FETCH_JITTER));
     let response: Response;
@@ -64,9 +67,8 @@ const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number 
         timeout: 10000,
       });
     } catch (error) {
-      if (retry == MAX_RETRIES) {
-        throw error;
-      }
+      console.warn(`Attempt ${retry} failed with error:`);
+      console.warn(error);
       continue;
     }
 
@@ -83,9 +85,9 @@ const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number 
       }
       // If data isn't found in any <script>, return null.
     }
-    return null;
+    break;
   }
-  throw new Error(`This should never happen`);
+  return null;
 };
 
 const jsonFromCache = async <V> (cachePath: string, computeFn: () => Promise<V>): Promise<V> => {
