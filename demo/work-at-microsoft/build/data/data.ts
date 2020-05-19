@@ -27,6 +27,18 @@ const MAX_RETRIES = 3;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const distinct = <T, K> (values: T[], key: (val: T) => K): T[] => {
+  const seen = new Set<K>();
+  return values.filter(v => {
+    const k = key(v);
+    if (seen.has(k)) {
+      return false;
+    }
+    seen.add(k);
+    return true;
+  });
+};
+
 const req = (params: CoreOptions & RequiredUriUrl): Promise<Response> => new Promise((resolve, reject) => request(params, (error, response) => {
   if (error) {
     reject(error);
@@ -129,7 +141,10 @@ const loadRaw = async () =>
       ),
     );
 
-    const jobs = results.flatMap(result => result.data.jobs);
+    const jobs = distinct(
+      results.flatMap(result => result.data.jobs),
+      j => j.jobId,
+    );
 
     const fullDescriptions = await Promise.all(jobs.map(j => queue.queue(() => fetchJobDescription(j.jobId))));
 
