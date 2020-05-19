@@ -3,7 +3,7 @@ import {promises as fs} from 'fs';
 import {AllHtmlEntities} from 'html-entities';
 import * as moment from 'moment';
 import {join} from 'path';
-import request from 'request';
+import request, {CoreOptions, RequiredUriUrl, Response} from 'request';
 import {
   CACHE_DIR,
   DATA_DEFAULT,
@@ -20,40 +20,59 @@ import {Queue} from './queue';
 
 const entities = new AllHtmlEntities();
 
-const DDO_START = 'phApp.ddo = ';
+const DDO_BEFORE = 'phApp.ddo = ';
+const DDO_AFTER = '; phApp.sessionParams';
 const FETCH_JITTER = 250;
+const MAX_RETRIES = 3;
 
-const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number }): Promise<O | null> =>
-  new Promise((resolve, reject) =>
-    setTimeout(() => {
-      request({
-        uri,
-        qs,
-        headers: {
-          // User agent is required, as otherwise the page responds with an error.
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
-        },
-        timeout: 5000,
-      }, (error, response, body) => {
-        if (error) {
-          return reject(error);
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const req = (params: CoreOptions & RequiredUriUrl): Promise<{
+  error: Error;
+  response: undefined;
+} | {
+  error: undefined;
+  response: Response;
+}> => new Promise(resolve => request(params, (error, response) => resolve({error, response})));
+
+const fetchDdo = async <O> (uri: string, qs?: { [name: string]: string | number }): Promise<O | null> => {
+  for (let retry = 0; retry <= MAX_RETRIES; retry++) {
+    await wait(Math.floor(Math.random() * FETCH_JITTER));
+    const {error, response} = await req({
+      uri,
+      qs,
+      headers: {
+        // User agent is required, as otherwise the page responds with an error.
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
+      },
+      timeout: 10000,
+    });
+
+    const status = response?.statusCode;
+
+    if (error || status >= 500) {
+      if (retry == MAX_RETRIES) {
+        throw error || new Error(`Bad status of ${status}`);
+      }
+      continue;
+    }
+
+    // Job could be missing (404), gone (410), etc.
+    if (status < 400) {
+      const $ = cheerio.load(response.body);
+      for (const $script of $('script').get()) {
+        const js = $($script).contents().text();
+        const start = js.indexOf(DDO_BEFORE);
+        if (start == -1) {
+          continue;
         }
-        if (response.statusCode >= 400 && response.statusCode < 500) {
-          return resolve(null);
-        }
-        // Parse. If the status is bad (e.g. 500), then the data should not exist and we'll resolve with null.
-        const $ = cheerio.load(body);
-        for (const $script of $('script').get()) {
-          const js = $($script).contents().text();
-          const start = js.indexOf(DDO_START);
-          if (start == -1) {
-            continue;
-          }
-          return resolve(JSON.parse(js.slice(start + DDO_START.length, js.indexOf('; phApp.sessionParams', start))));
-        }
-        return resolve(null);
-      });
-    }, Math.floor(Math.random() * FETCH_JITTER)));
+        return JSON.parse(js.slice(start + DDO_BEFORE.length, js.indexOf(DDO_AFTER, start)));
+      }
+      // If data isn't found in any <script>, return null.
+    }
+    return null;
+  }
+};
 
 const jsonFromCache = async <V> (cachePath: string, computeFn: () => Promise<V>): Promise<V> => {
   try {
