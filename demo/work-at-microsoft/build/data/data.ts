@@ -43,7 +43,7 @@ const req = (params: CoreOptions & RequiredUriUrl): Promise<Response> => new Pro
   if (error) {
     reject(error);
   } else if (response.statusCode >= 500) {
-    reject(Object.assign(new Error(`Server error (status ${response.statusCode})`), {
+    reject(Object.assign(new Error(`Server error (status ${response.statusCode}) while fetching ${response.request.href}`), {
       statusCode: response.statusCode,
       response,
     }));
@@ -68,7 +68,7 @@ const fetchDdo = async <O extends object> (uri: string, qs?: { [name: string]: s
       });
     } catch (error) {
       console.warn(`Attempt ${retry} failed with error:`);
-      console.warn(error);
+      console.warn(error.message);
       continue;
     }
 
@@ -105,19 +105,16 @@ const jsonFromCache = async <V> (cachePath: string, computeFn: () => Promise<V>)
 
 const fetchJobDescription = async (id: string | number): Promise<string> => {
   const job = await jsonFromCache<Job>(join(CACHE_DIR, `job${id}.json`), async () => {
-    console.info(`Fetching job ID ${id}`);
     const ddo = await fetchDdo<any>(`https://careers.microsoft.com/professionals/us/en/job/${id}/`);
     return ddo && ddo.jobDetail.data.job;
   });
-  if (job == null) {
-    return '';
-  }
-  return cheerio(`<div>${[job.description, job.jobSummary, job.jobResponsibilities, job.jobQualifications].join('')}</div>`).text();
+  return job == null
+    ? ''
+    : cheerio(`<div>${[job.description, job.jobSummary, job.jobResponsibilities, job.jobQualifications].join('')}</div>`).text();
 };
 
 const fetchResults = async (from: number): Promise<Results> =>
   jsonFromCache<Results>(join(CACHE_DIR, `results${from}.json`), async () => {
-    console.info(`Fetching results from ${from}...`);
     const ddo = await fetchDdo<any>(`https://careers.microsoft.com/us/en/search-results`, {
       from,
       s: 1, // This is required, otherwise `from` is ignored.
