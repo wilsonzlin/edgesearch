@@ -23,6 +23,6 @@
     "strictNullChecks": true,
     "strictPropertyInitialization": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es2020"
+    "target": "es2018"
   }
 }

@@ -10,8 +10,8 @@
     "test-worker-script": "node ../../../tester/server.js --output-dir ../dist/worker --namespace $CF_KV_NAMESPACE_ID --port 8180 --kv-port 8181"
   },
   "dependencies": {
-    "ts-node": "^8.6.2",
-    "typescript": "^3.7.5",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.3",
     "mkdirp": "^1.0.3",
     "@babel/core": "^7.1.5",
     "@babel/plugin-proposal-object-rest-spread": "^7.0.0",

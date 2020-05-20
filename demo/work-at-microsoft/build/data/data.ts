@@ -22,8 +22,8 @@ const entities = new AllHtmlEntities();
 
 const DDO_BEFORE = 'phApp.ddo = ';
 const DDO_AFTER = '; phApp.sessionParams';
-const FETCH_JITTER = 250;
-const MAX_RETRIES = 3;
+const FETCH_JITTER = 1000;
+const MAX_RETRIES = 5;
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -64,7 +64,7 @@ const fetchDdo = async <O extends object> (uri: string, qs?: { [name: string]: s
           // User agent is required, as otherwise the page responds with an error.
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36',
         },
-        timeout: 10000,
+        timeout: 30000,
       });
     } catch (error) {
       console.warn(`Attempt ${retry} failed with error:`);
@@ -106,9 +106,9 @@ const jsonFromCache = async <V> (cachePath: string, computeFn: () => Promise<V>)
 const fetchJobDescription = async (id: string | number): Promise<string> => {
   const job = await jsonFromCache<Job>(join(CACHE_DIR, `job${id}.json`), async () => {
     const ddo = await fetchDdo<any>(`https://careers.microsoft.com/professionals/us/en/job/${id}/`);
-    return ddo && ddo.jobDetail.data.job;
+    return ddo?.jobDetail?.data?.job;
   });
-  return job == null
+  return job == undefined
     ? ''
     : cheerio(`<div>${[job.description, job.jobSummary, job.jobResponsibilities, job.jobQualifications].join('')}</div>`).text();
 };
@@ -123,7 +123,7 @@ const fetchResults = async (from: number): Promise<Results> =>
     return ddo.eagerLoadRefineSearch;
   });
 
-const queue = new Queue(12);
+const queue = new Queue(8);
 
 const loadRaw = async () =>
   jsonFromCache(join(DATA_RAW_JSON), async () => {
