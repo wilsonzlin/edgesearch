@@ -4,7 +4,6 @@
   "main": "./server.js",
   "dependencies": {
     "express": "^4.17.1",
-    "minimist": "^1.2.0",
-    "request": "^2.88.2"
+    "minimist": "^1.2.0"
   }
 }

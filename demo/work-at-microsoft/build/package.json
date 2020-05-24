@@ -6,8 +6,7 @@
     "build-data": "ts-node data/data.ts",
     "build-worker": "../../../target/release/edgesearch build --documents data/documents.txt --document-encoding json --document-terms data/terms.txt --maximum-query-results 50 --output-dir ../dist/worker",
     "deploy-worker": "../../../target/release/edgesearch deploy --default-results data/default-results.txt --account-id $CF_ACCOUNT_ID --account-email $CF_ACCOUNT_EMAIL --global-api-key $CF_GLOBAL_API_KEY --name $CF_WORKER_NAME --output-dir ../dist/worker --namespace $CF_KV_NAMESPACE_ID --upload-data",
-    "test-worker-kv": "../../../target/release/edgesearch test --default-results data/default-results.txt --output-dir ../dist/worker --port 8181",
-    "test-worker-script": "node ../../../tester/server.js --output-dir ../dist/worker --namespace $CF_KV_NAMESPACE_ID --port 8180 --kv-port 8181"
+    "test-worker": "node ../../../tester/server.js --output-dir ../dist/worker --namespace $CF_KV_NAMESPACE_ID --port 8180 --default-results data/default-results.txt"
   },
   "dependencies": {
     "ts-node": "^8.10.1",

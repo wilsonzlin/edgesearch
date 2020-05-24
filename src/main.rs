@@ -6,9 +6,8 @@ use structopt::StructOpt;
 
 use edgesearch::build::{build, BuildConfig, DocumentEncoding};
 use edgesearch::deploy::{deploy, DeployConfig};
-use edgesearch::test::start_server;
 
-use crate::Cli::{Build, Deploy, Test};
+use crate::Cli::{Build, Deploy};
 
 #[derive(StructOpt)]
 enum Cli {
@@ -30,11 +29,6 @@ enum Cli {
         #[structopt(long)] namespace: Option<String>,
         #[structopt(long, parse(from_os_str))] output_dir: PathBuf,
         #[structopt(long)] upload_data: bool,
-    },
-    Test {
-        #[structopt(long, parse(from_os_str))] default_results: PathBuf,
-        #[structopt(long, parse(from_os_str))] output_dir: PathBuf,
-        #[structopt(long)] port: usize,
     },
 }
 
@@ -83,15 +77,6 @@ fn main() {
                 output_dir,
                 upload_data,
             });
-        }
-        Test {
-            default_results: default_results_path,
-            output_dir,
-            port,
-        } => {
-            let mut default_results = String::new();
-            File::open(default_results_path).expect("open default results file").read_to_string(&mut default_results).expect("read default results file");
-            start_server(output_dir, port, default_results);
         }
     };
 }

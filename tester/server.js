@@ -2,13 +2,23 @@ const express = require('express');
 const fs = require('fs');
 const minimist = require('minimist');
 const path = require('path');
-const request = require('request');
 
 const args = minimist(process.argv.slice(2));
 
 const OUTPUT_DIR = args['output-dir'];
+const DEFAULT_RESULTS = args['default-results'];
 const PORT = args['port'];
-const KV_PORT = args['kv-port'];
+
+function* readChunks (file) {
+  const fd = fs.openSync(file);
+  const u32Buffer = Buffer.alloc(4);
+  while (fs.readSync(fd, u32Buffer, 0, 4)) {
+    const chunkLen = u32Buffer.readUInt32BE(0);
+    const buffer = Buffer.alloc(chunkLen);
+    fs.readSync(fd, buffer, 0, chunkLen);
+    yield buffer.buffer;
+  }
+}
 
 const workerScript = fs.readFileSync(path.join(OUTPUT_DIR, 'worker.js'), 'utf8');
 const runnerWasm = fs.readFileSync(path.join(OUTPUT_DIR, 'runner.wasm'));
@@ -30,49 +40,29 @@ global.Response = class Response {
   }
 };
 
-const makeKvRequest = path => new Promise((resolve, reject) => request(`http://localhost:${KV_PORT}${path}`, {encoding: null}, (err, res, body) => {
-  if (err) {
-    return reject(err);
-  }
-  if (res.statusCode === 404) {
-    return resolve(null);
-  }
-  if (res.statusCode !== 200) {
-    return reject(new Error(`Bad status from KV server: ${res.statusCode}`));
-  }
-  return resolve(body);
-}));
+const defaultResults = fs.readFileSync(DEFAULT_RESULTS, 'utf8');
+const documentsChunks = [...readChunks(path.join(OUTPUT_DIR, 'documents.packed'))];
+const popularTermsChunks = [...readChunks(path.join(OUTPUT_DIR, 'popular_terms.packed'))];
+const normalTermsChunks = [...readChunks(path.join(OUTPUT_DIR, 'normal_terms.packed'))];
 
 global.KV = {
-  async get (key, format) {
-    let value;
+  async get (key) {
     if (key === 'default') {
-      value = await makeKvRequest(`/default`);
+      return defaultResults;
     } else if (key.startsWith('doc_')) {
-      value = await makeKvRequest(`/doc/${key.slice(4)}`);
+      return documentsChunks[key.slice(4)];
     } else if (key.startsWith('normal_terms_')) {
-      value = await makeKvRequest(`/normal_terms/${key.slice(13)}`);
+      return normalTermsChunks[key.slice(13)];
     } else if (key.startsWith('popular_terms_')) {
-      value = await makeKvRequest(`/popular_terms/${key.slice(14)}`);
+      return popularTermsChunks[key.slice(14)];
     } else {
       throw new Error(`Unknown KV key: ${key}`);
     }
-    if (value === null) {
-      return null;
-    }
-    switch (format) {
-    case 'text':
-      return value.toString();
-    case 'json':
-      return JSON.parse(value.toString());
-    case 'arrayBuffer':
-      return value.buffer;
-    default:
-      throw new Error(`Unimplemented format: ${format}`);
-    }
   },
 };
+
 global.QUERY_RUNNER_WASM = new WebAssembly.Module(runnerWasm);
+
 global.self = {
   addEventListener (eventName, handler) {
     switch (eventName) {
@@ -88,6 +78,7 @@ global.self = {
 Function(workerScript)();
 
 const server = express();
+
 server.use(async (req, res) => {
   onFetch({
     request: {
