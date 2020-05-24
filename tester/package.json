@@ -1,6 +1,6 @@
 {
   "name": "edgesearch-test-server",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "main": "./server.js",
   "dependencies": {
     "express": "^4.17.1",
