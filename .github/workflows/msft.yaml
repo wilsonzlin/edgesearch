@@ -28,7 +28,7 @@ jobs:
           npm run build
       - name: Set up Clang and LLVM
         # Clang/LLVM/LLD 9 seems to create a WASM binary without exports.
-        run: bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
       - name: Build CLI
         run: cargo build --release
       - name: Install dependencies
