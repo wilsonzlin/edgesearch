@@ -25,8 +25,9 @@ pub enum WasmOptimisationLevel {
     G,
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
-pub enum Warning {
+pub enum WasmCompileWarning {
     UnusedFunction,
 }
 
@@ -36,7 +37,7 @@ pub struct WasmCompileArgs<'iw, 'm, 'i, 'o> {
     all_warnings: bool,
     extra_warnings: bool,
     warnings_as_errors: bool,
-    ignore_warnings: &'iw [Warning],
+    ignore_warnings: &'iw [WasmCompileWarning],
     macros: &'m [(&'m str, &'m str)],
     input: &'i PathBuf,
     output: &'o PathBuf,
@@ -76,7 +77,7 @@ pub fn compile_to_wasm(WasmCompileArgs {
     if warnings_as_errors { cmd.arg("-Werror"); };
     for warning in ignore_warnings {
         cmd.arg(format!("-Wno-{}", match warning {
-            Warning::UnusedFunction => "unused-function",
+            WasmCompileWarning::UnusedFunction => "unused-function",
         }));
     };
     cmd.arg("--target=wasm32-unknown-unknown-wasm")
@@ -96,8 +97,7 @@ pub fn compile_to_wasm(WasmCompileArgs {
     cmd.arg(input);
     cmd.arg("-o").arg(output);
 
-    let result = cmd.status().expect("compile WASM");
-    if !result.success() {
+    if !cmd.status().expect("compile WASM").success() {
         panic!("Failed to compile WASM");
     };
 }
@@ -118,7 +118,7 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
         all_warnings: true,
         extra_warnings: true,
         warnings_as_errors: false,
-        ignore_warnings: &vec![Warning::UnusedFunction],
+        ignore_warnings: &vec![WasmCompileWarning::UnusedFunction],
         macros: &[
             ("MAX_RESULTS", format!("{}", max_results).as_str()),
             ("MAX_QUERY_BYTES", format!("{}", max_query_bytes).as_str()),
