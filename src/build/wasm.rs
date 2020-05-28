@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 const RUNNER_C_MAIN: &'static str = include_str!("../../wasm/main.c");
-const RUNNER_C_POSTINGSLIST: &'static str = include_str!("../../wasm/index.c");
+const RUNNER_C_INDEX: &'static str = include_str!("../../wasm/index.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../wasm/roaring.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../wasm/sys.c");
 
@@ -88,8 +88,10 @@ pub fn compile_to_wasm(WasmCompileArgs {
         .arg("-fno-builtin")
         // Needed for import function declarations.
         .arg("-Wl,--allow-undefined")
-        .arg("-Wl,--no-entry")
         .arg("-Wl,--import-memory")
+        .arg("-Wl,--export-dynamic")
+        .arg("-Wl,--no-entry")
+        .arg("-Wl,--strip-all")
     ;
     for (name, code) in macros.iter() {
         cmd.arg(format!("-D{}={}", name, code));
@@ -110,7 +112,7 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
     source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_MAIN.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_POSTINGSLIST.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_INDEX.as_bytes()).expect("write runner.c");
 
     compile_to_wasm(WasmCompileArgs {
         standard: WasmStandard::C11,
