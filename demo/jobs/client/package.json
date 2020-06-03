@@ -1,0 +1,29 @@
+{
+  "scripts": {
+    "clean": "rm -rf build",
+    "dev": "webpack-dev-server --mode development --hot",
+    "build": "npm run clean && webpack --mode production"
+  },
+  "dependencies": {
+    "edgesearch-client": "^0.1.1",
+    "ooml": "20.0.0-alpha.0"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.10.1",
+    "@babel/plugin-syntax-jsx": "^7.10.1",
+    "babel-loader": "^8.1.0",
+    "css-loader": "^3.5.3",
+    "html-webpack-plugin": "^4.3.0",
+    "mini-css-extract-plugin": "^0.9.0",
+    "ooml-babel-plugin": "0.0.1",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
+    "script-ext-html-webpack-plugin": "^2.1.4",
+    "style-ext-html-webpack-plugin": "^4.1.2",
+    "terser-webpack-plugin": "^3.0.2",
+    "ts-loader": "^7.0.5",
+    "typescript": "^3.9.3",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
+  }
+}
