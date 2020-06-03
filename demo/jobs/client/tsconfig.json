@@ -11,7 +11,8 @@
     "jsx": "preserve",
     "lib": [
       "es2020",
-      "dom"
+      "dom",
+      "dom.iterable"
     ],
     "module": "CommonJS",
     "noFallthroughCasesInSwitch": true,

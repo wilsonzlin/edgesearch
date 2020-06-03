@@ -19,7 +19,7 @@
     "@babel/plugin-transform-shorthand-properties": "^7.0.0",
     "@babel/plugin-transform-spread": "^7.0.0",
     "@babel/plugin-transform-template-literals": "^7.0.0",
-    "@wzlin/jobs": "0.0.1",
+    "@wzlin/jobs": "0.0.2",
     "clean-css": "^4.2.1",
     "handlebars": "^4.0.11",
     "hyperbuild": "^0.0.43",
