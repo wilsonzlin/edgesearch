@@ -30,23 +30,22 @@ jobs:
         run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
       - name: Build CLI
         run: cargo build --release
-      - name: Install dependencies
-        working-directory: ./demo/work-at-microsoft/build
-        run: npm install
       - name: Fetch and build data
-        working-directory: ./demo/work-at-microsoft/build
-        run: npm run build-data
+        working-directory: ./demo/work-at-microsoft/data
+        run: |
+          npm install
+          npm run build
       - name: Build worker
-        working-directory: ./demo/work-at-microsoft/build
+        working-directory: ./demo/work-at-microsoft/worker
         run: |
           export PATH="/usr/lib/llvm-10/bin:$PATH"
-          npm run build-worker
+          bash ./build.sh
       - name: Deploy worker
-        working-directory: ./demo/work-at-microsoft/build
+        working-directory: ./demo/work-at-microsoft/worker
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_ACCOUNT_EMAIL: ${{ secrets.CF_ACCOUNT_EMAIL }}
           CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_MSFT_ID }}
           CF_WORKER_NAME: work-at-microsoft
-        run: npm run deploy-worker
+        run: bash ./deploy.sh
