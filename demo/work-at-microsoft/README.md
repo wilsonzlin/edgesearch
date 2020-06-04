@@ -36,9 +36,9 @@ The `title`, `location`, and `description` fields are searchable.
 
 ### Backend
 
-The worker code is built using [Edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details. To build and deploy the worker, see the [package.json scripts](./build/package.json).
+The worker code is built using [Edgesearch](https://github.com/wilsonzlin/edgesearch). See the project for more details. To build and deploy the worker or test it locally, see the [worker scripts](./worker).
 
-Building the worker requires at least clang 7 and lld 7. The build scripts use a release build of Edgesearch from this repository, so build Edgesearch using `cargo build --release` before running them.
+Building the worker requires at least clang 8 and lld 8. The build scripts use a release build of Edgesearch from this repository, so build Edgesearch using `cargo build --release` before running them.
 
 ### Frontend
 
@@ -50,8 +50,8 @@ All the app files are located in [client](./client/):
 - various external libraries and styles
 - `assets/*`: files relating to app metadata, such as `favicon.ico`
 
-All files except for `assets/*` are minified and bundled together into one HTML file to reduce the file size and amount of round trips required for the end user. [client.ts](./build/client/client.ts) takes care of building, invoked by [npm run build-client](./build/package.json).
+All files except for `assets/*` are minified and bundled together into one HTML file to reduce the file size and amount of round trips required for the end user. The client is built using [client/build.ts](./client/build.ts), which should be run directly using `ts-node`.
 
 ### Data
 
-Data fetching and processing is done by [data.ts](./build/data/data.ts), invoked by [npm run build-data](./build/package.json).
+Data fetching and processing is done by [data/build.ts](./data/build.ts). Install the npm dependencies and run the script directly using `ts-node`.
