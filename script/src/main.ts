@@ -23,12 +23,11 @@ declare var PACKED_NORMAL_POSTINGS_LIST_ENTRIES_LOOKUP: [string, number, number]
 // [documentId, packageId, middlePos].
 declare var PACKED_DOCUMENTS_LOOKUP: [number, number, number][];
 
-const PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP: Map<string, { packageId: number, offset: number, length: number }> = new Map(PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW.map(([term, packageId, offset, length]) => [term,
-  {
-    packageId,
-    offset,
-    length,
-  }]));
+const PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP: Map<string, { packageId: number, offset: number, length: number }> =
+  new Map(PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW.map(([term, packageId, offset, length]) => [
+    term,
+    {packageId, offset, length},
+  ]));
 
 // Easy reading and writing of memory sequentially without having to manage and update offsets/positions/pointers.
 class MemoryWalker {
@@ -188,6 +187,7 @@ const formatFromVarargs = (mem: MemoryWalker): string => mem
   }));
 
 const wasmMemory = new WebAssembly.Memory({initial: 2048});
+
 const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
   env: {
     _wasm_import_log (argsPtr: number) {
@@ -207,6 +207,7 @@ const queryRunner = wasmInstance.exports as {
   index_query_init (): number;
   index_query (input: number): number;
 };
+
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
 
 const textDecoder = new TextDecoder();

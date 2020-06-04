@@ -1,11 +1,15 @@
 from collections import defaultdict
 from operator import itemgetter
+from pathlib import Path
+from sys import argv
 import re
 
 # Use this script with monthly article page views data from https://dumps.wikimedia.org/other/pagecounts-ez/.
 
+Path("build").mkdir(exist_ok=True)
+
 titles = defaultdict(int)
-for line in open('raw.txt', 'r'):
+for line in open(argv[1], 'r'):
     # Split only by ASCII space, as some titles contain other types of whitespace.
     code, title, c = line.strip().split(' ')
     lang, proj = code.split('.', 1)
@@ -18,8 +22,8 @@ for line in open('raw.txt', 'r'):
 
 sorted_titles = sorted(((title, count) for title, count in titles.items()), key=itemgetter(1), reverse=True)
 
-f_documents = open('documents.txt', 'w')
-f_terms = open('terms.txt', 'w')
+f_documents = open('build/docs.txt', 'w')
+f_terms = open('build/terms.txt', 'w')
 
 terms_regex = re.compile('[^a-zA-Z0-9]+')
 for (title, _) in sorted_titles:
@@ -33,5 +37,5 @@ for (title, _) in sorted_titles:
         f_terms.write('\0')
     f_terms.write('\0')
 
-with open('default-results.txt', 'w') as f:
+with open('build/default.json', 'w') as f:
     f.write('[]')

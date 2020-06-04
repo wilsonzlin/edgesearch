@@ -12,7 +12,6 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "GENERATE_SOURCEMAP=false react-scripts build",
-    "postbuild": "rm -rf ../dist/client && mkdir -p ../dist && mv build ../dist/client",
     "eject": "react-scripts eject"
   },
   "homepage": "https://wilsonl.in/wiki",

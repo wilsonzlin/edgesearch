@@ -4,11 +4,11 @@ A simple and fast English Wikipedia search, built as a demo for [Edgesearch](htt
 
 ## Data
 
-The service uses article titles ranked by page views to build the index, sourced from [Wikistats](https://dumps.wikimedia.org/other/pagecounts-ez/). [process.py](./build/data/process.py) takes the data as `raw.txt` and outputs `documents.txt`, `terms.txt`, and `default-results.txt`, necessary for [Edgesearch](https://github.com/wilsonzlin/edgesearch) to build the worker.
+The service uses article titles ranked by page views to build the index, sourced from [Wikistats](https://dumps.wikimedia.org/other/pagecounts-ez/). [process.py](./data/process.py) takes a path to the data as the first argument and outputs `docs.txt`, `terms.txt`, and `default.json` to `data/build`, necessary for [Edgesearch](https://github.com/wilsonzlin/edgesearch) to build the worker.
 
 ## Worker
 
-The worker is built using [build.sh](./build/worker/build.sh) and deployed using [deploy.sh](./build/worker/deploy.sh). They use a release build of Edgesearch from this repository, so run `cargo build --release` before running the scripts.
+The worker is built using [build.sh](./worker/build.sh) and deployed using [deploy.sh](./worker/deploy.sh). They use a release build of Edgesearch from this repository, so run `cargo build --release` before running the scripts.
 
 ## Client
 
