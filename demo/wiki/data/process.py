@@ -1,12 +1,12 @@
+import re
 from collections import defaultdict
 from operator import itemgetter
 from pathlib import Path
 from sys import argv
-import re
 
 # Use this script with monthly article page views data from https://dumps.wikimedia.org/other/pagecounts-ez/.
 
-Path("build").mkdir(exist_ok=True)
+Path('build').mkdir(exist_ok=True)
 
 titles = defaultdict(int)
 for line in open(argv[1], 'r'):
