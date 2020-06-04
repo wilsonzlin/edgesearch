@@ -100,5 +100,6 @@ pub fn deploy(DeployConfig {
         };
 
         remove_file(&upload_state_path).expect("remove upload state file");
+        println!("Data successfully uploaded");
     };
 }
