@@ -1,4 +1,4 @@
-// Synchronise mode IDs with mode_t enum in wasm/main.c.
+// Synchronise mode IDs with mode_t enum in wasm/index.c.
 export enum Mode {
   REQUIRE = '0',
   CONTAIN = '1',

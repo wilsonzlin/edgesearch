@@ -43,7 +43,7 @@ void _wasm_import_error(uintptr_t args_ptr);
 
 // __heap_base is provided by host and its position is the start of the heap area.
 extern byte __heap_base;
-// Must be initialised by main.c:reset() before use.
+// Must be initialised by reset() before use.
 byte* heap = NULL;
 byte* last_alloc = NULL;
 // Basic allocator that bumps downwards. Stores bytes allocated in word before allocation for realloc().

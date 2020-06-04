@@ -331,7 +331,7 @@ const parseQuery = (termsRaw: string[]): ParsedQuery | undefined => {
     Array<string>(),
   ];
   for (const value of termsRaw) {
-    // Synchronise mode IDs with mode_t enum in resources/main.c.
+    // Synchronise mode IDs with mode_t enum in wasm/index.c.
     const matches = /^([012])_([^&]+)(?:&|$)/.exec(value);
     if (!matches) {
       return;
@@ -358,7 +358,7 @@ const readResult = (result: MemoryWalker): QueryResult => {
   result.skip(3);
   const documents: number[] = [];
   for (let resultNo = 0; resultNo < count; resultNo++) {
-    // Synchronise with `doc_id_t` in resources/main.c.
+    // Synchronise with `doc_id_t` in wasm/index.c.
     const docId = result.readUInt32LE();
     documents.push(docId);
   }

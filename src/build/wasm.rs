@@ -3,7 +3,6 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
-const RUNNER_C_MAIN: &'static str = include_str!("../../wasm/main.c");
 const RUNNER_C_INDEX: &'static str = include_str!("../../wasm/index.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../wasm/roaring.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../wasm/sys.c");
@@ -110,7 +109,6 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
 
     let mut source_file = File::create(&source_path).expect("open runner.c for writing");
     source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_MAIN.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_INDEX.as_bytes()).expect("write runner.c");
 
