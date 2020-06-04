@@ -1,6 +1,6 @@
 {
   "include": [
-    "src/**/*.ts"
+    "*.ts"
   ],
   "compilerOptions": {
     "allowJs": false,

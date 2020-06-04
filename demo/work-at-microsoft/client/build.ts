@@ -7,18 +7,7 @@ import * as Babel from '@babel/core';
 import Terser from 'terser';
 import ncp from 'ncp';
 import {promisify} from 'util';
-import {
-  CLIENT_DIST_DIR,
-  CLIENT_DIST_HTML,
-  CLIENT_SRC_DIR,
-  CLIENT_SRC_HTML_TEMPLATE,
-  DATA_PARSED_JSON,
-  DESCRIPTION,
-  EXTRACT_WORDS_FN,
-  FIELDS,
-  VALID_WORD_REGEX,
-  WORD_MAP,
-} from '../const';
+import {join} from 'path';
 
 const DEBUG = process.env.MSC_DEBUG === '1';
 const GOOGLE_ANALYTICS = process.env.MSC_GA;
@@ -26,6 +15,11 @@ const GOOGLE_ANALYTICS = process.env.MSC_GA;
 if (DEBUG) {
   console.log(`Debug mode`);
 }
+
+const CLIENT_SRC_DIR = join(__dirname, 'src');
+const CLIENT_SRC_HTML_TEMPLATE = join(CLIENT_SRC_DIR, 'page.hbs');
+const CLIENT_DIST_DIR = join(__dirname, 'dist');
+const CLIENT_DIST_HTML = join(CLIENT_DIST_DIR, 'index.html');
 
 const analyticsJs = (trackingId: string) => `
   <script async src="https://www.googletagmanager.com/gtag/js?id=${trackingId}"></script>
@@ -118,19 +112,9 @@ const copyDir = promisify(ncp);
     concatSrcFiles('js').then(transpileJS).then(minifyJS),
     concatSrcFiles('css').then(minifyCSS),
     fs.readFile(CLIENT_SRC_HTML_TEMPLATE, 'utf8'),
-    fs.readFile(DATA_PARSED_JSON, 'utf8').then(d => JSON.parse(d).length),
   ])
-    .then(([js, css, html, jobsCount]) => Handlebars.compile(html)({
+    .then(([js, css, html]) => Handlebars.compile(html)({
       analytics: GOOGLE_ANALYTICS && analyticsJs(GOOGLE_ANALYTICS),
-      description: DESCRIPTION,
-      wordsExtractor: `(() => {
-        const WORD_MAP = ${JSON.stringify(WORD_MAP)};
-        const VALID_WORD_REGEX = ${VALID_WORD_REGEX};
-        return ${EXTRACT_WORDS_FN.toString().replace(/exports\./g, '')}
-      })()`,
-      validWordRegExp: VALID_WORD_REGEX.toString(),
-      jobsCount,
-      fields: FIELDS,
       script: js,
       style: css,
     }))
