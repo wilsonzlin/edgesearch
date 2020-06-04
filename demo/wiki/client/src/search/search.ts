@@ -5,7 +5,7 @@ import {IFullArticle} from '../FullArticle/FullArticle';
 
 type EdgesearchResult = string;
 
-const client = new Edgesearch.Client<EdgesearchResult>('wiki.wlin.workers.dev');
+const client = new Edgesearch.Client<EdgesearchResult>('https://wiki.wlin.workers.dev');
 
 type WikipediaPageSummary = {
   id: number,
@@ -74,7 +74,7 @@ export const useSearch = () => {
         fullArticles,
         basicArticles,
         count: fullArticles.length + basicArticles.length,
-        more: titles.more,
+        more: !!titles.continuation,
       });
     })();
   }, [query]);
