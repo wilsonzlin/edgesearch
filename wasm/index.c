@@ -28,11 +28,13 @@ typedef struct {
 
 // Result of a query executed within WASM.
 typedef struct {
-  // Whether there are more documents.
+  // Value to be provided as `index_query_t->first_rank` to get next set of documents. -1 if there are no more documents left.
   int32_t continuation;
-  // How many documents.
+  // Total amount of documents matching the search query.
+  uint32_t total;
+  // How many documents retrieved in this set.
   uint8_t count;
-  // IDs of the documents in the result.
+  // IDs of the documents in this set.
   doc_id_t documents[MAX_RESULTS];
 } results_t;
 
@@ -114,6 +116,8 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
 
   uint32_t first_rank = query->first_rank;
 
+  // TODO Should we worry about this unchecked cast?
+  results->total = (uint32_t) doc_count;
   if (first_rank >= doc_count) {
     results->continuation = -1;
     results->count = 0;

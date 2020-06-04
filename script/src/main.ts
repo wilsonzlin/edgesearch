@@ -201,7 +201,7 @@ const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
 });
 
 const queryRunner = wasmInstance.exports as {
-  // Keep synchronised with function declarations resources/*.c with WASM_EXPORT.
+  // Keep synchronised with function declarations wasm/*.c with WASM_EXPORT.
   reset (): void;
   index_alloc_serialised (size: number): number;
   index_query_init (): number;
@@ -236,8 +236,8 @@ const responseSuccessRawJson = (json: string, status = 200) => new Response(json
   },
 });
 
-const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null}`);
-const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"continuation":null}`);
+const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null,"total":0}`);
+const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"continuation":null,"total":0}`);
 const responseSuccess = (data: object, status = 200) => responseSuccessRawJson(JSON.stringify(data), status);
 
 type PackageEntryKey = string | number;
@@ -346,13 +346,14 @@ const parseQuery = (termsRaw: string[]): ParsedQuery | undefined => {
 
 type QueryResult = {
   continuation: number | null;
-  count: number;
+  total: number;
   documents: number[];
 };
 
 const readResult = (result: MemoryWalker): QueryResult => {
-  // Synchronise with `results_t` in resources/index.c.
+  // Synchronise with `results_t` in wasm/index.c.
   const continuation = result.readInt32LE();
+  const total = result.readUInt32LE();
   const count = result.readUInt8();
   // Starts from next WORD_SIZE (uint32_t) due to alignment.
   result.skip(3);
@@ -362,7 +363,7 @@ const readResult = (result: MemoryWalker): QueryResult => {
     const docId = result.readUInt32LE();
     documents.push(docId);
   }
-  return {continuation: continuation == -1 ? null : continuation, count, documents};
+  return {continuation: continuation == -1 ? null : continuation, total, documents};
 };
 
 const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> => {
@@ -464,6 +465,7 @@ const handleSearch = async (url: URL) => {
   return responseSuccess({
     results: documents,
     continuation: result.continuation,
+    total: result.total,
   });
 };
 

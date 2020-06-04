@@ -41,6 +41,7 @@ export const fetchGet = <T> (url: string): Promise<T> => fetch(url).then(res => 
 export type SearchResponse<D> = {
   results: D[];
   continuation: number | null;
+  total: number;
 };
 
 export class Client<D> {
