@@ -1,35 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
-use std::str::FromStr;
 
 use crate::data::read_null_terminated;
-
-#[derive(Copy, Clone)]
-pub enum DocumentEncoding {
-    Json,
-    Text,
-}
-
-impl FromStr for DocumentEncoding {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "json" => Ok(DocumentEncoding::Json),
-            "text" => Ok(DocumentEncoding::Text),
-            _ => Err("Invalid document encoding".to_string()),
-        }
-    }
-}
-
-impl ToString for DocumentEncoding {
-    fn to_string(&self) -> String {
-        match self {
-            DocumentEncoding::Json => "json".to_string(),
-            DocumentEncoding::Text => "text".to_string(),
-        }
-    }
-}
 
 pub struct DocumentsReader {
     reader: BufReader<File>,

@@ -32,8 +32,8 @@ typedef uint8_t bool;
 #define UINT64_C(c) c ## ull
 
 // These will be imported from JS.
-void _wasm_import_log(uintptr_t args_ptr);
-void _wasm_import_error(uintptr_t args_ptr);
+void _wasm_import_log(void* args_ptr);
+void _wasm_import_error(void* args_ptr);
 
 // Use this to make any function visible to JS.
 #define WASM_EXPORT __attribute__((visibility("default")))
@@ -48,7 +48,7 @@ byte* heap = NULL;
 byte* last_alloc = NULL;
 // Basic allocator that bumps downwards. Stores bytes allocated in word before allocation for realloc().
 // Each query simply resets the bump allocation offset so we are not concerned about moving and freeing memory during execution.
-void* malloc(size_t n) {
+WASM_EXPORT void* malloc(size_t n) {
   n += (n % sizeof(word_t)) ? n - (n % sizeof(word_t)) : 0;
   // Store length of memory block just before pointer for use when reallocating.
   *((word_t*) heap) = n;
@@ -160,15 +160,15 @@ FILE stderr_fileno = 2;
 FILE* stderr = &stderr_fileno;
 
 int printf(char const* format, ...) {
-  _wasm_import_log((uintptr_t) &format);
+  _wasm_import_log(&format);
   return 0;
 }
 
 int fprintf(FILE* stream, char const* format, ...) {
   if (stream != stderr) {
-    _wasm_import_log((uintptr_t) &format);
+    _wasm_import_log(&format);
   } else {
-    _wasm_import_error((uintptr_t) &format);
+    _wasm_import_error(&format);
   }
   return 0;
 }

@@ -84,6 +84,8 @@ Terms are separate from documents for easy switching between or testing of diffe
 
 The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
 
+A document must be a JSON serialised value, such as `"hello"`, `123`, or `{"prop1": 1, "prop2": {}}`.
+
 For example:
 
 |File|Contents|
@@ -97,7 +99,6 @@ An folder needs to be provided for Edgesearch to write temporary and built code 
 ```bash
 edgesearch build \
   --documents documents.txt \
-  --document-encoding json \
   --document-terms document-terms.txt \
   --maximum-query-results 20 \
   --output-dir dist/worker/

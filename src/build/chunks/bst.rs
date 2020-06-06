@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 use std::io::Write;
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{WriteBytesExt, LittleEndian};
 
 use crate::build::chunks::ChunkEntryKey;
 
@@ -39,20 +39,18 @@ impl<K: ChunkEntryKey> BST<K> {
         let pos: i32 = out.len().try_into().expect("too much data");
         let value_len: u32 = value.len().try_into().expect("value is too long");
         out.write_all(key.bytes()).expect("write package data");
-        out.write_i32::<BigEndian>(left_pos).expect("write package data");
-        out.write_i32::<BigEndian>(right_pos).expect("write package data");
-        out.write_u32::<BigEndian>(value_len).expect("write package data");
+        out.write_i32::<LittleEndian>(left_pos).expect("write package data");
+        out.write_i32::<LittleEndian>(right_pos).expect("write package data");
+        out.write_u32::<LittleEndian>(value_len).expect("write package data");
         out.write_all(value).expect("write package data");
         pos
     }
 
+    // Serialise nodes with indices in the range [lo, hi] (inclusive).
+    // Return the position of the first byte of the serialised middle node.
     fn _serialise_area(&self, out: &mut Vec<u8>, lo: usize, hi: usize) -> i32 {
-        // Serialise nodes with indices in the range [lo, hi] (inclusive).
-        // Return the position of the first byte of the serialised middle node.
-
         // Add first to prevent underflow.
-        let dist = hi + 1 - lo;
-        match dist {
+        match hi + 1 - lo {
             0 => unreachable!(),
             1 => {
                 let (key, value) = &self.values[lo];
@@ -64,7 +62,7 @@ impl<K: ChunkEntryKey> BST<K> {
                 let left_pos = BST::_serialise_node(out, -1, -1, left_key, left_value);
                 BST::_serialise_node(out, left_pos, -1, right_key, right_value)
             }
-            _ => {
+            dist => {
                 let mid = lo + (dist / 2);
                 let (key, value) = &self.values[mid];
                 let left_pos = self._serialise_area(out, lo, mid - 1);
@@ -85,46 +83,50 @@ impl<K: ChunkEntryKey> BST<K> {
     }
 }
 
-pub struct PackedEntriesWithBSTLookup<K: ChunkEntryKey> {
-    packages: Vec<BST<K>>,
-    max_package_size: usize,
+pub struct BstChunks<K: ChunkEntryKey> {
+    chunks: Vec<BST<K>>,
+    max_chunk_size: usize,
 }
 
-impl<K: ChunkEntryKey> PackedEntriesWithBSTLookup<K> {
-    pub fn new(max_package_size: usize) -> PackedEntriesWithBSTLookup<K> {
-        PackedEntriesWithBSTLookup {
-            packages: Vec::new(),
-            max_package_size,
+impl<K: ChunkEntryKey> BstChunks<K> {
+    pub fn new(max_chunk_size: usize) -> BstChunks<K> {
+        BstChunks {
+            chunks: Vec::new(),
+            max_chunk_size,
         }
     }
 
     pub fn insert(&mut self, key: K, value: Vec<u8>) -> () {
-        if self.packages.last().filter(|p| p.serialised_len() + BST::<K>::insertion_cost(&key, &value) <= self.max_package_size).is_none() {
-            self.packages.push(BST::new());
+        if self.chunks.last().filter(|p| p.serialised_len() + BST::<K>::insertion_cost(&key, &value) <= self.max_chunk_size).is_none() {
+            self.chunks.push(BST::new());
         };
 
-        self.packages.last_mut().unwrap().insert(key, value);
+        self.chunks.last_mut().unwrap().insert(key, value);
     }
 
-    pub fn package_count(&self) -> usize {
-        self.packages.len()
+    pub fn chunk_count(&self) -> usize {
+        self.chunks.len()
     }
 
     pub fn serialise(&self) -> (String, Vec<Vec<u8>>) {
         let mut lookup = String::new();
-        let mut serialised_packages = Vec::new();
+        let mut serialised_chunks = Vec::new();
 
-        for (package_id, package) in self.packages.iter().enumerate() {
+        for (package_id, package) in self.chunks.iter().enumerate() {
             let (mid_pos, serialised) = package.serialise();
-            let lookup_entry = format!(r#"[{key},{package_id},{middle}],"#,
-                key = package.first_key().unwrap().js(),
+            let lookup_entry = format!(r#"{{
+                .id = {package_id},
+                .mid_pos = {middle},
+                .first_key = {key},
+            }},"#,
+                key = package.first_key().unwrap().c(),
                 package_id = package_id,
                 middle = mid_pos,
             );
             lookup.push_str(lookup_entry.as_str());
-            serialised_packages.push(serialised);
+            serialised_chunks.push(serialised);
         };
 
-        (lookup, serialised_packages)
+        (lookup, serialised_chunks)
     }
 }

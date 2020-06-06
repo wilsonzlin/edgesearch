@@ -14,20 +14,8 @@ declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 declare var MAX_QUERY_BYTES: number;
 // Maximum amount of terms a query can have across all modes.
 declare var MAX_QUERY_TERMS: number;
-// How documents fetched from Cloudflare Workers KV should be decoded before returning to client.
-declare var DOCUMENT_ENCODING: 'text' | 'json';
-// [term, packageId, offset, length].
-declare var PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW: [string, number, number, number][];
-// [term, packageId, middlePos].
-declare var PACKED_NORMAL_POSTINGS_LIST_ENTRIES_LOOKUP: [string, number, number][];
-// [documentId, packageId, middlePos].
-declare var PACKED_DOCUMENTS_LOOKUP: [number, number, number][];
 
-const PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP: Map<string, { packageId: number, offset: number, length: number }> =
-  new Map(PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP_RAW.map(([term, packageId, offset, length]) => [
-    term,
-    {packageId, offset, length},
-  ]));
+const exists = <V> (val: V | undefined): val is V => val !== undefined;
 
 // Easy reading and writing of memory sequentially without having to manage and update offsets/positions/pointers.
 class MemoryWalker {
@@ -203,12 +191,18 @@ const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
 const queryRunner = wasmInstance.exports as {
   // Keep synchronised with function declarations wasm/*.c with WASM_EXPORT.
   reset (): void;
-  index_alloc_serialised (size: number): number;
-  index_query_init (): number;
+  malloc (size: number): number;
+  index_query_malloc (): number;
   index_query (input: number): number;
+  find_chunk_containing_term (termPtr: number, termLen: number): number;
+  find_chunk_containing_doc (doc: number): number;
+  search_bst_chunk_for_term (chunkPtr: number, midPos: number, termPtr: number, termLen: number): number;
+  search_bst_chunk_for_doc (chunkPtr: number, midPos: number, doc: number): number;
 };
 
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
+
+const textEncoder = new TextEncoder();
 
 const textDecoder = new TextDecoder();
 
@@ -229,88 +223,58 @@ const responseError = (error: string, status: number = 400) => new Response(JSON
   },
 });
 
-const responseSuccessRawJson = (json: string, status = 200) => new Response(json, {
+const responseRawJson = (json: string, status = 200) => new Response(json, {
   status, headers: {
     'Content-Type': 'application/json',
     ...CORS_HEADERS,
   },
 });
 
-const responseDefaultResults = async () => responseSuccessRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null,"total":0}`);
-const responseNoResults = async () => responseSuccessRawJson(`{"results":[],"continuation":null,"total":0}`);
-const responseSuccess = (data: object, status = 200) => responseSuccessRawJson(JSON.stringify(data), status);
+const responseDefaultResults = async () => responseRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null,"total":0}`);
 
-type PackageEntryKey = string | number;
+const responseNoResults = async () => responseRawJson(`{"results":[],"continuation":null,"total":0}`);
 
-const compareKey = <K extends PackageEntryKey> (a: K, b: K): number => {
-  return typeof a == 'number' ? a - (b as number) : (a as string).localeCompare(b as string);
-};
-
-const extractKeyAtPosInBstPackage = <K extends PackageEntryKey> (packageData: MemoryWalker, type: K extends string ? 'string' : 'number'): K => {
-  if (type == 'string') {
-    // Keep in sync with build::packed::PackedStrKey.
-    const len = packageData.readUInt8();
-    return textDecoder.decode(packageData.readSlice(len)) as K;
+const findInChunks = async (key: string | number, chunksIdPrefix: string): Promise<ArrayBuffer | undefined> => {
+  let chunkRefPtr;
+  let cKey: { ptr: number; len: number; } | number;
+  if (typeof key == 'string') {
+    const encoded = textEncoder.encode(key);
+    const len = encoded.length;
+    const ptr = queryRunner.malloc(len);
+    cKey = {ptr, len};
+    queryRunnerMemory.forkAndJump(ptr).writeAll(encoded);
+    chunkRefPtr = queryRunner.find_chunk_containing_term(ptr, len);
   } else {
-    // Keep in sync with build::PackedU32Key.
-    return packageData.readUInt32BE() as K;
+    cKey = key;
+    chunkRefPtr = queryRunner.find_chunk_containing_doc(key);
   }
-};
 
-const getFromBstPackage = <K extends PackageEntryKey> (packageData: MemoryWalker, targetKey: K): ArrayBuffer | undefined => {
-  while (true) {
-    let currentKey = extractKeyAtPosInBstPackage(packageData, typeof targetKey as any);
-    // Keep in sync with build::packed::bst::BST::_serialise_node.
-    const leftPos = packageData.readInt32BE();
-    const rightPos = packageData.readInt32BE();
-    const valueLen = packageData.readUInt32BE();
-    const cmp = compareKey(targetKey, currentKey);
-    if (cmp < 0) {
-      if (leftPos == -1) {
-        break;
-      }
-      packageData.jumpTo(leftPos);
-    } else if (cmp == 0) {
-      return packageData.readSlice(valueLen);
-    } else {
-      if (rightPos == -1) {
-        break;
-      }
-      packageData.jumpTo(rightPos);
-    }
-  }
-  return undefined;
-};
-
-const findInPackages = async <K extends PackageEntryKey> (packagesLookup: ReadonlyArray<[K, number, number]>, key: K, packageIdPrefix: string): Promise<ArrayBuffer | undefined> => {
-  let lo = 0, hi = packagesLookup.length - 1;
-  if (!packagesLookup.length) {
+  console.log('Found chunk');
+  if (chunkRefPtr === 0) {
     return undefined;
   }
-  let entry: [K, number, number] | undefined;
-  while (!entry) {
-    const dist = hi + 1 - lo;
-    if (dist <= 0) {
-      throw new Error(`Search went out of bounds while looking for "${key}"`);
-    } else if (dist == 1) {
-      entry = packagesLookup[lo];
-    } else if (dist == 2) {
-      entry = compareKey(key, packagesLookup[hi][0]) < 0 ? packagesLookup[lo] : packagesLookup[hi];
-    } else {
-      const mid = lo + Math.floor(dist / 2);
-      const cmp = compareKey(key, packagesLookup[mid][0]);
-      if (cmp < 0) {
-        hi = mid - 1;
-      } else if (cmp == 0) {
-        entry = packagesLookup[mid];
-      } else {
-        lo = mid;
-      }
-    }
+  const chunkRef = queryRunnerMemory.forkAndJump(chunkRefPtr);
+  const chunkId = chunkRef.readUInt32LE();
+  const chunkMidPos = chunkRef.readUInt32LE();
+
+  const chunkData = await KV.get(`${chunksIdPrefix}${chunkId}`, 'arrayBuffer');
+  console.log('Fetched chunk from KV');
+  const chunkPtr = queryRunner.malloc(chunkData.byteLength);
+  queryRunnerMemory.forkAndJump(chunkPtr).writeAll(new Uint8Array(chunkData));
+  let entryPtr;
+  if (typeof cKey == 'number') {
+    entryPtr = queryRunner.search_bst_chunk_for_doc(chunkPtr, chunkMidPos, cKey);
+  } else {
+    entryPtr = queryRunner.search_bst_chunk_for_term(chunkPtr, chunkMidPos, cKey.ptr, cKey.len);
   }
 
-  const packageData = new MemoryWalker(await KV.get(`${packageIdPrefix}${entry[1]}`, 'arrayBuffer'));
-  return getFromBstPackage(packageData.jumpTo(entry[2]), key);
+  console.log('Found entry in chunk');
+  if (entryPtr === 0) {
+    return undefined;
+  }
+  const entry = queryRunnerMemory.forkAndJump(entryPtr);
+  const entryLen = entry.readUInt32LE();
+  return entry.readAndDereferencePointer().readSlice(entryLen);
 };
 
 // Keep order in sync with mode_t.
@@ -369,25 +333,15 @@ const readResult = (result: MemoryWalker): QueryResult => {
 const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> => {
   return await Promise.all(
     query.map(modeTerms => Promise.all(
-      modeTerms.map(async (term) => {
-        const popular = PACKED_POPULAR_POSTINGS_LIST_ENTRIES_LOOKUP.get(term);
-        let sbm: ArrayBuffer | undefined;
-
-        if (popular) {
-          const packageData: ArrayBuffer = await KV.get(`popular_terms_${popular.packageId}`, 'arrayBuffer');
-          sbm = packageData.slice(popular.offset, popular.offset + popular.length);
-        } else {
-          // Keep in sync with deploy/mod.rs.
-          sbm = await findInPackages(PACKED_NORMAL_POSTINGS_LIST_ENTRIES_LOOKUP, term, 'normal_terms_');
-        }
-
-        return sbm;
-      }),
+      modeTerms.map(term =>
+        // Keep in sync with deploy/mod.rs.
+        findInChunks(term, 'terms_'),
+      ),
     )),
   );
 };
 
-const buildPostingsListQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
+const buildIndexQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
 
   // Synchronise with index_query_t.
@@ -395,7 +349,7 @@ const buildPostingsListQuery = async (firstRank: number, modeTermBitmaps: ArrayB
   input.writeUInt32LE(firstRank);
   for (const mode of modeTermBitmaps) {
     for (const bitmap of mode) {
-      const ptr = queryRunner.index_alloc_serialised(bitmap.byteLength);
+      const ptr = queryRunner.malloc(bitmap.byteLength);
       queryRunnerMemory.forkAndJump(ptr).writeAll(new Uint8Array(bitmap));
       // WASM is LE.
       input
@@ -409,13 +363,19 @@ const buildPostingsListQuery = async (firstRank: number, modeTermBitmaps: ArrayB
 };
 
 const executePostingsListQuery = (queryData: Uint8Array): QueryResult | undefined => {
-  const inputPtr = queryRunner.index_query_init();
+  const inputPtr = queryRunner.index_query_malloc();
   queryRunnerMemory.forkAndJump(inputPtr).writeAll(queryData);
   const outputPtr = queryRunner.index_query(inputPtr);
   return outputPtr == 0 ? undefined : readResult(queryRunnerMemory.forkAndJump(outputPtr));
 };
 
+const getAsciiBytes = (str: string) => new Uint8Array(str.split('').map(c => c.charCodeAt(0)));
+
+const COMMA = getAsciiBytes(',');
+
 const handleSearch = async (url: URL) => {
+  queryRunner.reset();
+
   // NOTE: Just because there are no valid words does not mean that there are no valid results.
   // For example, excluding an invalid word actually results in all entries matching.
   const query = parseQuery(url.searchParams.getAll('t'));
@@ -430,6 +390,7 @@ const handleSearch = async (url: URL) => {
   }
 
   const modeTermBitmaps = await findSerialisedTermBitmaps(query);
+  console.log('Bit sets retrieved');
   // Handling non-existent terms:
   // - If REQUIRE, then immediately return zero results, regardless of other terms of any mode.
   // - If CONTAIN, then simply omit.
@@ -443,29 +404,44 @@ const handleSearch = async (url: URL) => {
     return responseDefaultResults();
   }
 
-  queryRunner.reset();
+  const indexQueryData = await buildIndexQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
+  console.log('Query built');
 
-  const postingsListQueryData = await buildPostingsListQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
-  const result = await executePostingsListQuery(postingsListQueryData);
+  const result = await executePostingsListQuery(indexQueryData);
   if (!result) {
     throw new Error(`Failed to execute query`);
   }
+  console.log('Query executed');
 
-  const documents = await Promise.all(result.documents.map(async (docId) => {
-    const encoded = await findInPackages(PACKED_DOCUMENTS_LOOKUP, docId, 'doc_');
-    const value = textDecoder.decode(encoded);
-    switch (DOCUMENT_ENCODING) {
-    case 'text':
-      return value;
-    case 'json':
-      return JSON.parse(value);
+  // We want to avoid JSON.{parse,stringify} as they take up a lot of CPU time and often cause timeout exceptions in CF Workers for large payloads.
+  // So, we manually build our response with buffers, as that's how documents are stored.
+  // The buffers represent parts of the UTF-8 encoded JSON serialised response bytes.
+  const jsonResPrefix = getAsciiBytes(`{"total":${result.total},"continuation":${continuation},"results":[`);
+  const jsonResSuffix = getAsciiBytes(`]}`);
+  const documents = (await Promise.all(result.documents.map(docId =>
+    // Each document should be a JSON serialised value encoded in UTF-8.
+    findInChunks(docId, 'doc_'),
+  ))).filter(exists).map(d => new Uint8Array(d));
+  console.log('Documents fetched');
+
+  const stream = new TransformStream();
+  const writer = stream.writable.getWriter();
+  writer.write(jsonResPrefix);
+  for (let i = 0; i < documents.length; i++) {
+    if (i !== 0) {
+      writer.write(COMMA);
     }
-  }));
+    writer.write(documents[i]);
+  }
+  writer.write(jsonResSuffix);
+  writer.releaseLock();
 
-  return responseSuccess({
-    results: documents,
-    continuation: result.continuation,
-    total: result.total,
+  return new Response(stream.readable, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      ...CORS_HEADERS,
+    },
   });
 };
 

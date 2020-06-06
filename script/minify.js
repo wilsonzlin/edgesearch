@@ -12,7 +12,7 @@ const {error, warnings, code} = terser.minify(`(() => {${src}})()`, {
     comparisons: true,
     conditionals: true,
     dead_code: true,
-    drop_console: true,
+    drop_console: false,
     drop_debugger: true,
     evaluate: true,
     hoist_funs: true,

@@ -4,10 +4,6 @@ pub fn round2(dec: f64) -> String {
     format!("{}", (dec * 100.0).round() / 100f64)
 }
 
-pub fn frac_perc(num: usize, denom: usize) -> String {
-    return percent(num as f64 / denom as f64);
-}
-
 pub fn percent(ratio: f64) -> String {
     format!("{}%", round2(ratio * 100.0))
 }

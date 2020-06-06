@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
 
+const RUNNER_C_CHUNKS: &'static str = include_str!("../../wasm/chunks.c");
 const RUNNER_C_INDEX: &'static str = include_str!("../../wasm/index.c");
 const RUNNER_C_ROARING: &'static str = include_str!("../../wasm/roaring.c");
 const RUNNER_C_SYS: &'static str = include_str!("../../wasm/sys.c");
@@ -103,7 +104,16 @@ pub fn compile_to_wasm(WasmCompileArgs {
     };
 }
 
-pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize, max_query_bytes: usize, max_query_terms: usize) -> () {
+pub fn generate_and_compile_runner_wasm(
+    output_dir: &PathBuf,
+    max_results: usize,
+    max_query_bytes: usize,
+    max_query_terms: usize,
+    terms_chunks_raw: &str,
+    terms_chunks_len: usize,
+    documents_chunks_raw: &str,
+    documents_chunks_len: usize,
+) -> () {
     let source_path = output_dir.join("runner.c");
     let output_path = output_dir.join("runner.wasm");
 
@@ -111,6 +121,13 @@ pub fn generate_and_compile_runner_wasm(output_dir: &PathBuf, max_results: usize
     source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_INDEX.as_bytes()).expect("write runner.c");
+    source_file.write_all(RUNNER_C_CHUNKS
+        .replace("___NORMAL_TERMS_CHUNKS___", terms_chunks_raw)
+        .replace("___NORMAL_TERMS_CHUNKS_LEN___", format!("{}", terms_chunks_len).as_str())
+        .replace("___DOCUMENTS_CHUNKS___", documents_chunks_raw)
+        .replace("___DOCUMENTS_CHUNKS_LEN___", format!("{}", documents_chunks_len).as_str())
+        .as_bytes()
+    ).expect("write runner.c");
 
     compile_to_wasm(WasmCompileArgs {
         standard: WasmStandard::C11,

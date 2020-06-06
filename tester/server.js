@@ -42,8 +42,7 @@ global.Response = class Response {
 
 const defaultResults = fs.readFileSync(DEFAULT_RESULTS, 'utf8');
 const documentsChunks = [...readChunks(path.join(OUTPUT_DIR, 'documents.packed'))];
-const popularTermsChunks = [...readChunks(path.join(OUTPUT_DIR, 'popular_terms.packed'))];
-const normalTermsChunks = [...readChunks(path.join(OUTPUT_DIR, 'normal_terms.packed'))];
+const termsChunks = [...readChunks(path.join(OUTPUT_DIR, 'terms.packed'))];
 
 global.KV = {
   async get (key) {
@@ -51,10 +50,8 @@ global.KV = {
       return defaultResults;
     } else if (key.startsWith('doc_')) {
       return documentsChunks[key.slice(4)];
-    } else if (key.startsWith('normal_terms_')) {
-      return normalTermsChunks[key.slice(13)];
-    } else if (key.startsWith('popular_terms_')) {
-      return popularTermsChunks[key.slice(14)];
+    } else if (key.startsWith('terms_')) {
+      return termsChunks[key.slice(13)];
     } else {
       throw new Error(`Unknown KV key: ${key}`);
     }

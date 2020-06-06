@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use structopt::StructOpt;
 
-use edgesearch::build::{build, BuildConfig, DocumentEncoding};
+use edgesearch::build::{build, BuildConfig};
 use edgesearch::deploy::{deploy, DeployConfig};
 
 use crate::Cli::{Build, Deploy};
@@ -12,7 +12,6 @@ use crate::Cli::{Build, Deploy};
 #[derive(StructOpt)]
 enum Cli {
     Build {
-        #[structopt(long, default_value = "text")] document_encoding: DocumentEncoding,
         #[structopt(long, parse(from_os_str))] document_terms: PathBuf,
         #[structopt(long, parse(from_os_str))] documents: PathBuf,
         #[structopt(long, default_value = "512")] maximum_query_bytes: usize,
@@ -37,7 +36,6 @@ fn main() {
 
     match args {
         Build {
-            document_encoding,
             document_terms,
             documents,
             maximum_query_bytes,
@@ -46,7 +44,6 @@ fn main() {
             output_dir,
         } => {
             build(BuildConfig {
-                document_encoding,
                 document_terms_source: File::open(document_terms).expect("open document terms file"),
                 documents_source: File::open(documents).expect("open documents file"),
                 maximum_query_bytes,

@@ -1,28 +1,29 @@
 use std::convert::TryInto;
 use std::io::Write;
 
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{LittleEndian, WriteBytesExt};
 
 pub mod bst;
-pub mod direct;
 
 pub trait ChunkEntryKey {
     fn bytes(&self) -> &[u8];
-    fn js(&self) -> &str;
+    fn c(&self) -> &str;
 }
 
 pub struct ChunkU32Key {
     bytes: Vec<u8>,
-    js: String,
+    c: String,
 }
 
 impl ChunkU32Key {
     pub fn new(key: u32) -> ChunkU32Key {
         let mut bytes = Vec::new();
-        bytes.write_u32::<BigEndian>(key).unwrap();
+        bytes.write_u32::<LittleEndian>(key).unwrap();
         ChunkU32Key {
             bytes,
-            js: format!("{}", key),
+            c: format!(r#"{{
+                .intval = {},
+            }}"#, key),
         }
     }
 }
@@ -32,15 +33,15 @@ impl ChunkEntryKey for ChunkU32Key {
         &self.bytes
     }
 
-    fn js(&self) -> &str {
-        &self.js
+    fn c(&self) -> &str {
+        &self.c
     }
 }
 
 
 pub struct ChunkStrKey {
     bytes: Vec<u8>,
-    js: String,
+    c: String,
 }
 
 impl ChunkStrKey {
@@ -50,7 +51,15 @@ impl ChunkStrKey {
         bytes.write_all(key.as_bytes()).unwrap();
         ChunkStrKey {
             bytes,
-            js: format!("\"{}\"", key.replace("\n", "\\n").replace("\"", "\\\"")),
+            c: format!(r#"{{
+                .strval = {{
+                    .val = "{VAL}",
+                    .len = {LEN},
+                }},
+            }}"#,
+                VAL = key.replace("\n", "\\n").replace("\"", "\\\""),
+                LEN = key.len(),
+            ),
         }
     }
 }
@@ -60,7 +69,7 @@ impl ChunkEntryKey for ChunkStrKey {
         &self.bytes
     }
 
-    fn js(&self) -> &str {
-        &self.js
+    fn c(&self) -> &str {
+        &self.c
     }
 }

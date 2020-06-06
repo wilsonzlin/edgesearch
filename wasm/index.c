@@ -43,13 +43,8 @@ uint32_t min(uint32_t a, uint32_t b) {
 }
 
 // Function to be called from JS that allocates enough memory for a query and returns the pointer to it.
-WASM_EXPORT index_query_t* index_query_init(void) {
+WASM_EXPORT index_query_t* index_query_malloc(void) {
   return malloc(sizeof(index_query_t));
-}
-
-// Function to be called from JS that allocates enough memory to copy over the bytes of a serialised bitmap from JS to WASM and returns the pointer to it.
-WASM_EXPORT byte* index_alloc_serialised(size_t size) {
-  return malloc(size);
 }
 
 // Internal function used to deserialise multiple bitmaps from a `index_query_t->serialised` value.
