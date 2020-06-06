@@ -2,6 +2,20 @@
   box-sizing: border-box;
 }
 
+::-moz-focus-inner {
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6, p, ul, ol, li, dl, dd {
+  display: block;
+  margin: 0;
+  padding: 0;
 }

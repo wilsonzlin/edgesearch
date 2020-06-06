@@ -43,10 +43,12 @@ class Result {
         <p>{this.date} | {this.company}</p>
         <p>{this.location}</p>
       </div>
-      <p hidden={this.expanded}>{this.preview}</p>
-      <button hidden={this.expanded} onClick={this.expandButtonClickHandler}>More</button>
-      <p hidden={!this.expanded}>{this.description}</p>
-      <button hidden={!this.expanded} onClick={this.collapseButtonClickHandler}>Less</button>
+      <p className={styles.ResultDescription} hidden={this.expanded}>{this.preview}</p>
+      <p className={styles.ResultDescription} hidden={!this.expanded}>{this.description}</p>
+      <div className={styles.ResultButtonContainer}>
+        <button hidden={this.expanded} onClick={this.expandButtonClickHandler}>More</button>
+        <button hidden={!this.expanded} onClick={this.collapseButtonClickHandler}>Less</button>
+      </div>
     </div>
   );
 }
