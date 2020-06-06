@@ -425,7 +425,7 @@ const handleSearch = async (url: URL) => {
   // We want to avoid JSON.{parse,stringify} as they take up a lot of CPU time and often cause timeout exceptions in CF Workers for large payloads.
   // So, we manually build our response with buffers, as that's how documents are stored.
   // The buffers represent parts of the UTF-8 encoded JSON serialised response bytes.
-  const jsonResPrefix = getAsciiBytes(`{"total":${result.total},"continuation":${continuation},"results":[`);
+  const jsonResPrefix = getAsciiBytes(`{"total":${result.total},"continuation":${result.continuation},"results":[`);
   const jsonResSuffix = getAsciiBytes(`]}`);
   const documents = (await Promise.all(result.documents.map(docId =>
     // Each document should be a JSON serialised value encoded in UTF-8.
