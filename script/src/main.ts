@@ -234,19 +234,25 @@ const responseDefaultResults = async () => responseRawJson(`{"results":${await K
 
 const responseNoResults = async () => responseRawJson(`{"results":[],"continuation":null,"total":0}`);
 
-const findInChunks = async (key: string | number, chunksIdPrefix: string): Promise<ArrayBuffer | undefined> => {
-  let chunkRefPtr;
-  let cKey: { ptr: number; len: number; } | number;
+const allocateKey = (key: string | number) => {
   if (typeof key == 'string') {
     const encoded = textEncoder.encode(key);
     const len = encoded.length;
     const ptr = queryRunner.malloc(len);
-    cKey = {ptr, len};
     queryRunnerMemory.forkAndJump(ptr).writeAll(encoded);
-    chunkRefPtr = queryRunner.find_chunk_containing_term(ptr, len);
+    return {ptr, len};
   } else {
-    cKey = key;
-    chunkRefPtr = queryRunner.find_chunk_containing_doc(key);
+    return key;
+  }
+};
+
+const findInChunks = async (key: string | number, chunksIdPrefix: string): Promise<ArrayBuffer | undefined> => {
+  let chunkRefPtr;
+  let cKey = allocateKey(key);
+  if (typeof cKey == 'number') {
+    chunkRefPtr = queryRunner.find_chunk_containing_doc(cKey);
+  } else {
+    chunkRefPtr = queryRunner.find_chunk_containing_term(cKey.ptr, cKey.len);
   }
 
   console.log('Found chunk');
@@ -259,9 +265,14 @@ const findInChunks = async (key: string | number, chunksIdPrefix: string): Promi
 
   const chunkData = await KV.get(`${chunksIdPrefix}${chunkId}`, 'arrayBuffer');
   console.log('Fetched chunk from KV');
+
+  // We need to reset as otherwise we might end up storing 50 * 10 MiB chunks in memory.
+  queryRunner.reset();
   const chunkPtr = queryRunner.malloc(chunkData.byteLength);
   queryRunnerMemory.forkAndJump(chunkPtr).writeAll(new Uint8Array(chunkData));
   let entryPtr;
+  // Reallocate since we've just reset the heap.
+  cKey = allocateKey(key);
   if (typeof cKey == 'number') {
     entryPtr = queryRunner.search_bst_chunk_for_doc(chunkPtr, chunkMidPos, cKey);
   } else {
@@ -330,8 +341,8 @@ const readResult = (result: MemoryWalker): QueryResult => {
   return {continuation: continuation == -1 ? null : continuation, total, documents};
 };
 
-const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> => {
-  return await Promise.all(
+const findSerialisedTermBitmaps = (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> =>
+  Promise.all(
     query.map(modeTerms => Promise.all(
       modeTerms.map(term =>
         // Keep in sync with deploy/mod.rs.
@@ -339,7 +350,6 @@ const findSerialisedTermBitmaps = async (query: ParsedQuery): Promise<(ArrayBuff
       ),
     )),
   );
-};
 
 const buildIndexQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
@@ -374,8 +384,6 @@ const getAsciiBytes = (str: string) => new Uint8Array(str.split('').map(c => c.c
 const COMMA = getAsciiBytes(',');
 
 const handleSearch = async (url: URL) => {
-  queryRunner.reset();
-
   // NOTE: Just because there are no valid words does not mean that there are no valid results.
   // For example, excluding an invalid word actually results in all entries matching.
   const query = parseQuery(url.searchParams.getAll('t'));
@@ -404,6 +412,7 @@ const handleSearch = async (url: URL) => {
     return responseDefaultResults();
   }
 
+  queryRunner.reset();
   const indexQueryData = await buildIndexQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
   console.log('Query built');
 
