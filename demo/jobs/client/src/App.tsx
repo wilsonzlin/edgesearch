@@ -38,9 +38,11 @@ class Result {
 
   [ViewTemplate] = (
     <div className={styles.Result}>
-      <p>{this.date} | {this.company}</p>
-      <p>{this.location}</p>
-      <h2><a href={this.url} target="_blank" rel="noopener">{this.title}</a></h2>
+      <h2 className={styles.ResultTitle}><a href={this.url} target="_blank" rel="noopener">{this.title}</a></h2>
+      <div className={styles.ResultSubtitle}>
+        <p>{this.date} | {this.company}</p>
+        <p>{this.location}</p>
+      </div>
       <p hidden={this.expanded}>{this.preview}</p>
       <button hidden={this.expanded} onClick={this.expandButtonClickHandler}>More</button>
       <p hidden={!this.expanded}>{this.description}</p>
@@ -60,10 +62,16 @@ export class App {
     const query = new Edgesearch.Query();
     for (const $input of $form.elements) {
       if ($input instanceof HTMLInputElement) {
-        query.add(
-          Edgesearch.Mode.REQUIRE,
-          ...$input.value.split(/[^a-zA-Z0-9]+/).filter(t => t).map(t => `${$input.name}_${t.toLowerCase()}`),
-        );
+        for (const term of $input.value.split(/\s+/)) {
+          const [_, prefix, word] = /^([-~]?)([a-zA-Z0-9]+)$/.exec(term) || [];
+          if (!word) {
+            continue;
+          }
+          query.add(
+            prefix === '-' ? Edgesearch.Mode.EXCLUDE : prefix === '~' ? Edgesearch.Mode.CONTAIN : Edgesearch.Mode.REQUIRE,
+            `${$input.name}_${word.toLowerCase()}`,
+          );
+        }
       }
     }
 
@@ -73,14 +81,14 @@ export class App {
 
   [ViewTemplate] = (
     <div className={styles.App}>
-      <form onSubmit={this.formSubmitHandler}>
+      <form className={styles.Form} onSubmit={this.formSubmitHandler}>
         <input name="company" placeholder="Company"/>
         <input name="title" placeholder="Title"/>
         <input name="location" placeholder="Location"/>
         <input name="description" placeholder="Description"/>
         <button type="submit">Search</button>
       </form>
-      <div>
+      <div className={styles.Results}>
         {this.results}
       </div>
     </div>
