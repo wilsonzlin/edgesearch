@@ -383,7 +383,7 @@
       for (const job of jobs) {
         const $job = import_template($template_job);
         $('.job-title-link', $job).textContent = job.title;
-        $('.job-title-link', $job).href = `https://careers.microsoft.com/us/en/job/${job.ID}`;
+        $('.job-title-link', $job).href = job.url;
         $('.job-location', $job).textContent = job.location;
         $('.job-description', $job).textContent = job.description;
         const [year, month, day] = job.date.split('-').map(v => Number.parseInt(v, 10));
