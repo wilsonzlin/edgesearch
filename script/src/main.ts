@@ -17,8 +17,6 @@ declare var MAX_QUERY_TERMS: number;
 // Maximum amount of results returned at once.
 declare var MAX_RESULTS: number;
 
-const exists = <V> (val: V | undefined): val is V => val !== undefined;
-
 // Easy reading and writing of memory sequentially without having to manage and update offsets/positions/pointers.
 class MemoryWalker {
   private readonly dataView: DataView;
@@ -246,7 +244,12 @@ const allocateKey = (key: string | number) => {
   }
 };
 
-const findInChunks = async (key: string | number, chunksIdPrefix: string): Promise<ArrayBuffer | undefined> => {
+type ChunkRef = {
+  id: number;
+  midPos: number;
+};
+
+const findContainingChunk = (key: string | number): ChunkRef | undefined => {
   let chunkRefPtr;
   let cKey = allocateKey(key);
   if (typeof cKey == 'number') {
@@ -255,7 +258,7 @@ const findInChunks = async (key: string | number, chunksIdPrefix: string): Promi
     chunkRefPtr = queryRunner.find_chunk_containing_term(cKey.ptr, cKey.len);
   }
 
-  console.log('Found chunk');
+  console.log('Found containing chunk');
   if (chunkRefPtr === 0) {
     return undefined;
   }
@@ -263,16 +266,62 @@ const findInChunks = async (key: string | number, chunksIdPrefix: string): Promi
   const chunkId = chunkRef.readUInt32LE();
   const chunkMidPos = chunkRef.readUInt32LE();
 
-  const chunkData = await KV.get(`${chunksIdPrefix}${chunkId}`, 'arrayBuffer');
-  console.log('Fetched chunk from KV');
+  return {id: chunkId, midPos: chunkMidPos};
+};
 
-  // We need to reset as otherwise we might end up storing 50 * 10 MiB chunks in memory.
-  queryRunner.reset();
-  const chunkPtr = queryRunner.malloc(chunkData.byteLength);
-  queryRunnerMemory.forkAndJump(chunkPtr).writeAll(new Uint8Array(chunkData));
+const fetchChunk = async (chunkIdPrefix: string, chunkId: number): Promise<ArrayBuffer> => {
+  const chunkData = await KV.get(`${chunkIdPrefix}${chunkId}`, 'arrayBuffer');
+  console.log('Fetched chunk from KV');
+  return chunkData;
+};
+
+const compareKey = (a: string | number, b: string | number): number => {
+  return typeof a == 'number' ? a - (b as number) : (a as string).localeCompare(b as string);
+};
+
+const extractKeyAtPosInBstChunkJs = (chunk: MemoryWalker, type: 'string' | 'number'): string | number => {
+  if (type == 'string') {
+    // Keep in sync with build::packed::PackedStrKey.
+    const len = chunk.readUInt8();
+    return textDecoder.decode(chunk.readSlice(len));
+  } else {
+    // Keep in sync with build::PackedU32Key.
+    return chunk.readUInt32LE();
+  }
+};
+
+const searchInBstChunkJs = (chunk: MemoryWalker, targetKey: string | number): ArrayBuffer | undefined => {
+  while (true) {
+    const currentKey = extractKeyAtPosInBstChunkJs(chunk, typeof targetKey as any);
+    // Keep in sync with build::packed::bst::BST::_serialise_node.
+    const leftPos = chunk.readInt32LE();
+    const rightPos = chunk.readInt32LE();
+    const valueLen = chunk.readUInt32LE();
+    const cmp = compareKey(targetKey, currentKey);
+    if (cmp < 0) {
+      if (leftPos == -1) {
+        break;
+      }
+      chunk.jumpTo(leftPos);
+    } else if (cmp == 0) {
+      console.log('Found entry in chunk');
+      return chunk.readSlice(valueLen);
+    } else {
+      if (rightPos == -1) {
+        break;
+      }
+      chunk.jumpTo(rightPos);
+    }
+  }
+  console.log('Searched failed to find entry in chunk');
+  return undefined;
+};
+
+const searchInBstChunk = (chunk: ArrayBuffer, chunkMidPos: number, key: string | number): ArrayBuffer | undefined => {
+  const chunkPtr = queryRunner.malloc(chunk.byteLength);
+  queryRunnerMemory.forkAndJump(chunkPtr).writeAll(new Uint8Array(chunk));
+  const cKey = allocateKey(key);
   let entryPtr;
-  // Reallocate since we've just reset the heap.
-  cKey = allocateKey(key);
   if (typeof cKey == 'number') {
     entryPtr = queryRunner.search_bst_chunk_for_doc(chunkPtr, chunkMidPos, cKey);
   } else {
@@ -286,6 +335,49 @@ const findInChunks = async (key: string | number, chunksIdPrefix: string): Promi
   const entry = queryRunnerMemory.forkAndJump(entryPtr);
   const entryLen = entry.readUInt32LE();
   return entry.readAndDereferencePointer().readSlice(entryLen);
+};
+
+const findAllInChunks = async (chunkIdPrefix: string, keys: (string | number)[]): Promise<ArrayBuffer[]> => {
+  // Group by chunk to avoid repeated fetches and memory management.
+  const chunks = new Map<number, {
+    keys: (string | number)[];
+    midPos: number;
+  }>();
+  for (const key of keys) {
+    const chunkRef = findContainingChunk(key);
+    if (!chunkRef) {
+      continue;
+    }
+    if (!chunks.has(chunkRef.id)) {
+      chunks.set(chunkRef.id, {
+        keys: [],
+        midPos: chunkRef.midPos,
+      });
+    }
+    chunks.get(chunkRef.id)!.keys.push(key);
+  }
+
+  // We want to process chunks one by one as otherwise we will run into memory limits
+  // from fetching and allocating memory for too many at once.
+  // TODO Change to queue for some concurrency.
+  const results = [];
+  for (const [chunkId, {keys, midPos}] of chunks.entries()) {
+    const chunkData = await fetchChunk(chunkIdPrefix, chunkId);
+    // We need to reset as otherwise we might overflow memory with unused previous chunks.
+    // queryRunner.reset();
+    // const res = searchInBstChunk(chunkData, chunkRef.midPos, key);
+    for (const key of keys) {
+      const res = searchInBstChunkJs(
+        new MemoryWalker(chunkData).jumpTo(midPos),
+        key,
+      );
+      if (!res) {
+        continue;
+      }
+      results.push(res);
+    }
+  }
+  return results;
 };
 
 // Keep order in sync with mode_t.
@@ -342,14 +434,8 @@ const readResult = (result: MemoryWalker): QueryResult => {
 };
 
 const findSerialisedTermBitmaps = (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> =>
-  Promise.all(
-    query.map(modeTerms => Promise.all(
-      modeTerms.map(term =>
-        // Keep in sync with deploy/mod.rs.
-        findInChunks(term, 'terms_'),
-      ),
-    )),
-  );
+  // Keep in sync with deploy/mod.rs.
+  Promise.all(query.map(modeTerms => findAllInChunks('terms_', modeTerms)));
 
 const buildIndexQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
@@ -435,10 +521,9 @@ const handleSearch = async (url: URL) => {
   // The buffers represent parts of the UTF-8 encoded JSON serialised response bytes.
   const jsonResPrefix = getAsciiBytes(`{"total":${result.total},"continuation":${result.continuation},"results":[`);
   const jsonResSuffix = getAsciiBytes(`]}`);
-  const documents = (await Promise.all(result.documents.map(docId =>
-    // Each document should be a JSON serialised value encoded in UTF-8.
-    findInChunks(docId, 'doc_'),
-  ))).filter(exists).map(d => new Uint8Array(d));
+  // Each document should be a JSON serialised value encoded in UTF-8.
+  const documents = (await findAllInChunks('doc_', result.documents))
+    .map(d => new Uint8Array(d));
   console.log('Documents fetched');
 
   const stream = new TransformStream();
