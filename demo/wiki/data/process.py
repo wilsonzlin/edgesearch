@@ -43,6 +43,3 @@ for (title, _) in sorted_titles:
         f_terms.write(term)
         f_terms.write('\0')
     f_terms.write('\0')
-
-with open(OUT_DIR + '/build/default.json', 'w') as f:
-    f.write('[]')

@@ -4,7 +4,7 @@ A simple and fast English Wikipedia search, built as a demo for [Edgesearch](htt
 
 ## Data
 
-The service uses article titles ranked by page views to build the index, sourced from [Wikistats](https://dumps.wikimedia.org/other/pagecounts-ez/). [process.py](./data/process.py) takes a path to the data as the first argument and outputs `docs.txt`, `terms.txt`, and `default.json` to `data/build`, necessary for [Edgesearch](https://github.com/wilsonzlin/edgesearch) to build the worker.
+The service uses article titles ranked by page views to build the index, sourced from [Wikistats](https://dumps.wikimedia.org/other/pagecounts-ez/). [process.py](./data/process.py) takes a path to the data as the first argument and outputs `docs.txt` and `terms.txt` to `data/build`, necessary for [Edgesearch](https://github.com/wilsonzlin/edgesearch) to build the worker.
 
 ## Worker
 

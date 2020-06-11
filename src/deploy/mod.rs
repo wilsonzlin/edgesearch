@@ -22,7 +22,6 @@ struct UploadState {
 pub struct DeployConfig {
     pub account_email: String,
     pub account_id: String,
-    pub default_results: String,
     pub global_api_key: String,
     pub name: String,
     pub namespace: Option<String>,
@@ -41,7 +40,6 @@ macro_rules! update_and_save_upload_state {
 pub fn deploy(DeployConfig {
     account_email,
     account_id,
-    default_results,
     global_api_key,
     name,
     namespace,
@@ -66,9 +64,6 @@ pub fn deploy(DeployConfig {
             next_documents_chunk: 0,
             next_terms_chunk: 0,
         });
-
-        println!("Uploading default results...");
-        upload_kv(&client, &auth, "default", default_results.into_bytes(), &kv_namespace);
 
         for (package_id, package) in ChunksReader::new(&output_dir, "documents").enumerate() {
             if package_id < upload_state.next_documents_chunk {

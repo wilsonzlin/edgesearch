@@ -36,7 +36,6 @@ const FIELDS = ['company', 'description', 'location', 'title'];
   await Promise.all([
     fs.promises.writeFile(path.join(BUILD, 'docs.txt'), documents.join('')),
     fs.promises.writeFile(path.join(BUILD, 'terms.txt'), terms.join('')),
-    fs.promises.writeFile(path.join(BUILD, 'default.json'), '[]'),
   ]);
 })()
   .catch(console.error);

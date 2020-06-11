@@ -10,10 +10,12 @@ declare var KV: WorkersKVNamespace;
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
 // Following variables are set by build/js.rs.
-// Maximum amount of bytes a query can be.
-declare var MAX_QUERY_BYTES: number;
+// Total number of documents.
+declare var DOCUMENT_COUNT: number;
 // Maximum amount of terms a query can have across all modes.
 declare var MAX_QUERY_TERMS: number;
+// Maximum amount of results returned at once.
+declare var MAX_RESULTS: number;
 
 const exists = <V> (val: V | undefined): val is V => val !== undefined;
 
@@ -230,8 +232,6 @@ const responseRawJson = (json: string, status = 200) => new Response(json, {
   },
 });
 
-const responseDefaultResults = async () => responseRawJson(`{"results":${await KV.get('default', 'text')},"continuation":null,"total":0}`);
-
 const responseNoResults = async () => responseRawJson(`{"results":[],"continuation":null,"total":0}`);
 
 const allocateKey = (key: string | number) => {
@@ -408,19 +408,27 @@ const handleSearch = async (url: URL) => {
   }
   modeTermBitmaps[1] = modeTermBitmaps[1].filter(bm => bm);
   modeTermBitmaps[2] = modeTermBitmaps[2].filter(bm => bm);
+
+  let result: QueryResult;
   if (modeTermBitmaps.every(modeTerms => !modeTerms.length)) {
-    return responseDefaultResults();
+    console.log('Using default results');
+    const after = continuation + MAX_RESULTS;
+    result = {
+      continuation: DOCUMENT_COUNT > after ? after : null,
+      documents: Array.from({length: MAX_RESULTS}, (_, i) => continuation + i).filter(docId => docId >= 0 && docId < DOCUMENT_COUNT),
+      total: DOCUMENT_COUNT,
+    };
+  } else {
+    queryRunner.reset();
+    const indexQueryData = await buildIndexQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
+    console.log('Query built');
+    const maybeResult = await executePostingsListQuery(indexQueryData);
+    if (!maybeResult) {
+      throw new Error(`Failed to execute query`);
+    }
+    result = maybeResult;
+    console.log('Query executed');
   }
-
-  queryRunner.reset();
-  const indexQueryData = await buildIndexQuery(continuation, modeTermBitmaps as ArrayBuffer[][]);
-  console.log('Query built');
-
-  const result = await executePostingsListQuery(indexQueryData);
-  if (!result) {
-    throw new Error(`Failed to execute query`);
-  }
-  console.log('Query executed');
 
   // We want to avoid JSON.{parse,stringify} as they take up a lot of CPU time and often cause timeout exceptions in CF Workers for large payloads.
   // So, we manually build our response with buffers, as that's how documents are stored.

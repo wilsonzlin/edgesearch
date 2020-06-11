@@ -107,7 +107,6 @@ pub fn compile_to_wasm(WasmCompileArgs {
 pub fn generate_and_compile_runner_wasm(
     output_dir: &PathBuf,
     max_results: usize,
-    max_query_bytes: usize,
     max_query_terms: usize,
     terms_chunks_raw: &str,
     terms_chunks_len: usize,
@@ -138,7 +137,6 @@ pub fn generate_and_compile_runner_wasm(
         ignore_warnings: &vec![WasmCompileWarning::UnusedFunction],
         macros: &[
             ("MAX_RESULTS", format!("{}", max_results).as_str()),
-            ("MAX_QUERY_BYTES", format!("{}", max_query_bytes).as_str()),
             ("MAX_QUERY_TERMS", format!("{}", max_query_terms).as_str()),
         ],
         input: &source_path,

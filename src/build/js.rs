@@ -4,15 +4,17 @@ use std::path::PathBuf;
 
 const WORKER_JS_TEMPLATE: &'static str = include_str!("../../script/dist/main.js");
 
-pub fn generate_worker_js(output_dir: &PathBuf, max_query_bytes: usize, max_query_terms: usize) -> () {
+pub fn generate_worker_js(output_dir: &PathBuf, document_count: usize, max_query_terms: usize, max_results: usize) -> () {
     let js = WORKER_JS_TEMPLATE
         // Keep in sync with variables declared in script/src/main.ts.
         .replace(r#""use strict";"#, format!(r#"
-            const MAX_QUERY_BYTES = {MAX_QUERY_BYTES};
+            const DOCUMENT_COUNT = {DOCUMENT_COUNT};
             const MAX_QUERY_TERMS = {MAX_QUERY_TERMS};
+            const MAX_RESULTS = {MAX_RESULTS};
         "#,
-            MAX_QUERY_BYTES = max_query_bytes,
+            DOCUMENT_COUNT = document_count,
             MAX_QUERY_TERMS = max_query_terms,
+            MAX_RESULTS = max_results,
         ).as_str());
 
     File::create(output_dir.join("worker.js")).expect("create worker.js file").write_all(js.as_bytes()).expect("write worker.js");

@@ -77,7 +77,6 @@ The data needs to be formatted into three files:
 
 - *Documents*: contents of all documents, delimited by NULL ('\0'), including at the end.
 - *Document terms*: terms for each corresponding document. Each term and document must end with NULL ('\0').
-- *Default results*: the JSON-serialised array of results to return when not querying by any term.
 
 This format allows for simple reading and writing without libraries, parsers, or loading data into memory.
 Terms are separate from documents for easy switching between or testing of different documents-terms mappings.
@@ -92,7 +91,6 @@ For example:
 |---|---|
 |documents.txt|`{"title":"Stupid Love","artist":"Lady Gaga","year":2020}` `\0` <br> `{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}` `\0` <br> ...|
 |document-terms.txt|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
-|default-results.json|`[{"title":"Stupid Love","artist":"Lady Gaga","year":2020},{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}]`|
 
 An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other contents.
 
@@ -110,7 +108,6 @@ This will upload the worker script and associated WASM to Cloudflare Workers, an
 
 ```bash
 edgesearch deploy \
-  --default-results default-results.json \
   --account-id CF_ACCOUNT_ID \
   --account-email me@email.com \
   --global-api-key CF_GLOBAL_API_KEY \

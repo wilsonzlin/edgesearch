@@ -26,7 +26,6 @@ const KV_VALUE_MAX_SIZE: usize = 10 * 1024 * 1024;
 pub struct BuildConfig {
     pub document_terms_source: File,
     pub documents_source: File,
-    pub maximum_query_bytes: usize,
     pub maximum_query_results: usize,
     pub maximum_query_terms: usize,
     pub output_dir: PathBuf,
@@ -35,7 +34,6 @@ pub struct BuildConfig {
 pub fn build(BuildConfig {
     document_terms_source,
     documents_source,
-    maximum_query_bytes,
     maximum_query_results,
     maximum_query_terms,
     output_dir,
@@ -114,13 +112,13 @@ pub fn build(BuildConfig {
 
     generate_worker_js(
         &output_dir,
-        maximum_query_bytes,
+        terms_by_document.len(),
         maximum_query_terms,
+        maximum_query_results,
     );
     generate_and_compile_runner_wasm(
         &output_dir,
         maximum_query_results,
-        maximum_query_bytes,
         maximum_query_terms,
         terms_index_raw_lookup.as_str(),
         terms_index_serialised_entries.len(),

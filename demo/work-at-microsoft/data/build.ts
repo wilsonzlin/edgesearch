@@ -6,7 +6,6 @@ import {join} from 'path';
 const CACHE_DIR = join(__dirname, 'cache');
 const BUILD_DIR = join(__dirname, 'build');
 mkdirp.sync(BUILD_DIR);
-const DATA_DEFAULT = join(BUILD_DIR, 'default.json');
 const DATA_DOCS = join(BUILD_DIR, 'docs.txt');
 const DATA_TERMS = join(BUILD_DIR, 'terms.txt');
 
@@ -35,8 +34,6 @@ const extractWords = (sentence: string) => sentence
   .map(t => t.toLowerCase())
   .flatMap(t => WORD_MAP[t] || t);
 
-const SEARCH_RESULTS_MAX = 50;
-
 const withShortDescription = (j: any) => ({
   ...j,
   preview: undefined,
@@ -45,7 +42,6 @@ const withShortDescription = (j: any) => ({
 
 (async () => {
   const parsed = (await fetchAndParse({cacheDir: CACHE_DIR, companies: ['Microsoft']})).Microsoft;
-  await fs.writeFile(DATA_DEFAULT, JSON.stringify(parsed.slice(0, SEARCH_RESULTS_MAX).map(withShortDescription)));
 
   const contents = parsed.map((j: any) => JSON.stringify(withShortDescription(j)) + '\0').join('');
   const terms = parsed.map((job: any) =>
