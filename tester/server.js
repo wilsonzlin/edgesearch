@@ -6,7 +6,6 @@ const path = require('path');
 const args = minimist(process.argv.slice(2));
 
 const OUTPUT_DIR = args['output-dir'];
-const DEFAULT_RESULTS = args['default-results'];
 const PORT = args['port'];
 
 function* readChunks (file) {
@@ -40,15 +39,12 @@ global.Response = class Response {
   }
 };
 
-const defaultResults = fs.readFileSync(DEFAULT_RESULTS, 'utf8');
 const documentsChunks = [...readChunks(path.join(OUTPUT_DIR, 'documents.packed'))];
 const termsChunks = [...readChunks(path.join(OUTPUT_DIR, 'terms.packed'))];
 
 global.KV = {
   async get (key) {
-    if (key === 'default') {
-      return defaultResults;
-    } else if (key.startsWith('doc_')) {
+    if (key.startsWith('doc_')) {
       return documentsChunks[key.slice(4)];
     } else if (key.startsWith('terms_')) {
       return termsChunks[key.slice(13)];
