@@ -196,8 +196,6 @@ const queryRunner = wasmInstance.exports as {
   index_query (input: number): number;
   find_chunk_containing_term (termPtr: number, termLen: number): number;
   find_chunk_containing_doc (doc: number): number;
-  search_bst_chunk_for_term (chunkPtr: number, midPos: number, termPtr: number, termLen: number): number;
-  search_bst_chunk_for_doc (chunkPtr: number, midPos: number, doc: number): number;
 };
 
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
@@ -281,11 +279,11 @@ const compareKey = (a: string | number, b: string | number): number => {
 
 const extractKeyAtPosInBstChunkJs = (chunk: MemoryWalker, type: 'string' | 'number'): string | number => {
   if (type == 'string') {
-    // Keep in sync with build::packed::PackedStrKey.
+    // Keep in sync with build::chunks::ChunkStrKey.
     const len = chunk.readUInt8();
     return textDecoder.decode(chunk.readSlice(len));
   } else {
-    // Keep in sync with build::PackedU32Key.
+    // Keep in sync with build::ChunkU32Key.
     return chunk.readUInt32LE();
   }
 };
@@ -293,7 +291,7 @@ const extractKeyAtPosInBstChunkJs = (chunk: MemoryWalker, type: 'string' | 'numb
 const searchInBstChunkJs = (chunk: MemoryWalker, targetKey: string | number): ArrayBuffer | undefined => {
   while (true) {
     const currentKey = extractKeyAtPosInBstChunkJs(chunk, typeof targetKey as any);
-    // Keep in sync with build::packed::bst::BST::_serialise_node.
+    // Keep in sync with build::chunks::bst::BST::_serialise_node.
     const leftPos = chunk.readInt32LE();
     const rightPos = chunk.readInt32LE();
     const valueLen = chunk.readUInt32LE();
@@ -315,26 +313,6 @@ const searchInBstChunkJs = (chunk: MemoryWalker, targetKey: string | number): Ar
   }
   console.log('Searched failed to find entry in chunk');
   return undefined;
-};
-
-const searchInBstChunk = (chunk: ArrayBuffer, chunkMidPos: number, key: string | number): ArrayBuffer | undefined => {
-  const chunkPtr = queryRunner.malloc(chunk.byteLength);
-  queryRunnerMemory.forkAndJump(chunkPtr).writeAll(new Uint8Array(chunk));
-  const cKey = allocateKey(key);
-  let entryPtr;
-  if (typeof cKey == 'number') {
-    entryPtr = queryRunner.search_bst_chunk_for_doc(chunkPtr, chunkMidPos, cKey);
-  } else {
-    entryPtr = queryRunner.search_bst_chunk_for_term(chunkPtr, chunkMidPos, cKey.ptr, cKey.len);
-  }
-
-  console.log('Found entry in chunk');
-  if (entryPtr === 0) {
-    return undefined;
-  }
-  const entry = queryRunnerMemory.forkAndJump(entryPtr);
-  const entryLen = entry.readUInt32LE();
-  return entry.readAndDereferencePointer().readSlice(entryLen);
 };
 
 const findAllInChunks = async (chunkIdPrefix: string, keys: (string | number)[]): Promise<ArrayBuffer[]> => {

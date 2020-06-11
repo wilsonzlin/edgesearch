@@ -53,51 +53,6 @@ typedef struct {
   byte* ptr;
 } chunk_entry_t;
 
-chunk_entry_t* search_bst_chunk(byte* chunk, uint32_t mid_pos, bst_key_t key_type, str_or_uint32_t target_key) {
-  byte* pos = &chunk[mid_pos];
-  while (true) {
-    str_or_uint32_t cur_key;
-    if (key_type == KEY_NUM) {
-      cur_key.intval = *((uint32_t*) pos); pos += 4;
-    } else {
-      cur_key.strval.len = *pos; pos += 1;
-      cur_key.strval.val = (char*) pos; pos += cur_key.strval.len;
-    }
-    int32_t left_pos = *((int32_t*) pos); pos += 4;
-    int32_t right_pos = *((int32_t*) pos); pos += 4;
-    uint32_t val_len = *((uint32_t*) pos); pos += 4;
-    int key_cmp = compare_str_or_uint32(key_type, target_key, cur_key);
-    if (key_cmp < 0) {
-      if (left_pos == -1) break;
-      pos = &chunk[left_pos];
-    } else if (key_cmp == 0) {
-      chunk_entry_t* entry = malloc(sizeof(chunk_entry_t));
-      entry->len = val_len;
-      entry->ptr = pos;
-      return entry;
-    } else {
-      if (right_pos == -1) break;
-      pos = &chunk[right_pos];
-    }
-  }
-  return NULL;
-}
-
-WASM_EXPORT chunk_entry_t* search_bst_chunk_for_term(byte* chunk, uint32_t mid_pos, char* term, uint8_t term_len) {
-  str_t term_str;
-  term_str.len = term_len;
-  term_str.val = term;
-  str_or_uint32_t key;
-  key.strval = term_str;
-  return search_bst_chunk(chunk, mid_pos, KEY_STR, key);
-}
-
-WASM_EXPORT chunk_entry_t* search_bst_chunk_for_doc(byte* chunk, uint32_t mid_pos, doc_id_t doc) {
-  str_or_uint32_t key;
-  key.intval = doc;
-  return search_bst_chunk(chunk, mid_pos, KEY_NUM, key);
-}
-
 bst_chunk_ref_t* find_chunk(bst_chunk_ref_t chunks[], uint32_t chunks_len, bst_key_t key_type, str_or_uint32_t key) {
   int32_t lo = 0, hi = chunks_len - 1;
   while (true) {
