@@ -17,6 +17,8 @@ declare var MAX_QUERY_TERMS: number;
 // Maximum amount of results returned at once.
 declare var MAX_RESULTS: number;
 
+const exists = <V>(val: V | undefined): val is V => val !== undefined;
+
 // Easy reading and writing of memory sequentially without having to manage and update offsets/positions/pointers.
 class MemoryWalker {
   private readonly dataView: DataView;
@@ -315,14 +317,18 @@ const searchInBstChunkJs = (chunk: MemoryWalker, targetKey: string | number): Ar
   return undefined;
 };
 
-const findAllInChunks = async (chunkIdPrefix: string, keys: (string | number)[]): Promise<ArrayBuffer[]> => {
+const findAllInChunks = async (chunkIdPrefix: string, keys: (string | number)[]): Promise<(ArrayBuffer | undefined)[]> => {
+  const results = [];
   // Group by chunk to avoid repeated fetches and memory management.
   const chunks = new Map<number, {
-    keys: (string | number)[];
+    keys: [(string | number), number][];
     midPos: number;
   }>();
   for (const key of keys) {
     const chunkRef = findContainingChunk(key);
+    // We reserve a spot in `results` and keep track of it so that results are in the same order as `keys`,
+    // and missing keys have `undefined` and can be detected.
+    const resultIdx = results.push(undefined) - 1;
     if (!chunkRef) {
       continue;
     }
@@ -332,27 +338,22 @@ const findAllInChunks = async (chunkIdPrefix: string, keys: (string | number)[])
         midPos: chunkRef.midPos,
       });
     }
-    chunks.get(chunkRef.id)!.keys.push(key);
+    chunks.get(chunkRef.id)!.keys.push([key, resultIdx]);
   }
 
   // We want to process chunks one by one as otherwise we will run into memory limits
   // from fetching and allocating memory for too many at once.
-  // TODO Change to queue for some concurrency.
-  const results = [];
   for (const [chunkId, {keys, midPos}] of chunks.entries()) {
     const chunkData = await fetchChunk(chunkIdPrefix, chunkId);
     // We need to reset as otherwise we might overflow memory with unused previous chunks.
     // queryRunner.reset();
     // const res = searchInBstChunk(chunkData, chunkRef.midPos, key);
-    for (const key of keys) {
-      const res = searchInBstChunkJs(
-        new MemoryWalker(chunkData).jumpTo(midPos),
-        key,
-      );
-      if (!res) {
+    for (const [key, resultIdx] of keys) {
+      const entry = searchInBstChunkJs(new MemoryWalker(chunkData).jumpTo(midPos), key);
+      if (!entry) {
         continue;
       }
-      results.push(res);
+      results[resultIdx] = entry;
     }
   }
   return results;
@@ -501,6 +502,7 @@ const handleSearch = async (url: URL) => {
   const jsonResSuffix = getAsciiBytes(`]}`);
   // Each document should be a JSON serialised value encoded in UTF-8.
   const documents = (await findAllInChunks('doc_', result.documents))
+    .filter(exists)
     .map(d => new Uint8Array(d));
   console.log('Documents fetched');
 

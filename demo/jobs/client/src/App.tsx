@@ -3,12 +3,10 @@ import {OomlClass, ViewTemplate} from 'ooml';
 import styles from './App.css';
 
 type EdgesearchResult = {
-  company: string;
-  date: string;
-  description: string;
-  id: string;
-  location: string;
-  preview: string;
+  date?: string;
+  description?: string;
+  location?: string;
+  preview?: string;
   title: string;
   url: string;
 };
@@ -18,11 +16,10 @@ const client = new Edgesearch.Client<EdgesearchResult>('https://jobs.wlin.worker
 @OomlClass
 class Result {
   company: string = '';
-  date: string = '';
-  description: string = '';
-  id: string = '';
-  location: string = '';
-  preview: string = '';
+  date: string | undefined = '';
+  description: string | undefined = '';
+  location: string | undefined = '';
+  preview: string | undefined = '';
   title: string = '';
   url: string = '';
 
