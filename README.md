@@ -73,7 +73,7 @@ Precompiled binaries are available for x86-64:
 
 ### Build the worker
 
-The data needs to be formatted into three files:
+The data needs to be formatted into two files:
 
 - *Documents*: contents of all documents, delimited by NULL ('\0'), including at the end.
 - *Document terms*: terms for each corresponding document. Each term and document must end with NULL ('\0').
