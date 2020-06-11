@@ -8,8 +8,20 @@
   padding: 1rem;
 }
 
+.LoadingText {
+  font-size: 0.875rem;
+  color: #333;
+  padding: 0 1rem 1rem;
+}
+
+.LoadingText:empty {
+  display: none;
+}
+
 .Results {
   border-top: 1px solid #e0e0e0;
+  /* Invisible border at bottom to prevent margin of last .Result from leaking. */
+  border-bottom: 0.1px solid transparent;
   background: #f2f2f2;
 }
 

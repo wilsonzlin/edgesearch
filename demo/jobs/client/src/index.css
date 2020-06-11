@@ -2,10 +2,6 @@
   box-sizing: border-box;
 }
 
-::-moz-focus-inner {
-  border: 0;
-}
-
 [hidden] {
   display: none !important;
 }

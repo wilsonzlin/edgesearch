@@ -55,6 +55,7 @@ class Result {
 
 @OomlClass
 export class App {
+  loading: boolean = false;
   results: EdgesearchResult[] = [];
 
   formSubmitHandler = (e: Event) => {
@@ -77,8 +78,11 @@ export class App {
       }
     }
 
+    this.loading = true;
     client.search(query)
-      .then(results => this.results = results.results.map(r => Object.assign(new Result(), r)));
+      .then(results => this.results = results.results.map(r => Object.assign(new Result(), r)))
+      .catch(console.error)
+      .then(() => this.loading = false);
   };
 
   [ViewTemplate] = (
@@ -90,6 +94,7 @@ export class App {
         <input name="description" placeholder="Description"/>
         <button type="submit">Search</button>
       </form>
+      <p className={styles.LoadingText}>{this.loading ? 'Searching...' : ''}</p>
       <div className={styles.Results}>
         {this.results}
       </div>
