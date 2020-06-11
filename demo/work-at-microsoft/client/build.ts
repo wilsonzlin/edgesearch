@@ -1,13 +1,13 @@
-import {promises as fs} from 'fs';
-import Path from 'path';
-import CleanCSS from 'clean-css';
-import * as Hyperbuild from 'hyperbuild';
-import Handlebars from 'handlebars';
 import * as Babel from '@babel/core';
-import Terser from 'terser';
+import CleanCSS from 'clean-css';
+import {promises as fs} from 'fs';
+import Handlebars from 'handlebars';
+import * as Hyperbuild from 'hyperbuild';
+import mkdirp from 'mkdirp';
 import ncp from 'ncp';
+import Path, {join} from 'path';
+import Terser from 'terser';
 import {promisify} from 'util';
-import {join} from 'path';
 
 const DEBUG = process.env.MSC_DEBUG === '1';
 const GOOGLE_ANALYTICS = process.env.MSC_GA;
@@ -106,6 +106,7 @@ const minifyCSS = (css: string) => DEBUG ? css : new CleanCSS({
 const copyDir = promisify(ncp);
 
 (async () => {
+  await mkdirp(Path.join(CLIENT_DIST_DIR, 'assets'));
   await copyDir(Path.join(CLIENT_SRC_DIR, 'assets'), Path.join(CLIENT_DIST_DIR, 'assets'));
 
   await Promise.all([
@@ -115,6 +116,7 @@ const copyDir = promisify(ncp);
   ])
     .then(([js, css, html]) => Handlebars.compile(html)({
       analytics: GOOGLE_ANALYTICS && analyticsJs(GOOGLE_ANALYTICS),
+      fields: ['title', 'location', 'description'],
       script: js,
       style: css,
     }))

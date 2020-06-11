@@ -46,6 +46,8 @@
    */
 
   const client = new Edgesearch.Client('https://work-at-microsoft.wlin.workers.dev');
+  const msc_fields = new Set(['title', 'location', 'description']);
+  const msc_extract_words_fn = query => query.split(/\s+/).filter(w => w).map(w => w.toLowerCase());
 
   /*
    *
@@ -145,14 +147,6 @@
       }
     });
 
-    $input.addEventListener('keypress', e => {
-      const key = e.key.toLowerCase();
-      // Don't try to control spaces, as it makes it difficult to split and insert words at weird places
-      if (key != ' ' &&
-        !msc_valid_word_regex.test(key)) {
-        e.preventDefault();
-      }
-    });
     // Don't clean on "change" as that will break autocomplete insertion
     $input.addEventListener('paste', () => setTimeout(sanitise, 100));
     $input.addEventListener('input', () => {
@@ -180,9 +174,6 @@
 
       // val[start, end] == word (NOT [start, end)]
       const term = val.slice(start, end + 1);
-      if (!msc_valid_word_regex.test(term)) {
-        return;
-      }
 
       last_selection_start = start;
       last_selection_end = end;
@@ -292,7 +283,7 @@
     let ue_title = encodeURIComponent(document.title);
     let ue_url = encodeURIComponent(location.href);
     let ue_hostname = encodeURIComponent(location.hostname);
-    let ue_description = encodeURIComponent(msc_description);
+    let ue_description = encodeURIComponent('Explore Microsoft careers');
 
     for (const $link of $$share_links) {
       $link.href = {
@@ -367,14 +358,13 @@
         return;
       }
 
-      const {results: jobs, continuation} = data;
+      const {results: jobs, continuation, total: count} = data;
       next_continuation = continuation;
       if (next_continuation) {
         $jobs_next_page.disabled = false;
       }
 
-      const count = `${jobs.length}${continuation ? '+' : ''}`;
-      const plural = jobs.length != 1;
+      const plural = count != 1;
       const title = `${count} result${plural ? 's' : ''}`;
       const heading = `${count} match${plural ? 'es' : ''}`;
 
@@ -396,7 +386,7 @@
 
   $jobs_next_page.addEventListener('click', () => {
     location.hash = location.hash
-      .replace(/\|?from:\d+/g, '')
+        .replace(/\|?from:\d+/g, '')
       + '|from:' + next_continuation;
   });
 

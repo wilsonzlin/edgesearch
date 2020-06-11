@@ -2,11 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="utf8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no">
 
     <meta name="author" content="Wilson Lin">
-    <meta name="description" content="{{description}}">
+    <meta name="description" content="Explore Microsoft careers">
 
     <title>Work @ Microsoft</title>
 
@@ -19,8 +18,6 @@
     <meta name="application-name" content="Work @ Microsoft">
     <meta name="msapplication-TileColor" content="#fafafa">
     <meta name="theme-color" content="#fafafa">
-
-    {{{analytics}}}
   </head>
 
   <body>
@@ -71,7 +68,7 @@
 
       <h1 id="header-text-container" class="ms-fontColor-neutralLight">
         <!-- Need container so text can be inline and width animation to 100% goes to end of text not screen -->
-        <span id="header-text" style="width: 0">{{jobsCount}} careers</span>
+        <span id="header-text" style="width: 0">Microsoft careers</span>
       </h1>
 
       <div class="flex-spacer"></div>
@@ -169,16 +166,6 @@
     </div>
 
     <style>{{{style}}}</style>
-    <script>
-      const msc_description = "{{{description}}}";
-      const msc_extract_words_fn = {{{wordsExtractor}}};
-      const msc_valid_word_regex = {{{validWordRegExp}}};
-      const msc_fields = new Set([
-        {{#each fields}}
-          "{{this}}",
-        {{/each}}
-      ]);
-      {{{script}}}
-    </script>
+    <script>{{{script}}}</script>
   </body>
 </html>
