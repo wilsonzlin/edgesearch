@@ -34,7 +34,7 @@ jobs:
         working-directory: ./demo/jobs/data
         run: |
           npm install
-          npm run build
+          node get-data.js
       - name: Build worker
         working-directory: ./demo/jobs/worker
         run: |
