@@ -6,7 +6,7 @@ const path = require('path');
 const BUILD = path.join(__dirname, 'build');
 mkdirp.sync(BUILD);
 
-const COMPANIES = ['Amazon', 'Google', 'Microsoft'];
+const COMPANIES = ['Amazon', 'Facebook', 'Google', 'Microsoft'];
 const FIELDS = ['company', 'description', 'location', 'title'];
 
 (async () => {
@@ -25,7 +25,7 @@ const FIELDS = ['company', 'description', 'location', 'title'];
       job.company = company;
       documents.push(JSON.stringify(job), '\0');
       for (const field of FIELDS) {
-        for (const word of job[field].split(/[^a-zA-Z0-9]+/).filter(w => w).map(w => w.toLowerCase())) {
+        for (const word of (job[field] || '').split(/[^a-zA-Z0-9]+/).filter(w => w).map(w => w.toLowerCase())) {
           terms.push(`${field}_${word}`, '\0');
         }
       }

@@ -4,7 +4,7 @@
     "build": "ts-node build.ts"
   },
   "dependencies": {
-    "@wzlin/jobs": "0.0.7",
+    "@wzlin/jobs": "0.0.8",
     "mkdirp": "^1.0.4"
   },
   "devDependencies": {

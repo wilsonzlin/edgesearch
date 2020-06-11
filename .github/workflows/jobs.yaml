@@ -1,0 +1,51 @@
+name: Update and deploy Jobs demo
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  repository_dispatch:
+    types: [jobs-deploy]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '13.x'
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          default: true
+      - name: Build template worker script
+        working-directory: ./script
+        run: |
+          npm install
+          npm run build
+      - name: Set up Clang and LLVM
+        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+      - name: Build CLI
+        run: cargo build --release
+      - name: Fetch and build data
+        working-directory: ./demo/jobs/data
+        run: |
+          npm install
+          npm run build
+      - name: Build worker
+        working-directory: ./demo/jobs/worker
+        run: |
+          export PATH="/usr/lib/llvm-10/bin:$PATH"
+          bash ./build.sh
+      - name: Deploy worker
+        working-directory: ./demo/jobs/worker
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_ACCOUNT_EMAIL: ${{ secrets.CF_ACCOUNT_EMAIL }}
+          CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
+          CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_JOBS_ID }}
+          CF_WORKER_NAME: jobs
+        run: bash ./deploy.sh
