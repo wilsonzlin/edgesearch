@@ -67,9 +67,9 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 
 Precompiled binaries are available for x86-64:
 
-[Linux](https://wilsonl.in/edgesearch/bin/0.2.0-linux-x86_64) |
-[macOS](https://wilsonl.in/edgesearch/bin/0.2.0-macos-x86_64) |
-[Windows](https://wilsonl.in/edgesearch/bin/0.2.0-windows-x86_64.exe)
+[Linux](https://wilsonl.in/edgesearch/bin/0.3.0-linux-x86_64) |
+[macOS](https://wilsonl.in/edgesearch/bin/0.3.0-macos-x86_64) |
+[Windows](https://wilsonl.in/edgesearch/bin/0.3.0-windows-x86_64.exe)
 
 ### Build the worker
 
