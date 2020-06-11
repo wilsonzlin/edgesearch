@@ -188,7 +188,7 @@ checksum = "4358a9e11b9a09cf52383b451b49a169e8d797b68aa02301ff586d70d9661ea3"
 
 [[package]]
 name = "edgesearch"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "base64 0.11.0",
  "byteorder",
