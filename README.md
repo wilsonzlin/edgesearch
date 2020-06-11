@@ -27,7 +27,7 @@ To find the documents bit set associated with a term, a binary search is done to
 
 The same structure and process is used to store and retrieve document contents.
 
-Packing multiple bit sets/documents reduces read/write costs and deploy times, and improves caching.
+Packing multiple bit sets/documents reduces read/write costs and deploy times, and improves caching and execution speed due to fewer fetches.
 
 ### Searching
 
