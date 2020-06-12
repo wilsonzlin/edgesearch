@@ -40,6 +40,11 @@ jobs:
         run: |
           export PATH="/usr/lib/llvm-10/bin:$PATH"
           bash ./build.sh
+      - name: Build deployer
+        working-directory: ./deployer/cloudflare
+        run: |
+          npm install
+          npm run build
       - name: Deploy worker
         working-directory: ./demo/work-at-microsoft/worker
         env:
