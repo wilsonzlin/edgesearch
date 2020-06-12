@@ -104,10 +104,12 @@ edgesearch build \
 
 ### Deploy the worker
 
-This will upload the worker script and associated WASM to Cloudflare Workers, and write every key to Cloudflare Workers KV.
+[edgesearch-deploy-cloudflare](./deployer/cloudflare) handles deploying to Cloudflare.
+
+This will upload the worker script and associated WASM to Cloudflare Workers, and write every key to Cloudflare Workers KV:
 
 ```bash
-edgesearch deploy \
+npx edgesearch-deploy-cloudflare \
   --account-id CF_ACCOUNT_ID \
   --account-email me@email.com \
   --global-api-key CF_GLOBAL_API_KEY \
@@ -116,6 +118,20 @@ edgesearch deploy \
   --namespace CF_KV_NAMESPACE_ID \
   --upload-data
 ```
+
+### Testing locally
+
+[edgesearch-test-server](./tester) loads a built worker script and WASM binary to run locally.
+
+This will create a local server on port 8080:
+
+```bash
+npx edgesearch-test-server \
+  --output-dir /path/to/edgesearch/build/output/dir/ \
+  --port 8080
+```
+
+The client can be used with a local test server; provide the URL (most likely `http://localhost:8080`) to the constructor (see below).
 
 ### Calling the API
 

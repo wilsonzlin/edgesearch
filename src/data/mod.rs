@@ -3,7 +3,6 @@ use std::io::{BufRead, BufReader};
 
 pub mod document_terms;
 pub mod documents;
-pub mod chunks;
 
 fn read_null_terminated(reader: &mut BufReader<File>) -> Option<Vec<u8>> {
     let mut data = Vec::<u8>::new();

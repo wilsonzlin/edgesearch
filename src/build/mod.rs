@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::TryInto;
-use std::fs::File;
+use std::fs::{create_dir, File, remove_dir_all};
+use std::io::Write;
 use std::path::PathBuf;
 
 use croaring::Bitmap;
@@ -12,7 +13,6 @@ use crate::build::js::generate_worker_js;
 use crate::build::wasm::generate_and_compile_runner_wasm;
 use crate::data::document_terms::DocumentTermsReader;
 use crate::data::documents::DocumentsReader;
-use crate::data::chunks::write_chunks;
 use crate::util::format::{number, percent};
 use crate::util::log::status_log_interval;
 
@@ -100,7 +100,14 @@ pub fn build(BuildConfig {
     };
     let (terms_index_raw_lookup, terms_index_serialised_entries) = terms_index_builder.serialise();
     println!("{} chunks contain terms", number(terms_index_builder.chunk_count()));
-    write_chunks(&output_dir, "terms", &terms_index_serialised_entries);
+    let _ = remove_dir_all(output_dir.join("terms"));
+    create_dir(output_dir.join("terms")).expect("create terms chunks folder");
+    for (i, chunk) in terms_index_serialised_entries.iter().enumerate() {
+        let mut f = File::create(
+            output_dir.join("terms").join(format!("{}", i))
+        ).expect("open terms chunk file for writing");
+        f.write_all(chunk).expect("write terms chunk");
+    };
 
     let mut documents_builder = BstChunks::<ChunkU32Key>::new(KV_VALUE_MAX_SIZE);
     for (document_id, document) in DocumentsReader::new(documents_source) {
@@ -108,7 +115,14 @@ pub fn build(BuildConfig {
     };
     let (documents_raw_lookup, documents_serialised_entries) = documents_builder.serialise();
     println!("{} chunks contain documents", number(documents_builder.chunk_count()));
-    write_chunks(&output_dir, "documents", &documents_serialised_entries);
+    let _ = remove_dir_all(output_dir.join("documents"));
+    create_dir(output_dir.join("documents")).expect("create documents chunks folder");
+    for (i, chunk) in documents_serialised_entries.iter().enumerate() {
+        let mut f = File::create(
+            output_dir.join("documents").join(format!("{}", i))
+        ).expect("open documents chunk file for writing");
+        f.write_all(chunk).expect("write documents chunk");
+    };
 
     generate_worker_js(
         &output_dir,

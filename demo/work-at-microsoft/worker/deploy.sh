@@ -4,7 +4,7 @@ set -euo pipefail
 
 pushd "$(dirname "$0")" >/dev/null
 
-../../../target/release/edgesearch deploy \
+../../../deployer/cloudflare/dist/main.js \
   --account-id $CF_ACCOUNT_ID \
   --account-email $CF_ACCOUNT_EMAIL \
   --global-api-key $CF_GLOBAL_API_KEY \

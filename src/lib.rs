@@ -3,7 +3,6 @@
 mod util;
 mod data;
 pub mod build;
-pub mod deploy;
 
 // JavaScript and Roaring Bitmaps only support 32-bit integers.
 #[allow(dead_code)]
