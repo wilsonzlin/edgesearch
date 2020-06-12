@@ -131,7 +131,7 @@ npx edgesearch-test-server \
   --port 8080
 ```
 
-The client can be used with a local test server; provide the URL (most likely `http://localhost:8080`) to the constructor (see below).
+The client can be used with a local test server; provide the origin (e.g. `http://localhost:8080`) to the constructor (see below).
 
 ### Calling the API
 
