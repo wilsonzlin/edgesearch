@@ -19,7 +19,7 @@ Edgesearch builds a reverse index by mapping terms to a compressed bit set (usin
 
 ### Data
 
-An array of term-documents pairs sorted by term is built, where **term** is a string and **documents** is a compressed bit set.
+An array of term-documents pairs sorted by term is built, where *term* is a string and *documents* is a compressed bit set.
 
 This array is then split into chunks of up to 10 MiB, as each Cloudflare Workers KV entry can hold a value up to 10 MiB in size.
 
