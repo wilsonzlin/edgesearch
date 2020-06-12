@@ -95,7 +95,7 @@ For example:
 An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other contents.
 
 ```bash
-edgesearch build \
+edgesearch \
   --documents documents.txt \
   --document-terms document-terms.txt \
   --maximum-query-results 20 \
