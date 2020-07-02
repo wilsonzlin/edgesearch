@@ -16,10 +16,10 @@ const client = new Edgesearch.Client<EdgesearchResult>('https://jobs.wlin.worker
 @OomlClass
 class Result {
   company: string = '';
-  date: string | undefined = '';
-  description: string | undefined = '';
-  location: string | undefined = '';
-  preview: string | undefined = '';
+  date: string | undefined = undefined;
+  description: string | undefined = undefined;
+  location: string | undefined = undefined;
+  preview: string | undefined = undefined;
   title: string = '';
   url: string = '';
 
@@ -37,7 +37,7 @@ class Result {
     <div className={styles.Result}>
       <h2 className={styles.ResultTitle}><a href={this.url} target="_blank" rel="noopener">{this.title}</a></h2>
       <div className={styles.ResultSubtitle}>
-        <p>{this.date} | {this.company}</p>
+        <p>{[this.date, this.company].filter(v => v).join(' | ')}</p>
         <p>{this.location}</p>
       </div>
       <p className={styles.ResultDescription} hidden={this.expanded}>{this.preview}</p>
