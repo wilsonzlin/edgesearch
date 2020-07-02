@@ -16,10 +16,10 @@ const client = new Edgesearch.Client<EdgesearchResult>('https://jobs.wlin.worker
 @OomlClass
 class Result {
   company: string = '';
-  date: string | undefined = undefined;
-  description: string | undefined = undefined;
-  location: string | undefined = undefined;
-  preview: string | undefined = undefined;
+  date: string | undefined = '';
+  description: string | undefined = '';
+  location: string | undefined = '';
+  preview: string | undefined = '';
   title: string = '';
   url: string = '';
 
