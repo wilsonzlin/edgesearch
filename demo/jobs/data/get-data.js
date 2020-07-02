@@ -6,7 +6,7 @@ const path = require('path');
 const BUILD = path.join(__dirname, 'build');
 mkdirp.sync(BUILD);
 
-const COMPANIES = ['Amazon', 'Facebook', 'Google', 'Microsoft'];
+const COMPANIES = ['Apple', 'Amazon', 'Facebook', 'Google', 'Microsoft'];
 const FIELDS = ['company', 'description', 'location', 'title'];
 
 (async () => {
