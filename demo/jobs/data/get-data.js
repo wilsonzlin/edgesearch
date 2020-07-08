@@ -14,23 +14,22 @@ const FIELDS = ['company', 'description', 'location', 'title'];
     cacheDir: path.join(__dirname, 'cache'),
     companies: COMPANIES,
   });
+  const rawJobsSorted = COMPANIES.flatMap(c => rawJobs[c]).sort((a, b) => b.date.localeCompare(a.date));
 
   await fs.promises.writeFile(path.join(BUILD, 'jobs.json'), JSON.stringify(rawJobs));
 
   const documents = [];
   const terms = [];
 
-  for (const company of COMPANIES) {
-    for (const job of rawJobs[company]) {
-      job.company = company;
-      documents.push(JSON.stringify(job), '\0');
-      for (const field of FIELDS) {
-        for (const word of (job[field] || '').split(/[^a-zA-Z0-9]+/).filter(w => w).map(w => w.toLowerCase())) {
-          terms.push(`${field}_${word}`, '\0');
-        }
+  for (const job of rawJobsSorted) {
+    job.company = company;
+    documents.push(JSON.stringify(job), '\0');
+    for (const field of FIELDS) {
+      for (const word of (job[field] || '').split(/[^a-zA-Z0-9]+/).filter(w => w).map(w => w.toLowerCase())) {
+        terms.push(`${field}_${word}`, '\0');
       }
-      terms.push('\0');
     }
+    terms.push('\0');
   }
 
   await Promise.all([
