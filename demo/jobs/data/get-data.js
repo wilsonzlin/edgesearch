@@ -14,7 +14,7 @@ const FIELDS = ['company', 'description', 'location', 'title'];
     cacheDir: path.join(__dirname, 'cache'),
     companies: COMPANIES,
   });
-  const rawJobsSorted = COMPANIES.flatMap(c => rawJobs[c]).sort((a, b) => b.date.localeCompare(a.date));
+  const rawJobsSorted = COMPANIES.flatMap(c => rawJobs[c]).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
   await fs.promises.writeFile(path.join(BUILD, 'jobs.json'), JSON.stringify(rawJobs));
 
