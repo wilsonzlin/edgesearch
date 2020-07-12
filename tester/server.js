@@ -8,21 +8,12 @@ const args = minimist(process.argv.slice(2));
 const OUTPUT_DIR = args['output-dir'];
 const PORT = args['port'];
 
-function* readChunks (file) {
-  const fd = fs.openSync(file);
-  const u32Buffer = Buffer.alloc(4);
-  while (fs.readSync(fd, u32Buffer, 0, 4)) {
-    const chunkLen = u32Buffer.readUInt32BE(0);
-    const buffer = Buffer.alloc(chunkLen);
-    fs.readSync(fd, buffer, 0, chunkLen);
-    yield buffer.buffer;
-  }
-}
-
 const workerScript = fs.readFileSync(path.join(OUTPUT_DIR, 'worker.js'), 'utf8');
 const runnerWasm = fs.readFileSync(path.join(OUTPUT_DIR, 'runner.wasm'));
 
 let onFetch;
+
+const readBuffer = path => fs.promises.readFile(path).then(res => res.buffer);
 
 global.Response = class Response {
   constructor (body = null, init = {}) {
@@ -39,15 +30,32 @@ global.Response = class Response {
   }
 };
 
-const documentsChunks = [...readChunks(path.join(OUTPUT_DIR, 'documents.packed'))];
-const termsChunks = [...readChunks(path.join(OUTPUT_DIR, 'terms.packed'))];
+global.TransformStream = class TransformStream {
+  constructor () {
+    this.bufferedWrites = [];
+    this.writer = {
+      write: data => this.bufferedWrites.push(data),
+      releaseLock: () => void 0,
+    };
+  }
+
+  get readable() {
+    return Buffer.concat(this.bufferedWrites);
+  }
+
+  get writable() {
+    return {
+      getWriter: () => this.writer,
+    };
+  }
+}
 
 global.KV = {
   async get (key) {
     if (key.startsWith('doc_')) {
-      return documentsChunks[key.slice(4)];
+      return readBuffer(path.join(OUTPUT_DIR, 'documents', key.slice(4)));
     } else if (key.startsWith('terms_')) {
-      return termsChunks[key.slice(13)];
+      return readBuffer(path.join(OUTPUT_DIR, 'terms', key.slice(13)));
     } else {
       throw new Error(`Unknown KV key: ${key}`);
     }
