@@ -68,7 +68,10 @@ const cli = sacli.build({
           kvNamespaceId: args['namespace'],
           outputDir: args['output-dir'],
           uploadData: !!args['upload-data'],
-        }).catch(console.error);
+        }).catch(err => {
+          console.error(err);
+          process.exit(1);
+        });
       },
     },
   ],
