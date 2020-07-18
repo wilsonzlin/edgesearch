@@ -176,7 +176,7 @@ const formatFromVarargs = (mem: MemoryWalker): string => mem
     return SPECIFIER_FORMATTERS[type](rawValue);
   }));
 
-const wasmMemory = new WebAssembly.Memory({initial: 2048});
+const wasmMemory = new WebAssembly.Memory({initial: 1024});
 
 const wasmInstance = new WebAssembly.Instance(QUERY_RUNNER_WASM, {
   env: {
@@ -230,7 +230,7 @@ const responseRawJson = (json: string, status = 200) => new Response(json, {
   },
 });
 
-const responseNoResults = async () => responseRawJson(`{"results":[],"continuation":null,"total":0}`);
+const responseNoResults = () => responseRawJson(`{"results":[],"continuation":null,"total":0}`);
 
 const allocateKey = (key: string | number) => {
   if (typeof key == 'string') {
