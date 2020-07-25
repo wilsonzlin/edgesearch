@@ -1,0 +1,11 @@
+[package]
+name = "edgesearch-demo-wiki-data-processor"
+version = "0.0.1"
+authors = ["Wilson Lin <code@wilsonl.in>"]
+edition = "2018"
+
+[dependencies]
+lazy_static = "1.4"
+regex = "1.3"
+serde_json = "1.0"
+structopt = "0.3"

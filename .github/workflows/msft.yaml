@@ -37,6 +37,9 @@ jobs:
           npm run build
       - name: Build worker
         working-directory: ./demo/work-at-microsoft/worker
+        env:
+          B2_DOMAIN: ${{ secrets.DEMO_B2_DOMAIN }}
+          B2_PATH: ${{ secrets.DEMO_B2_MSFT_PATH }}
         run: |
           export PATH="/usr/lib/llvm-10/bin:$PATH"
           bash ./build.sh
