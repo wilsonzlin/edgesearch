@@ -32,31 +32,30 @@ const makeRequest = <Result> ({
   auth: CFAuth;
   path: string;
   body: Buffer | FormData;
-}): Promise<CFResponse<Result>> =>
-  new Promise((resolve, reject) =>
-    request({
-      method,
-      uri: `https://api.cloudflare.com/client/v4/accounts/${auth.accountId}${path}`,
-      headers: {
-        'X-Auth-Email': auth.accountEmail,
-        'X-Auth-Key': auth.globalApiKey,
-      },
-      ...(body instanceof FormData ? {formData: body.entries} : {body}),
-    }, (error, {statusCode, body}) => {
-      if (error) {
-        return reject(error);
-      }
+}): Promise<CFResponse<Result>> => new Promise((resolve, reject) =>
+  request({
+    method,
+    uri: `https://api.cloudflare.com/client/v4/accounts/${auth.accountId}${path}`,
+    headers: {
+      'X-Auth-Email': auth.accountEmail,
+      'X-Auth-Key': auth.globalApiKey,
+    },
+    ...(body instanceof FormData ? {formData: body.entries} : {body}),
+  }, (error, {statusCode, body}) => {
+    if (error) {
+      return reject(error);
+    }
 
-      if (statusCode < 200 || statusCode > 299) {
-        return reject(new Error(`Request to ${path} failed with status ${statusCode}: ${body}`));
-      }
+    if (statusCode < 200 || statusCode > 299) {
+      return reject(new Error(`Request to ${path} failed with status ${statusCode}: ${body}`));
+    }
 
-      if (typeof body != 'string') {
-        return reject(new TypeError(`Received response that was not text: ${body}`));
-      }
+    if (typeof body != 'string') {
+      return reject(new TypeError(`Received response that was not text: ${body}`));
+    }
 
-      resolve(JSON.parse(body));
-    }));
+    resolve(JSON.parse(body));
+  }));
 
 export const uploadKv = ({
   auth,
@@ -68,13 +67,12 @@ export const uploadKv = ({
   key: string;
   value: Buffer;
   namespaceId: string;
-}) =>
-  makeRequest<undefined>({
-    auth,
-    method: 'PUT',
-    path: `/storage/kv/namespaces/${namespaceId}/values/${key}`,
-    body: value,
-  });
+}) => makeRequest<undefined>({
+  auth,
+  method: 'PUT',
+  path: `/storage/kv/namespaces/${namespaceId}/values/${key}`,
+  body: value,
+});
 
 export const publishWorker = ({
   auth,
@@ -87,33 +85,32 @@ export const publishWorker = ({
   name: string;
   script: Buffer;
   wasm: Buffer;
-  kvNamespaceId: string;
-}) =>
-  makeRequest<{
-    script: string;
-    etag: string;
-    size: number;
-    modified_on: string;
-  }>({
-    auth,
-    method: 'PUT',
-    path: `/workers/scripts/${name}`,
-    body: new FormData()
-      .add('metadata', JSON.stringify({
-        body_part: 'script',
-        bindings: [
-          {
-            name: 'QUERY_RUNNER_WASM',
-            type: 'wasm_module',
-            part: 'wasm',
-          },
-          {
-            name: 'KV',
-            type: 'kv_namespace',
-            namespace_id: kvNamespaceId,
-          },
-        ],
-      }))
-      .add('script', script)
-      .add('wasm', wasm),
-  });
+  kvNamespaceId: string | undefined;
+}) => makeRequest<{
+  script: string;
+  etag: string;
+  size: number;
+  modified_on: string;
+}>({
+  auth,
+  method: 'PUT',
+  path: `/workers/scripts/${name}`,
+  body: new FormData()
+    .add('metadata', JSON.stringify({
+      body_part: 'script',
+      bindings: [
+        {
+          name: 'QUERY_RUNNER_WASM',
+          type: 'wasm_module',
+          part: 'wasm',
+        },
+        kvNamespaceId && {
+          name: 'KV',
+          type: 'kv_namespace',
+          namespace_id: kvNamespaceId,
+        },
+      ].filter(b => b),
+    }))
+    .add('script', script)
+    .add('wasm', wasm),
+});

@@ -4,6 +4,7 @@ use std::fs::{create_dir, File, remove_dir_all};
 use std::io::Write;
 use std::path::PathBuf;
 
+use clap::arg_enum;
 use croaring::Bitmap;
 
 use crate::{Term, TermId};
@@ -20,10 +21,17 @@ mod js;
 mod chunks;
 mod wasm;
 
-// 10 MiB.
-const KV_VALUE_MAX_SIZE: usize = 10 * 1024 * 1024;
+arg_enum! {
+    pub enum DataStore {
+        URL,
+        KV,
+    }
+}
 
 pub struct BuildConfig {
+    pub chunk_size: usize,
+    pub data_store: DataStore,
+    pub data_store_url_prefix: Option<String>,
     pub document_terms_source: File,
     pub documents_source: File,
     pub maximum_query_results: usize,
@@ -32,6 +40,9 @@ pub struct BuildConfig {
 }
 
 pub fn build(BuildConfig {
+    chunk_size,
+    data_store,
+    data_store_url_prefix,
     document_terms_source,
     documents_source,
     maximum_query_results,
@@ -89,7 +100,7 @@ pub fn build(BuildConfig {
 
     println!("There are {} documents with {} terms", number(terms_by_document.len()), number(terms.len()));
 
-    let mut terms_index_builder = BstChunks::<ChunkStrKey>::new(KV_VALUE_MAX_SIZE);
+    let mut terms_index_builder = BstChunks::<ChunkStrKey>::new(chunk_size);
     let mut terms_sorted = (0..terms.len()).collect::<Vec<TermId>>();
     terms_sorted.sort_by(|a, b| terms[*a].cmp(&terms[*b]));
     for term_id in terms_sorted.iter() {
@@ -109,7 +120,7 @@ pub fn build(BuildConfig {
         f.write_all(chunk).expect("write terms chunk");
     };
 
-    let mut documents_builder = BstChunks::<ChunkU32Key>::new(KV_VALUE_MAX_SIZE);
+    let mut documents_builder = BstChunks::<ChunkU32Key>::new(chunk_size);
     for (document_id, document) in DocumentsReader::new(documents_source) {
         documents_builder.insert(ChunkU32Key::new(document_id.try_into().expect("too many documents")), document.as_bytes().to_vec());
     };
@@ -126,6 +137,8 @@ pub fn build(BuildConfig {
 
     generate_worker_js(
         &output_dir,
+        data_store,
+        data_store_url_prefix,
         terms_by_document.len(),
         maximum_query_terms,
         maximum_query_results,

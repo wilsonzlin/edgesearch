@@ -1,11 +1,3 @@
-type WorkersKVNamespace = {
-  get<T> (key: string, encoding: 'json'): Promise<T>;
-  get (key: string, encoding: 'text'): Promise<string>;
-  get (key: string, encoding: 'arrayBuffer'): Promise<ArrayBuffer>;
-}
-
-// Set by Cloudflare.
-declare var KV: WorkersKVNamespace;
 // Set by Cloudflare to the WebAssembly module that was uploaded alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
 
@@ -269,12 +261,6 @@ const findContainingChunk = (key: string | number): ChunkRef | undefined => {
   return {id: chunkId, midPos: chunkMidPos};
 };
 
-const fetchChunk = async (chunkIdPrefix: string, chunkId: number): Promise<ArrayBuffer> => {
-  const chunkData = await KV.get(`${chunkIdPrefix}${chunkId}`, 'arrayBuffer');
-  console.log('Fetched chunk from KV');
-  return chunkData;
-};
-
 const compareKey = (a: string | number, b: string | number): number => {
   return typeof a == 'number' ? a - (b as number) : (a as string).localeCompare(b as string);
 };
@@ -414,7 +400,7 @@ const readResult = (result: MemoryWalker): QueryResult => {
 
 const findSerialisedTermBitmaps = (query: ParsedQuery): Promise<(ArrayBuffer | undefined)[][]> =>
   // Keep in sync with deploy/mod.rs.
-  Promise.all(query.map(modeTerms => findAllInChunks('terms_', modeTerms)));
+  Promise.all(query.map(modeTerms => findAllInChunks('terms/', modeTerms)));
 
 const buildIndexQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[][]): Promise<Uint8Array> => {
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
@@ -501,7 +487,7 @@ const handleSearch = async (url: URL) => {
   const jsonResPrefix = getAsciiBytes(`{"total":${result.total},"continuation":${result.continuation},"results":[`);
   const jsonResSuffix = getAsciiBytes(`]}`);
   // Each document should be a JSON serialised value encoded in UTF-8.
-  const documents = (await findAllInChunks('doc_', result.documents))
+  const documents = (await findAllInChunks('documents/', result.documents))
     .filter(exists)
     .map(d => new Uint8Array(d));
   console.log('Documents fetched');

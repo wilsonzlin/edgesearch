@@ -16,5 +16,6 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 byteorder = "1.3.2"
+clap = "2.0"
 croaring = "0.4.4"
 structopt = "0.3.5"

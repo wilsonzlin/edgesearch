@@ -52,13 +52,11 @@ global.TransformStream = class TransformStream {
 
 global.KV = {
   async get (key) {
-    if (key.startsWith('doc_')) {
-      return readBuffer(path.join(OUTPUT_DIR, 'documents', key.slice(4)));
-    } else if (key.startsWith('terms_')) {
-      return readBuffer(path.join(OUTPUT_DIR, 'terms', key.slice(13)));
-    } else {
+    const [prefix, id] = key.split('/');
+    if (!['documents', 'terms'].includes(prefix) || !/^[0-9]+$/.test(id)) {
       throw new Error(`Unknown KV key: ${key}`);
     }
+    return readBuffer(path.join(OUTPUT_DIR, prefix, id));
   },
 };
 

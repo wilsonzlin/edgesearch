@@ -48,9 +48,14 @@ jobs:
       - name: Deploy worker
         working-directory: ./demo/jobs/worker
         env:
+          B2_BUCKET: ${{ secrets.CICD_CLI_B2_BUCKET_NAME }}
+          B2_DOMAIN: ${{ secrets.DEMO_B2_DOMAIN }}
+          B2_PATH: ${{ secrets.DEMO_B2_JOBS_PATH }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_ACCOUNT_EMAIL: ${{ secrets.CF_ACCOUNT_EMAIL }}
           CF_GLOBAL_API_KEY: ${{ secrets.CF_GLOBAL_API_KEY }}
           CF_KV_NAMESPACE_ID: ${{ secrets.CF_KV_NAMESPACE_JOBS_ID }}
           CF_WORKER_NAME: jobs
-        run: bash ./deploy.sh
+        run: |
+          b2 authorize-account ${{ secrets.CICD_CLI_B2_KEY_ID}} ${{ secrets.CICD_CLI_B2_APPLICATION_KEY }}
+          bash ./deploy.sh

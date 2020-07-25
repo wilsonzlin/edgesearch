@@ -72,7 +72,7 @@ export const deploy = async ({
   accountEmail: string;
   accountId: string;
   globalApiKey: string;
-  kvNamespaceId: string;
+  kvNamespaceId: string | undefined;
   name: string;
   outputDir: string;
   uploadData: boolean;
@@ -87,7 +87,7 @@ export const deploy = async ({
   await publishWorker({auth, name, kvNamespaceId, script, wasm});
   console.log('Worker uploaded');
 
-  if (!uploadData) {
+  if (!kvNamespaceId || !uploadData) {
     console.log(`Not uploading data`);
     return;
   }
@@ -101,7 +101,7 @@ export const deploy = async ({
     console.log(`Uploading documents chunk ${chunkId}...`);
     await uploadKv({
       auth,
-      key: `doc_${chunkId}`,
+      key: `documents/${chunkId}`,
       namespaceId: kvNamespaceId,
       value: await fs.readFile(join(outputDir, 'documents', `${chunkId}`)),
     });
@@ -115,7 +115,7 @@ export const deploy = async ({
     console.log(`Uploading terms chunk ${chunkId}...`);
     await uploadKv({
       auth,
-      key: `terms_${chunkId}`,
+      key: `terms/${chunkId}`,
       namespaceId: kvNamespaceId,
       value: await fs.readFile(join(outputDir, 'terms', `${chunkId}`)),
     });
