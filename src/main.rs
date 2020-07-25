@@ -7,7 +7,7 @@ use edgesearch::build::{build, BuildConfig, DataStore};
 
 #[derive(StructOpt)]
 struct Cli {
-    #[structopt(long, default_value = "10240")] chunk_size: usize,
+    #[structopt(long, default_value = "10485760")] chunk_size: usize,
     #[structopt(long, possible_values = &DataStore::variants(), case_insensitive = true)] data_store: DataStore,
     #[structopt(long)] data_store_url_prefix: Option<String>,
     #[structopt(long, parse(from_os_str))] document_terms: PathBuf,
