@@ -11,30 +11,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '13.x'
+          node-version: '14.x'
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           default: true
+
       - name: Build template worker script
         working-directory: ./script
         run: |
           npm install
           npm run build
+
       - name: Set up Clang and LLVM
         run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+
       - name: Build CLI
         run: cargo build --release
+
       - name: Fetch and build data
         working-directory: ./demo/jobs/data
         run: |
           npm install
           node get-data.js
+
       - name: Build worker
         working-directory: ./demo/jobs/worker
         env:
@@ -43,11 +50,18 @@ jobs:
         run: |
           export PATH="/usr/lib/llvm-10/bin:$PATH"
           bash ./build.sh
+
       - name: Build deployer
         working-directory: ./deployer/cloudflare
         run: |
           npm install
           npm run build
+
+      - name: Install B2 CLI
+        run: |
+          sudo pip install setuptools
+          sudo pip install --upgrade b2
+
       - name: Deploy worker
         working-directory: ./demo/jobs/worker
         env:
