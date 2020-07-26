@@ -28,11 +28,11 @@ bst_chunk_ref_t DOCUMENTS_CHUNKS[] = {
 };
 uint32_t DOCUMENTS_CHUNKS_LEN = ___DOCUMENTS_CHUNKS_LEN___;
 
-int compare_int(int a, int b) {
+static inline int compare_int(int a, int b) {
   return (a > b) - (a < b);
 }
 
-int compare_str_with_len(char* a, uint8_t alen, char* b, uint8_t blen) {
+static inline int compare_str_with_len(char* a, uint8_t alen, char* b, uint8_t blen) {
   uint8_t len = alen < blen ? alen : blen;
   for (int i = 0; i < len; i++) {
     int charcmp = compare_int(a[i], b[i]);
@@ -41,7 +41,7 @@ int compare_str_with_len(char* a, uint8_t alen, char* b, uint8_t blen) {
   return compare_int(alen, blen);
 }
 
-int compare_str_or_uint32(bst_key_t key, str_or_uint32_t a, str_or_uint32_t b) {
+static inline int compare_str_or_uint32(bst_key_t key, str_or_uint32_t a, str_or_uint32_t b) {
   switch (key) {
   case KEY_NUM: return compare_int(a.intval, b.intval);
   case KEY_STR: return compare_str_with_len(a.strval.val, a.strval.len, b.strval.val, b.strval.len);
@@ -53,7 +53,7 @@ typedef struct {
   byte* ptr;
 } chunk_entry_t;
 
-bst_chunk_ref_t* find_chunk(bst_chunk_ref_t chunks[], uint32_t chunks_len, bst_key_t key_type, str_or_uint32_t key) {
+static inline bst_chunk_ref_t* find_chunk(bst_chunk_ref_t chunks[], uint32_t chunks_len, bst_key_t key_type, str_or_uint32_t key) {
   int32_t lo = 0, hi = chunks_len - 1;
   while (true) {
     int32_t dist = hi + 1 - lo;

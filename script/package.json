@@ -1,8 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "clean": "rm -rf dist",
-    "build": "npm run clean && tsc"
+    "build": "tsc"
   },
   "devDependencies": {
     "typescript": "^3.7.2"
