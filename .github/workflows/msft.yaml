@@ -24,17 +24,13 @@ jobs:
           profile: minimal
           default: true
 
-      - name: Build template worker script
-        working-directory: ./script
-        run: |
-          npm install
-          npm run build
-
       - name: Set up Clang and LLVM
         run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
 
       - name: Build CLI
-        run: cargo build --release
+        run: |
+          bash ./prebuild.sh
+          cargo build --release
 
       - name: Fetch and build data
         working-directory: ./demo/work-at-microsoft/data

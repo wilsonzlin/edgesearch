@@ -28,43 +28,50 @@ jobs:
             EXT: ''
     steps:
       - uses: actions/checkout@v1
+
       - name: Get version
         id: version
         shell: bash
         run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+
       - name: Get file name
         id: file
         shell: bash
         run: echo ::set-output name=FILE::${{ steps.version.outputs.VERSION }}-${{ matrix.ARCH }}${{ matrix.EXT }}
+
       - name: Set up Node
         uses: actions/setup-node@v1
         with:
-          node-version: '13.x'
+          node-version: '14.x'
+
       - name: Set up Clang (Windows)
         if: runner.os == 'Windows'
         run: choco install llvm
+
       - name: Set up Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           profile: minimal
           default: true
-      - name: Build worker script template
-        working-directory: ./script
-        run: |
-          npm install
-          npm run build
+
       - name: Build CLI
-        run: cargo build --release
+        shell: bash
+        run: |
+          bash ./prebuild.sh
+          cargo build --release
+
       - name: Install B2 CLI (macOS, Linux)
         if: runner.os != 'Windows'
         run: |
           sudo pip install setuptools
           sudo pip install --upgrade b2
+
       - name: Install B2 CLI (Windows)
         if: runner.os == 'Windows'
         run: |
           pip install --upgrade b2
+
       - name: Upload to B2
         run: |
           b2 authorize-account ${{ secrets.CICD_CLI_B2_KEY_ID }} ${{ secrets.CICD_CLI_B2_APPLICATION_KEY }}

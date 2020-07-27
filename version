@@ -63,6 +63,8 @@ const cmd = (...cfg) => {
 
 const replaceInFile = (path, pattern, replacement) => writeFileSync(path, readFileSync(path, 'utf8').replace(pattern, replacement));
 
+cmd('bash', './prebuild.sh');
+
 if (cmd('git', 'status', '--porcelain', {throwOnStderr: true, captureStdio: true}).stdout) {
   throw new Error('Working directory not clean');
 }
@@ -75,7 +77,6 @@ for (const f of ['README.md']) {
   replaceInFile(f, /(wilsonl\.in\/edgesearch\/bin\/)\d+\.\d+\.\d+/g, `$1${NEW_VERSION}`);
 }
 
-cmd('npm', 'run',  'build', {workingDir: join(__dirname, 'script')});
 cmd('cargo', 'generate-lockfile');
 cmd('git', 'add', '-A');
 cmd('git', 'commit', '-m', NEW_VERSION);
