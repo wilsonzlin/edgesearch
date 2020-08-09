@@ -1,7 +1,7 @@
 {
   "private": true,
   "dependencies": {
-    "@wzlin/jobs": "0.0.10",
+    "@wzlin/jobs": "0.0.11",
     "mkdirp": "^1.0.4"
   }
 }
