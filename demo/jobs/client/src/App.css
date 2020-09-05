@@ -8,6 +8,19 @@
   padding: 1rem;
 }
 
+.Form label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.Form input {
+  border: 1px solid #ccc;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  display: block;
+  width: 100%;
+}
+
 .LoadingText {
   font-size: 0.875rem;
   color: #333;

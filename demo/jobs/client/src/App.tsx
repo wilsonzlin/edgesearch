@@ -87,10 +87,22 @@ export class App {
   [ViewTemplate] = (
     <div className={styles.App}>
       <form className={styles.Form} onSubmit={this.formSubmitHandler}>
-        <input name="company" placeholder="Company"/>
-        <input name="title" placeholder="Title"/>
-        <input name="location" placeholder="Location"/>
-        <input name="description" placeholder="Description"/>
+        <label>
+          <span>Company</span>
+          <input name="company"/>
+        </label>
+        <label>
+          <span>Title</span>
+          <input name="title"/>
+        </label>
+        <label>
+          <span>Location</span>
+          <input name="location"/>
+        </label>
+        <label>
+          <span>Description</span>
+          <input name="description"/>
+        </label>
         <button type="submit">Search</button>
       </form>
       <p className={styles.LoadingText}>{this.loading ? 'Searching...' : ''}</p>
