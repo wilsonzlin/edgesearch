@@ -42,12 +42,10 @@ class Result {
       </div>
       <p className={styles.ResultDescription} hidden={this.expanded}>{this.preview}</p>
       <p className={styles.ResultDescription} hidden={!this.expanded}>{this.description}</p>
-      {this.description && (
-        <div className={styles.ResultButtonContainer}>
-          <button hidden={this.expanded} onClick={this.expandButtonClickHandler}>More</button>
-          <button hidden={!this.expanded} onClick={this.collapseButtonClickHandler}>Less</button>
-        </div>
-      )}
+      <div className={styles.ResultButtonContainer} hidden={!this.description}>
+        <button hidden={this.expanded} onClick={this.expandButtonClickHandler}>More</button>
+        <button hidden={!this.expanded} onClick={this.collapseButtonClickHandler}>Less</button>
+      </div>
     </div>
   );
 }
