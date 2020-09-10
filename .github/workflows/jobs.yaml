@@ -44,7 +44,7 @@ jobs:
           B2_DOMAIN: ${{ secrets.DEMO_B2_DOMAIN }}
           B2_PATH: ${{ secrets.DEMO_B2_JOBS_PATH }}
         run: |
-          export PATH="/usr/lib/llvm-10/bin:$PATH"
+          export PATH="/usr/lib/llvm-*/bin:$PATH"
           bash ./build.sh
 
       - name: Build deployer
