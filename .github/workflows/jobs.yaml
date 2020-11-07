@@ -53,10 +53,15 @@ jobs:
           npm install
           npm run build
 
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+
       - name: Install B2 CLI
         run: |
-          sudo pip install setuptools
-          sudo pip install --upgrade b2
+          sudo python -m pip install setuptools
+          sudo python -m pip install --upgrade b2
 
       - name: Deploy worker
         working-directory: ./demo/jobs/worker
