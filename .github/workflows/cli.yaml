@@ -62,7 +62,7 @@ jobs:
           cargo build --release
 
       - name: Set up Backblaze B2 CLI
-        uses: wilsonzlin/setup-b2@v1
+        uses: wilsonzlin/setup-b2@v2
 
       - name: Upload to B2
         run: |
