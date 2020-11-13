@@ -54,7 +54,7 @@ jobs:
           npm run build
 
       - name: Set up Backblaze B2 CLI
-        uses: wilsonzlin/setup-b2@v2
+        uses: wilsonzlin/setup-b2@v3
 
       - name: Deploy worker
         working-directory: ./demo/jobs/worker
