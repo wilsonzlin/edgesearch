@@ -63,12 +63,12 @@ jobs:
 
       - if: runner.os == 'Linux'
         run: |
-          wget -O /usr/bin/b2 'https://f000.backblazeb2.com/file/backblazefiles/b2/cli/linux/b2'
-          chmod +x /usr/bin/b2
+          sudo wget -O /usr/bin/b2 'https://f000.backblazeb2.com/file/backblazefiles/b2/cli/linux/b2'
+          sudo chmod +x /usr/bin/b2
       - if: runner.os == 'macOS'
         run: |
-          wget -O /usr/local/bin/b2 'https://f000.backblazeb2.com/file/backblazefiles/b2/cli/osx/b2'
-          chmod +x /usr/local/bin/b2
+          sudo wget -O /usr/local/bin/b2 'https://f000.backblazeb2.com/file/backblazefiles/b2/cli/osx/b2'
+          sudo chmod +x /usr/local/bin/b2
       - if: runner.os == 'Windows'
         run: |
           Invoke-WebRequest -OutFile C:\Windows\system32\b2.exe 'https://f000.backblazeb2.com/file/backblazefiles/b2/cli/windows/b2.exe'
