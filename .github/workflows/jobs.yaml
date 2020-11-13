@@ -53,15 +53,8 @@ jobs:
           npm install
           npm run build
 
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-          architecture: 'x64'
-
-      - name: Install B2 CLI
-        run: |
-          sudo python -m pip install setuptools
-          sudo python -m pip install --upgrade b2
+      - name: Set up Backblaze B2 CLI
+        uses: wilsonzlin/setup-b2@v1
 
       - name: Deploy worker
         working-directory: ./demo/jobs/worker
