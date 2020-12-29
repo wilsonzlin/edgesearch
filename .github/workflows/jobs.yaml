@@ -36,7 +36,7 @@ jobs:
         working-directory: ./demo/jobs/data
         run: |
           npm install
-          node get-data.js
+          node --max-old-space-size=6144 get-data.js
 
       - name: Build worker
         working-directory: ./demo/jobs/worker

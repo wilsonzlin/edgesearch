@@ -75,10 +75,10 @@ Precompiled binaries are available for x86-64:
 
 The data needs to be formatted into two files:
 
-- *Documents*: contents of all documents, delimited by NULL ('\0'), including at the end.
-- *Document terms*: terms for each corresponding document. Each term and document must end with NULL ('\0').
+- *Documents*: contents of all documents, delimited by NULL (ASCII 0), including at the end.
+- *Document terms*: terms for each corresponding document. Each term and document must end with NULL (ASCII 0).
 
-This format allows for simple reading and writing without libraries, parsers, or loading data into memory.
+This format allows for simple reading and writing without libraries, parsers, or loading all the data into memory.
 Terms are separate from documents for easy switching between or testing of different documents-terms mappings.
 
 The relation between a document's terms and content is irrelevant to Edgesearch and terms do not necessarily have to be words from the document.
@@ -89,15 +89,15 @@ For example:
 
 |File|Contents|
 |---|---|
-|documents.txt|`{"title":"Stupid Love","artist":"Lady Gaga","year":2020}` `\0` <br> `{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}` `\0` <br> ...|
-|document-terms.txt|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
+|documents|`{"title":"Stupid Love","artist":"Lady Gaga","year":2020}` `\0` <br> `{"title":"Don't Start Now","artist":"Dua Lipa","year":2020}` `\0` <br> ...|
+|document-terms|`title_stupid` `\0` `title_love` `\0` `artist_lady` `\0` `artist_gaga` `\0` `year_2020` `\0` `\0` <br> `title_dont` `\0` `title_start` `\0` `title_now` `\0` `artist_dua` `\0` `artist_lipa` `\0` `year_2020` `\0` `\0` <br> ...|
 
 An folder needs to be provided for Edgesearch to write temporary and built code and data files. It's advised to provide a folder for the exclusive use of Edgesearch with no other contents.
 
 ```bash
 edgesearch \
-  --documents documents.txt \
-  --document-terms document-terms.txt \
+  --documents documents \
+  --document-terms document-terms \
   --maximum-query-results 20 \
   --output-dir dist/worker/
 ```
