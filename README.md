@@ -21,7 +21,7 @@ Edgesearch builds a reverse index by mapping terms to a compressed bit set (usin
 
 An array of term-documents pairs sorted by term is built, where *term* is a string and *documents* is a compressed bit set.
 
-This array is then split into chunks of up to 10 MiB, as each Cloudflare Workers KV entry can hold a value up to 10 MiB in size.
+This array is then split into chunks of up to 25 MiB, as each Cloudflare Workers KV entry can hold a value up to 25 MiB in size.
 
 To find the documents bit set associated with a term, a binary search is done to find the appropriate chunk, and then the pair within the chunk.
 
@@ -99,7 +99,7 @@ edgesearch \
   --documents documents \
   --document-terms document-terms \
   --maximum-query-results 20 \
-  --output-dir dist/worker/
+  --output-dir /path/to/edgesearch/build/output/dir/
 ```
 
 ### Deploy the worker
@@ -114,14 +114,14 @@ npx edgesearch-deploy-cloudflare \
   --account-email me@email.com \
   --global-api-key CF_GLOBAL_API_KEY \
   --name my-edgesearch \
-  --output-dir dist/worker/ \
+  --output-dir /path/to/edgesearch/build/output/dir/ \
   --namespace CF_KV_NAMESPACE_ID \
   --upload-data
 ```
 
 ### Testing locally
 
-[edgesearch-test-server](./tester) loads a built worker script and WASM binary to run locally.
+[edgesearch-test-server](./tester) loads a built worker to run locally.
 
 This will create a local server on port 8080:
 
