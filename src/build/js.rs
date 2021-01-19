@@ -3,9 +3,9 @@ use std::io::Write;
 use std::path::PathBuf;
 use crate::build::DataStore;
 
-const WORKER_JS_MAIN_TEMPLATE: &'static str = include_str!("../script/dist/main.js");
-const WORKER_JS_DATA_SOURCE_KV: &'static str = include_str!("../script/dist/datastore/kv.js");
-const WORKER_JS_DATA_SOURCE_URL: &'static str = include_str!("../script/dist/datastore/url.js");
+const WORKER_JS_MAIN_TEMPLATE: &'static str = include_str!("../../script/dist/main.js");
+const WORKER_JS_DATA_SOURCE_KV: &'static str = include_str!("../../script/dist/datastore/kv.js");
+const WORKER_JS_DATA_SOURCE_URL: &'static str = include_str!("../../script/dist/datastore/url.js");
 
 pub fn generate_worker_js(
     output_dir: &PathBuf,
