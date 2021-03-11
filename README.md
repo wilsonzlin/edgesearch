@@ -65,6 +65,8 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 
 ### Get the CLI
 
+LLVM 8 or higher is required to use the CLI for building the worker.
+
 Precompiled binaries are available for x86-64:
 
 [Linux](https://wilsonl.in/edgesearch/bin/0.4.1-linux-x86_64) |

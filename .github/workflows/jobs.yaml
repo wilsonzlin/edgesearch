@@ -25,7 +25,9 @@ jobs:
           default: true
 
       - name: Set up Clang and LLVM
-        run: sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)"
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          sudo bash ./llvm.sh 11
 
       - name: Build CLI
         run: |
