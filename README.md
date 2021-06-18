@@ -73,6 +73,17 @@ Precompiled binaries are available for x86-64:
 [macOS](https://wilsonl.in/edgesearch/bin/0.4.1-macos-x86_64) |
 [Windows](https://wilsonl.in/edgesearch/bin/0.4.1-windows-x86_64.exe)
 
+#### Optional: Build the CLI
+
+> Compiling requires [Cargo](https://doc.rust-lang.org/cargo/getting-started/) (which is bundled with [Rust](https://www.rust-lang.org))
+
+```sh
+bash ./prebuild.sh
+cargo build --release
+```
+
+The binary is then available at `./target/release/edgesearch`
+
 ### Build the worker
 
 The data needs to be formatted into two files:
