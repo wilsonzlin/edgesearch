@@ -1,12 +1,11 @@
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::Write;
-use std::path::PathBuf;
-
 use lazy_static::lazy_static;
 use parquet::file::reader::{FileReader, SerializedFileReader};
 use parquet::record::RowAccessor;
 use regex::Regex;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use structopt::StructOpt;
 
 // Use this program with monthly article page views data from https://dumps.wikimedia.org/other/pageview_complete/.
