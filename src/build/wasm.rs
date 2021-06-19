@@ -119,7 +119,15 @@ pub fn generate_and_compile_runner_wasm(
     let mut source_file = File::create(&source_path).expect("open runner.c for writing");
     source_file.write_all(RUNNER_C_SYS.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_ROARING.as_bytes()).expect("write runner.c");
-    source_file.write_all(RUNNER_C_INDEX.as_bytes()).expect("write runner.c");
+    let runner_c_index = if cfg!(feature = "nonportable") {
+        RUNNER_C_INDEX.replace(
+            "roaring_bitmap_portable_deserialize",
+            "roaring_bitmap_deserialize",
+        )
+    } else {
+        RUNNER_C_INDEX.to_string()
+    };
+    source_file.write_all(runner_c_index.as_bytes()).expect("write runner.c");
     source_file.write_all(RUNNER_C_CHUNKS
         .replace("___NORMAL_TERMS_CHUNKS___", terms_chunks_raw)
         .replace("___NORMAL_TERMS_CHUNKS_LEN___", format!("{}", terms_chunks_len).as_str())

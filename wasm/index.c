@@ -14,16 +14,16 @@ WASM_EXPORT void reset(void) {
 
 typedef struct {
   uint32_t first_rank;
-  // This is a flattened form of (size_t, byte*)[][].
+  // This is a flattened form of char const*[][].
   // There's a subarray for each mode, and they are ordered according to their numeric value (see mode_t).
-  // Each mode contains array lengths followed by pointers to byte arrays containing serialised Roaring Bitmaps representing a term.
+  // Each mode contains pointers to byte arrays containing serialised Roaring Bitmaps representing a term.
   // Each mode is terminated by NULL.
   // For example: `{
-  //   200, &bitmapForHello, 100, &bitmapForWorld, NULL,
-  //   60, &bitmapForThe, 130, &bitmapForQuick, 140, &bitmapForFox, NULL,
-  //   5, &bitmapForAstronaut, NULL,
+  //   &bitmapForHello, &bitmapForWorld, NULL,
+  //   &bitmapForThe, &bitmapForQuick, &bitmapForFox, NULL,
+  //   &bitmapForAstronaut, NULL,
   // }`.
-  uint32_t serialised[MAX_QUERY_TERMS * 2 + 3];
+  char const* serialised[MAX_QUERY_TERMS + 3];
 } index_query_t;
 
 // Result of a query executed within WASM.
@@ -51,19 +51,25 @@ WASM_EXPORT index_query_t* index_query_malloc(void) {
 // `mode_query_data` should point to `index_query_t->serialised`, and `mode_query_data_next` should be the next offset to process.
 // `deserialised_holding` must be provided as a scratch space so that pointers to deserialised bitmaps (which are allocated on the heap) can be stored somewhere temporarily.
 // The deserialised bitmaps are then combined using OR on the heap and the pointer to it will be returned. If there are no bitmaps to combine, NULL is returned instead.
-inline roaring_bitmap_t* index_deserialise_and_combine(roaring_bitmap_t** deserialised_holding, uint32_t* mode_query_data, size_t* mode_query_data_next) {
+inline roaring_bitmap_t* index_deserialise_and_combine(
+  roaring_bitmap_t** deserialised_holding,
+  char const** mode_query_data,
+  size_t* mode_query_data_next
+) {
   size_t bitmaps_to_combine_count = 0;
   while (mode_query_data[*mode_query_data_next]) {
-    size_t serialised_size = mode_query_data[*mode_query_data_next];
-    char const* serialised = (char const*) mode_query_data[*mode_query_data_next + 1];
-    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize_safe(serialised, serialised_size);
+    char const* serialised = mode_query_data[*mode_query_data_next];
+    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(serialised);
     deserialised_holding[bitmaps_to_combine_count] = bitmap;
     bitmaps_to_combine_count++;
-    *mode_query_data_next += 2;
+    (*mode_query_data_next)++;
   }
   (*mode_query_data_next)++;
   if (bitmaps_to_combine_count) {
-    roaring_bitmap_t* combined = roaring_bitmap_or_many(bitmaps_to_combine_count, (roaring_bitmap_t const**) deserialised_holding);
+    roaring_bitmap_t* combined = roaring_bitmap_or_many(
+      bitmaps_to_combine_count,
+      (roaring_bitmap_t const**) deserialised_holding
+    );
     return combined;
   }
   return NULL;
@@ -77,12 +83,11 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
 
   // REQUIRE.
   while (query->serialised[i]) {
-    size_t serialised_size = query->serialised[i];
-    char const* serialised = (char const*) query->serialised[i + 1];
-    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize_safe(serialised, serialised_size);
+    char const* serialised = (char const*) query->serialised[i];
+    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(serialised);
     if (result_bitmap == NULL) result_bitmap = bitmap;
     else roaring_bitmap_and_inplace(result_bitmap, bitmap);
-    i += 2;
+    i++;
   }
   i++;
 

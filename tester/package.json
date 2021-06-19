@@ -1,7 +1,8 @@
 {
   "name": "edgesearch-test-server",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "main": "./server.js",
+  "bin": "edgesearch-test-server",
   "dependencies": {
     "express": "^4.17.1",
     "minimist": "^1.2.0"

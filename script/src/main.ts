@@ -406,16 +406,14 @@ const buildIndexQuery = async (firstRank: number, modeTermBitmaps: ArrayBuffer[]
   const bitmapCount = modeTermBitmaps.reduce((count, modeTerms) => count + modeTerms.length, 0);
 
   // Synchronise with index_query_t.
-  const input = new MemoryWalker(new ArrayBuffer(4 + (bitmapCount * 2 + 3) * 4));
+  const input = new MemoryWalker(new ArrayBuffer(4 + (bitmapCount + 3) * 4));
   input.writeUInt32LE(firstRank);
   for (const mode of modeTermBitmaps) {
     for (const bitmap of mode) {
       const ptr = queryRunner.malloc(bitmap.byteLength);
       queryRunnerMemory.forkAndJump(ptr).writeAll(new Uint8Array(bitmap));
       // WASM is LE.
-      input
-        .writeUInt32LE(bitmap.byteLength)
-        .writeUInt32LE(ptr);
+      input.writeUInt32LE(ptr);
     }
     input.writeUInt32LE(0);
   }

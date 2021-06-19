@@ -1,12 +1,15 @@
-use lazy_static::lazy_static;
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use std::path::PathBuf;
+
+use lazy_static::lazy_static;
+use parquet::file::reader::{FileReader, SerializedFileReader};
+use parquet::record::RowAccessor;
+use regex::Regex;
 use structopt::StructOpt;
 
-// Use this program with monthly article page views data from https://dumps.wikimedia.org/other/pagecounts-ez/.
+// Use this program with monthly article page views data from https://dumps.wikimedia.org/other/pageview_complete/.
 
 #[derive(StructOpt)]
 struct Cli {
@@ -17,9 +20,11 @@ struct Cli {
 }
 
 lazy_static! {
-    static ref LINE_REGEX: Regex = Regex::new(r"^en\.(?:m\.)?z (?P<title>[^ ]+) (?P<count>[0-9]+)$").unwrap();
+    static ref PAGE_ID_REGEX: Regex = Regex::new(r"^(?:[0-9]+|null)").unwrap();
     static ref TERMS_REGEX: Regex = Regex::new(r"[a-zA-Z0-9]+").unwrap();
 }
+
+const LINE_PREFIX: &'static str = "en.wikipedia";
 
 
 fn main() {
@@ -29,17 +34,21 @@ fn main() {
     } = Cli::from_args();
 
     let mut titles = HashMap::<String, usize>::new();
-    let reader = BufReader::new(File::open(data_file).expect("read data file"));
+    let reader = SerializedFileReader::new(File::open(data_file).expect("open data file")).expect("read data file");
 
-    for line in reader.lines() {
-        let line = line.expect("read data file line");
-        let matches = match LINE_REGEX.captures(&line) {
-            Some(matches) => matches,
-            None => continue,
+    for r in reader.get_row_iter(None).expect("get row iterator") {
+        let line = r.get_string(0).expect("get single string column");
+        let mut parts = line.split(' ');
+        if parts.next().expect("row has no wiki code") != LINE_PREFIX {
+            continue;
         };
-        let title = &matches["title"];
-        let count = &matches["count"];
-        *titles.entry(title.to_string()).or_insert(0) += str::parse::<usize>(count).unwrap();
+        let title = parts.next().expect("row has no title");
+        parts.next().filter(|id| PAGE_ID_REGEX.is_match(id)).expect("row has no page ID");
+        parts.next().expect("row has no device type");
+        let count = parts.next().and_then(|c| c.parse::<usize>().ok()).expect("row has no count");
+        parts.next().expect("row has no hourly metrics");
+        if parts.next().is_some() { panic!("row has extraneous components"); };
+        *titles.entry(title.to_string()).or_insert(0) += count;
     };
     println!("Read complete");
 

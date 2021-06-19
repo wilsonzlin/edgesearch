@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use clap::arg_enum;
-use croaring::Bitmap;
+use bitmap::bitmap::Bitmap;
 
 use crate::{Term, TermId};
 use crate::build::chunks::{ChunkStrKey, ChunkU32Key};
@@ -20,6 +20,7 @@ use crate::util::log::status_log_interval;
 mod js;
 mod chunks;
 mod wasm;
+mod bitmap;
 
 arg_enum! {
     pub enum DataStore {
