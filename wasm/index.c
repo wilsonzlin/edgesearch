@@ -57,34 +57,30 @@ inline roaring_bitmap_t* index_deserialise_and_combine(
   size_t* mode_query_data_next
 ) {
   size_t bitmaps_to_combine_count = 0;
-  while (mode_query_data[*mode_query_data_next]) {
-    char const* serialised = mode_query_data[*mode_query_data_next];
-    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(serialised);
-    deserialised_holding[bitmaps_to_combine_count] = bitmap;
+  char const* serialised;
+  while ((serialised = mode_query_data[*mode_query_data_next])) {
+    deserialised_holding[bitmaps_to_combine_count] = roaring_bitmap_portable_deserialize(serialised);
     bitmaps_to_combine_count++;
     (*mode_query_data_next)++;
   }
   (*mode_query_data_next)++;
-  if (bitmaps_to_combine_count) {
-    roaring_bitmap_t* combined = roaring_bitmap_or_many(
-      bitmaps_to_combine_count,
-      (roaring_bitmap_t const**) deserialised_holding
-    );
-    return combined;
+  if (!bitmaps_to_combine_count) {
+    return NULL;
   }
-  return NULL;
+  return roaring_bitmap_or_many(
+    bitmaps_to_combine_count,
+    (roaring_bitmap_t const**) deserialised_holding
+  );
 }
 
 // Function to be called from JS that executes a query. May return NULL if an error occurred.
 WASM_EXPORT results_t* index_query(index_query_t* query) {
-  // Portable deserialisation method is used as the source code for croaring-rs seems to use the portable serialisation method.
   roaring_bitmap_t* result_bitmap = NULL;
   size_t i = 0;
 
   // REQUIRE.
   while (query->serialised[i]) {
-    char const* serialised = (char const*) query->serialised[i];
-    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(serialised);
+    roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(query->serialised[i]);
     if (result_bitmap == NULL) result_bitmap = bitmap;
     else roaring_bitmap_and_inplace(result_bitmap, bitmap);
     i++;
