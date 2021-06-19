@@ -98,6 +98,7 @@ A folder needs to be provided for Edgesearch to write temporary and built code a
 
 ```bash
 edgesearch \
+  --data-store kv \
   --documents documents \
   --document-terms document-terms \
   --maximum-query-results 20 \
