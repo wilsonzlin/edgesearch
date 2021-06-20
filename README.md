@@ -65,7 +65,7 @@ The [C implementation](https://github.com/RoaringBitmap/CRoaring) of Roaring Bit
 
 ### Get the CLI
 
-LLVM 8 or higher is required to use the CLI for building the worker.
+LLVM 9 or higher is required to use the CLI for building the worker.
 
 Precompiled binaries are available for x86-64:
 
@@ -73,16 +73,18 @@ Precompiled binaries are available for x86-64:
 [macOS](https://wilsonl.in/edgesearch/bin/0.4.1-macos-x86_64) |
 [Windows](https://wilsonl.in/edgesearch/bin/0.4.1-windows-x86_64.exe)
 
-#### Optional: Build the CLI
+<details>
+<summary><strong>Build CLI from source</strong></summary>
 
-> Compiling requires [Cargo](https://doc.rust-lang.org/cargo/getting-started/) (which is bundled with [Rust](https://www.rust-lang.org))
+[Rust](https://www.rust-lang.org) must be installed.
 
 ```sh
 bash ./prebuild.sh
 cargo build --release
 ```
 
-The binary is then available at `./target/release/edgesearch`
+The CLI will be available at `./target/release/edgesearch`.
+</details>
 
 ### Build the worker
 
