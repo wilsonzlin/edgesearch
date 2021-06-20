@@ -79,6 +79,7 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
   size_t i = 0;
 
   // REQUIRE.
+  printf("Processing REQUIRE terms...\n");
   while (query->serialised[i]) {
     roaring_bitmap_t* bitmap = roaring_bitmap_portable_deserialize(query->serialised[i]);
     if (result_bitmap == NULL) result_bitmap = bitmap;
@@ -89,6 +90,7 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
 
   // CONTAIN.
   // Repurpose query data array for storing pointers to deserialised bitmaps.
+  printf("Processing CONTAIN terms at %zu...\n", i);
   roaring_bitmap_t* contain_bitmaps_combined = index_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
   if (contain_bitmaps_combined != NULL) {
     if (result_bitmap == NULL) result_bitmap = contain_bitmaps_combined;
@@ -97,6 +99,7 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
 
   // EXCLUDE.
   // Repurpose query data array for storing pointers to deserialised bitmaps.
+  printf("Processing EXCLUDE terms at %zu...\n", i);
   roaring_bitmap_t* exclude_bitmaps_combined = index_deserialise_and_combine((roaring_bitmap_t**) &query->serialised[i], query->serialised, &i);
   if (exclude_bitmaps_combined != NULL) {
     if (result_bitmap == NULL) result_bitmap = exclude_bitmaps_combined;
@@ -104,6 +107,7 @@ WASM_EXPORT results_t* index_query(index_query_t* query) {
   }
 
   if (result_bitmap == NULL) {
+    printf("NULL result bitmap\n");
     return NULL;
   }
 

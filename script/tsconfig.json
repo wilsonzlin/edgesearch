@@ -12,6 +12,7 @@
       "webworker"
     ],
     "module": "commonjs",
+    "noEmit": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": true,
     "noImplicitReturns": true,

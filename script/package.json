@@ -1,9 +1,16 @@
 {
   "private": true,
   "scripts": {
-    "build": "tsc"
+    "build": "esbuild src/main.ts --bundle --minify --platform=node --outfile=dist/main.js",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "dependencies": {
+    "extlib": "^0.15.3",
+    "wasm-sys": "^0.1.0"
   },
   "devDependencies": {
+    "esbuild": "^0.12.9",
+    "prettier": "^2.3.1",
     "typescript": "^3.7.2"
   }
 }

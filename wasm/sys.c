@@ -159,16 +159,5 @@ typedef uint8_t FILE;
 FILE stderr_fileno = 2;
 FILE* stderr = &stderr_fileno;
 
-int printf(char const* format, ...) {
-  _wasm_import_log(&format);
-  return 0;
-}
-
-int fprintf(FILE* stream, char const* format, ...) {
-  if (stream != stderr) {
-    _wasm_import_log(&format);
-  } else {
-    _wasm_import_error(&format);
-  }
-  return 0;
-}
+int printf(char const* fmt, ...);
+int fprintf(FILE* stream, char const* fmt, ...);
