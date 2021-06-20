@@ -1,4 +1,6 @@
 // Inspired by https://github.com/saulius/croaring-rs/blob/master/croaring/src/bitmap/imp.rs.
+// TODO This does not seem to be correct. We need to run croaring via WASM in Node.js, as otherwise serialisation is not fully identical and occasional segfaults occur.
+
 use std::convert::TryInto;
 
 pub struct Bitmap {

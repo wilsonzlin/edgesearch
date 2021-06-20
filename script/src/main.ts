@@ -2,6 +2,12 @@ import decodeUtf8 from "extlib/js/decodeUtf8";
 import encodeUtf8 from "extlib/js/encodeUtf8";
 import exists from "extlib/js/exists";
 import { formatFromVarargs, MemoryWalker } from "wasm-sys";
+import {
+  CORS_HEADERS,
+  responseError,
+  responseNoResults,
+  responsePreflight,
+} from "./http";
 
 // Set by Cloudflare to the WebAssembly module that was uploaded alongside this script.
 declare var QUERY_RUNNER_WASM: WebAssembly.Module;
@@ -91,38 +97,6 @@ const queryRunner = wasmInstance.exports as {
 };
 
 const queryRunnerMemory = new MemoryWalker(wasmMemory.buffer);
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
-
-const responsePreflight = () =>
-  new Response(null, {
-    headers: CORS_HEADERS,
-  });
-
-const responseError = (error: string, status: number = 400) =>
-  new Response(JSON.stringify({ error }), {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      ...CORS_HEADERS,
-    },
-  });
-
-const responseRawJson = (json: string, status = 200) =>
-  new Response(json, {
-    status,
-    headers: {
-      "Content-Type": "application/json",
-      ...CORS_HEADERS,
-    },
-  });
-
-const responseNoResults = () =>
-  responseRawJson(`{"results":[],"continuation":null,"total":0}`);
 
 const allocateKey = (key: string | number) => {
   if (typeof key == "string") {
