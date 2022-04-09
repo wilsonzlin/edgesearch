@@ -1,8 +1,6 @@
 name: Update and deploy Jobs demo
 
 on:
-  schedule:
-    - cron: '0 */12 * * *'
   repository_dispatch:
     types: [jobs-deploy]
 
